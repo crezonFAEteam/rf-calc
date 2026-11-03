@@ -1,5 +1,5 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
-<title>RF 계측 계산기</title>
+<title>RF 계측 계산�?/title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <style>
 :root{
@@ -35,7 +35,7 @@
 *{box-sizing:border-box}
 body{
   background:var(--ground); color:var(--ink);
-  font-family:"IBM Plex Sans","Malgun Gothic","맑은 고딕",system-ui,sans-serif;
+  font-family:"IBM Plex Sans","Malgun Gothic","맑�? 고딕",system-ui,sans-serif;
   font-size:15px; line-height:1.55; margin:0;
   padding-block:26px 64px; padding-left:16px; padding-right:16px;
 }
@@ -59,8 +59,9 @@ nav.tabs button[aria-selected="true"]{color:var(--accent);border-bottom-color:va
 nav.tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 
 /* panel grid */
-.cols{display:grid;grid-template-columns:minmax(240px,300px) 1fr;gap:16px;align-items:start}
-@media (max-width:760px){.cols{grid-template-columns:1fr}}
+/* minmax(0,?? ?�어???��? ?�·계?�식???�을 밀?�내지 ?�고 ?�에??가�??�크롤된??*/
+.cols{display:grid;grid-template-columns:minmax(240px,300px) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:760px){.cols{grid-template-columns:minmax(0,1fr)}}
 
 .card{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:14px 15px;display:flex;flex-direction:column;gap:12px}
 .card h2{font-size:12px;font-family:"IBM Plex Sans Condensed","IBM Plex Sans",sans-serif;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-soft);margin:0}
@@ -74,7 +75,8 @@ nav.tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:-2p
 }
 .field input[type=number]{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
 .field select:focus-visible,.field input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.field input[type=checkbox]{width:auto;margin:0;flex:none}
 
 /* result */
 .out{background:var(--surface);border:1px solid var(--line);border-radius:4px;overflow:hidden}
@@ -107,12 +109,15 @@ code{font-family:"IBM Plex Mono",monospace;font-size:.9em;background:var(--surfa
 .p-crit{background:var(--crit-soft);color:var(--crit);border-color:var(--crit)}
 .p-acc{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
 
-.note{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:0 3px 3px 0;padding:11px 13px;font-size:13px;color:var(--ink-mid);display:flex;flex-direction:column;gap:5px}
+/* 문장 ??<b>·<code> ??줄을 ?��? ?�고, <span> �???줄씩 */
+.note{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:0 3px 3px 0;padding:11px 13px;font-size:13px;color:var(--ink-mid);display:block}
+.note > span{display:block}
+.note > b + span,.note > span + span{margin-top:5px}
 .note.w{border-left-color:var(--warn)}
 .note b{color:var(--ink)}
 footer{border-top:1px solid var(--line);padding-top:12px;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-soft)}
 [hidden]{display:none!important}
-/* --- PHR 비트맵 --- */
+/* --- PHR 비트�?--- */
 .phrctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:10px;padding:11px 12px;border-bottom:1px solid var(--line);background:var(--surface-3)}
 #mc-phr-tbl td{text-align:center;padding:5px 3px}
 #mc-phr-tbl td.bidx{font-size:10px;color:var(--ink-soft);background:var(--surface-2)}
@@ -126,7 +131,7 @@ footer{border-top:1px solid var(--line);padding-top:12px;font-family:"IBM Plex M
 .f-f{background:var(--surface-2);color:var(--ink-mid)}
 #mc-phr-note b{font-family:"IBM Plex Mono",monospace;letter-spacing:.08em}
 td.grpr{background:var(--surface-2);font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-soft)}
-/* --- Low/Center/High 채널 표 --- */
+/* --- Low/Center/High 채널 ??--- */
 table.lch th.bwh{text-align:center;border-left:2px solid var(--line);background:var(--accent-soft);color:var(--accent)}
 table.lch th.ctrh{color:var(--accent)}
 table.lch td{padding:5px 9px;font-size:12.5px}
@@ -137,8 +142,17 @@ table.lch td.ctr{font-weight:700;color:var(--accent)}
 table.lch td.e{background:var(--surface-3)}
 table.lch td.e:first-of-type{border-left:2px solid var(--line-soft)}
 table.lch thead th{white-space:nowrap}
+/* ?��? ?�으�??�겨??�???채널·MCS 번호)?� 고정 */
+table.lch tbody td:first-child,table.lch thead tr:first-child th:first-child{position:sticky;left:0;z-index:1;background:var(--surface-2)}
+table.lch thead tr:first-child th:first-child{z-index:3}
 
-/* --- 웨이브폼 파일 탭 --- */
+/* ?��???*/
+@media (max-width:760px){
+  .tblwrap{max-height:none}                                   /* ?????�로 ?�크�??�???�이지 ?�크�?*/
+  .field select,.field input,.cmpsel select{font-size:16px}   /* 16px 미만?�면 iOS 가 ?�력 ???��? */
+}
+
+/* --- ?�이브폼 ?�일 ??--- */
 .drop{border:2px dashed var(--line);border-radius:5px;background:var(--surface-2);padding:22px 16px;text-align:center;color:var(--ink-mid);font-size:13px;cursor:pointer;display:block}
 .drop:hover,.drop.on{border-color:var(--accent);background:var(--accent-soft);color:var(--ink)}
 .drop b{display:block;font-size:15px;color:var(--ink);margin-bottom:4px}
@@ -187,25 +201,25 @@ table#wf-list tbody tr.sel td{background:var(--accent-soft)}
 
   <header class="mast">
     <div class="kicker">WLAN · BT · BLE · Zigbee</div>
-    <h1>RF 계측 계산기</h1>
-    <p class="dek">채널–주파수 표, PPDU 길이에서 캡처 길이·샘플링 레이트 산출, PAR 기반 기준 레벨 계산. 802.11 a/b/g/n/ac/ax/be 와 BT / BLE / Zigbee.</p>
+    <h1>RF 계측 계산�?/h1>
+    <p class="dek">채널?�주?�수 ?? PPDU 길이?�서 캡처 길이·?�플�??�이???�출, PAR 기반 기�? ?�벨 계산. 802.11 a/b/g/n/ac/ax/be ?� BT / BLE / Zigbee.</p>
   </header>
 
   <nav class="tabs" role="tablist">
-    <button role="tab" id="t-ch"  aria-selected="true"  aria-controls="p-ch">채널 표</button>
-    <button role="tab" id="t-mcs" aria-selected="false" aria-controls="p-mcs">MCS 레이트</button>
-    <button role="tab" id="t-cap" aria-selected="false" aria-controls="p-cap">캡처 길이 · 샘플링</button>
-    <button role="tab" id="t-par" aria-selected="false" aria-controls="p-par">PAR · 기준 레벨</button>
-    <button role="tab" id="t-wf" aria-selected="false" aria-controls="p-wf">웨이브폼 파일</button>
+    <button role="tab" id="t-ch"  aria-selected="true"  aria-controls="p-ch">채널 ??/button>
+    <button role="tab" id="t-mcs" aria-selected="false" aria-controls="p-mcs">MCS ?�이??/button>
+    <button role="tab" id="t-cap" aria-selected="false" aria-controls="p-cap">캡처 길이 · ?�플�?/button>
+    <button role="tab" id="t-par" aria-selected="false" aria-controls="p-par">PAR · 기�? ?�벨</button>
+    <button role="tab" id="t-wf" aria-selected="false" aria-controls="p-wf">?�이브폼 ?�일</button>
   </nav>
 
-  <!-- ==================== 채널 표 ==================== -->
+  <!-- ==================== 채널 ??==================== -->
   <div id="p-ch" role="tabpanel" aria-labelledby="t-ch">
     <div class="cols">
       <div class="card">
-        <h2>대역</h2>
+        <h2>?�??/h2>
         <div class="field">
-          <label for="ch-band">규격 / 대역</label>
+          <label for="ch-band">규격 / ?�??/label>
           <select id="ch-band">
             <option value="24">WLAN 2.4 GHz</option>
             <option value="5" selected>WLAN 5 GHz</option>
@@ -217,23 +231,23 @@ table#wf-list tbody tr.sel td{background:var(--accent-soft)}
           </select>
         </div>
         <div class="field" id="ch-gen-wrap" hidden>
-          <label for="ch-gen">세대</label>
+          <label for="ch-gen">?��?</label>
           <select id="ch-gen">
-            <option value="ax" selected>Wi-Fi 6E (11ax) — 160 MHz 까지</option>
-            <option value="be">Wi-Fi 7 (11be) — 320 MHz 포함</option>
+            <option value="ax" selected>Wi-Fi 6E (11ax) ??160 MHz 까�?</option>
+            <option value="be">Wi-Fi 7 (11be) ??320 MHz ?�함</option>
           </select>
         </div>
         <div class="field">
-          <label for="ch-find">주파수 또는 채널 검색</label>
-          <input type="text" id="ch-find" placeholder="예: 5190 또는 38" autocomplete="off">
+          <label for="ch-find">주파???�는 채널 검??/label>
+          <input type="text" id="ch-find" placeholder="?? 5190 ?�는 38" autocomplete="off">
         </div>
         <div class="field chk" id="ch-psc-wrap" hidden>
-          <label><input type="checkbox" id="ch-psc"> PSC(우선 스캔) 채널만</label>
+          <label><input type="checkbox" id="ch-psc"> PSC(?�선 ?�캔) 채널�?/label>
         </div>
         <div class="note">
-          <b>표 읽는 법</b>
-          <span>한 행이 채널 번호 하나다. 그 번호가 <b>어느 대역폭의 중심</b>인지에 따라 해당 열에만 Low / Center / High 가 찬다.</span>
-          <span>빈 열은 그 번호가 그 대역폭의 중심이 될 수 없다는 뜻이다.</span>
+          <b>???�는 �?/b>
+          <span>???�이 채널 번호 ?�나?? �?번호가 <b>?�느 ?�??��??중심</b>?��????�라 ?�당 ?�에�?Low / Center / High 가 찬다.</span>
+          <span>�??��? �?번호가 �??�??��??중심???????�다???�이??</span>
         </div>
         <div class="note" id="ch-note"></div>
       </div>
@@ -244,7 +258,7 @@ table#wf-list tbody tr.sel td{background:var(--accent-soft)}
     </div>
   </div>
 
-  <!-- ==================== MCS 데이터 레이트 ==================== -->
+  <!-- ==================== MCS ?�이???�이??==================== -->
   <div id="p-mcs" role="tabpanel" aria-labelledby="t-mcs" hidden>
     <div class="cols">
       <div class="card">
@@ -260,35 +274,35 @@ table#wf-list tbody tr.sel td{background:var(--accent-soft)}
           </select>
         </div>
         <div class="field">
-          <label for="mc-nss">공간 스트림</label>
+          <label for="mc-nss">공간 ?�트�?/label>
           <select id="mc-nss">
             <option value="1" selected>1 SS</option>
             <option value="2">2 SS</option>
             <option value="3">3 SS</option>
             <option value="4">4 SS</option>
             <option value="8">8 SS</option>
-            <option value="all">전체</option>
+            <option value="all">?�체</option>
           </select>
         </div>
         <div class="note" id="mc-note"></div>
         <div class="note">
-          <b>N_SD (데이터 부반송파)</b>
-          <span>HT/VHT — 20:52 · 40:108 · 80:234 · 160:468</span>
-          <span>HE/EHT — 20:234 · 40:468 · 80:980 · 160:1960 · 320:3920</span>
+          <b>N_SD (?�이??부반송??</b>
+          <span>HT/VHT ??20:52 · 40:108 · 80:234 · 160:468</span>
+          <span>HE/EHT ??20:234 · 40:468 · 80:980 · 160:1960 · 320:3920</span>
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:14px">
         <div class="out">
-          <div class="out-head" id="mc-head">데이터 레이트</div>
+          <div class="out-head" id="mc-head">?�이???�이??/div>
           <div class="scroll tblwrap"><table id="mc-tbl" class="lch"><thead></thead><tbody></tbody></table></div>
         </div>
         <div class="out" id="mc-phr" hidden>
-          <div class="out-head">PHR — 19 비트 구성 · SECDED 계산</div>
+          <div class="out-head">PHR ??19 비트 구성 · SECDED 계산</div>
           <div class="phrctl">
             <div class="field">
               <label for="ph-prf">Mean PRF</label>
               <select id="ph-prf">
-                <option value="hi" selected>15.60 또는 62.40 MHz</option>
+                <option value="hi" selected>15.60 ?�는 62.40 MHz</option>
                 <option value="lo">3.90 MHz</option>
               </select>
             </div>
@@ -297,27 +311,27 @@ table#wf-list tbody tr.sel td{background:var(--accent-soft)}
               <select id="ph-rate"></select>
             </div>
             <div class="field">
-              <label for="ph-len">Frame Length (b2–b8)</label>
+              <label for="ph-len">Frame Length (b2?�b8)</label>
               <input type="number" id="ph-len" value="20" min="0" max="127" step="1">
             </div>
             <div class="field">
               <label for="ph-pre">Preamble Duration (b11 b12)</label>
               <select id="ph-pre">
-                <option value="00">00 — SYNC 16</option>
-                <option value="01" selected>01 — SYNC 64</option>
-                <option value="10">10 — SYNC 1024</option>
-                <option value="11">11 — SYNC 4096</option>
+                <option value="00">00 ??SYNC 16</option>
+                <option value="01" selected>01 ??SYNC 64</option>
+                <option value="10">10 ??SYNC 1024</option>
+                <option value="11">11 ??SYNC 4096</option>
               </select>
             </div>
             <div class="field chk">
-              <label><input type="checkbox" id="ph-rng"> Ranging (b9) — RFRAME 이면 1</label>
+              <label><input type="checkbox" id="ph-rng"> Ranging (b9) ??RFRAME ?�면 1</label>
             </div>
           </div>
           <div class="scroll"><table id="mc-phr-tbl"><thead></thead><tbody></tbody></table></div>
           <div class="note" id="mc-phr-note" style="border:none;border-top:1px solid var(--line);border-radius:0"></div>
         </div>
         <div class="out" id="mc-shr" hidden>
-          <div class="out-head">SHR — SYNC · SFD 시퀀스</div>
+          <div class="out-head">SHR ??SYNC · SFD ?�퀀??/div>
           <div class="scroll"><table id="mc-shr-tbl"><thead></thead><tbody></tbody></table></div>
         </div>
       </div>
@@ -328,7 +342,7 @@ table#wf-list tbody tr.sel td{background:var(--accent-soft)}
   <div id="p-cap" role="tabpanel" aria-labelledby="t-cap" hidden>
     <div class="cols">
       <div class="card">
-        <h2>신호 조건</h2>
+        <h2>?�호 조건</h2>
         <div class="field">
           <label for="cp-std">규격</label>
           <select id="cp-std">
@@ -346,7 +360,7 @@ table#wf-list tbody tr.sel td{background:var(--accent-soft)}
         </div>
         <div class="row2">
           <div class="field" id="cp-bw-wrap">
-            <label for="cp-bw">대역폭</label>
+            <label for="cp-bw">?�??��</label>
             <select id="cp-bw"></select>
           </div>
           <div class="field" id="cp-mcs-wrap">
@@ -356,7 +370,7 @@ table#wf-list tbody tr.sel td{background:var(--accent-soft)}
         </div>
         <div class="row2">
           <div class="field" id="cp-nss-wrap">
-            <label for="cp-nss">공간 스트림</label>
+            <label for="cp-nss">공간 ?�트�?/label>
             <select id="cp-nss">
               <option value="1" selected>1 SS</option>
               <option value="2">2 SS</option>
@@ -378,7 +392,7 @@ table#wf-list tbody tr.sel td{background:var(--accent-soft)}
           </select>
         </div>
         <div class="field" id="cp-rate-wrap" hidden>
-          <label for="cp-rate">전송률</label>
+          <label for="cp-rate">?�송�?/label>
           <select id="cp-rate"></select>
         </div>
         <div id="cp-uwb-wrap" hidden style="display:flex;flex-direction:column;gap:10px">
@@ -386,17 +400,17 @@ table#wf-list tbody tr.sel td{background:var(--accent-soft)}
             <div class="field">
               <label for="cp-uwb-code">SYNC 코드 길이</label>
               <select id="cp-uwb-code">
-                <option value="31">31 — 필수 (Δ 16칩)</option>
-                <option value="127" selected>127 — 선택 (Δ 4칩)</option>
+                <option value="31">31 ???�수 (? 16�?</option>
+                <option value="127" selected>127 ???�택 (? 4�?</option>
               </select>
             </div>
             <div class="field">
               <label for="cp-uwb-sync">SYNC 반복</label>
               <select id="cp-uwb-sync">
-                <option value="16">16 — SHORT</option>
-                <option value="64" selected>64 — DEFAULT</option>
-                <option value="1024">1024 — MEDIUM</option>
-                <option value="4096">4096 — LONG</option>
+                <option value="16">16 ??SHORT</option>
+                <option value="64" selected>64 ??DEFAULT</option>
+                <option value="1024">1024 ??MEDIUM</option>
+                <option value="4096">4096 ??LONG</option>
               </select>
             </div>
           </div>
@@ -404,30 +418,30 @@ table#wf-list tbody tr.sel td{background:var(--accent-soft)}
             <div class="field">
               <label for="cp-uwb-sfd">SFD</label>
               <select id="cp-uwb-sfd">
-                <option value="8" selected>SHORT — 8 심볼</option>
-                <option value="64">LONG — 64 심볼 (110 kb/s)</option>
+                <option value="8" selected>SHORT ??8 ?�볼</option>
+                <option value="64">LONG ??64 ?�볼 (110 kb/s)</option>
               </select>
             </div>
             <div class="field">
-              <label for="cp-uwb-phr">PHR 레이트</label>
+              <label for="cp-uwb-phr">PHR ?�이??/label>
               <select id="cp-uwb-phr">
-                <option value="0" selected>AUTO — 850 kb/s</option>
-                <option value="1">데이터 레이트와 동일</option>
+                <option value="0" selected>AUTO ??850 kb/s</option>
+                <option value="1">?�이???�이?��? ?�일</option>
               </select>
             </div>
           </div>
           <div class="field">
-            <label for="cp-uwb-rate">데이터 레이트 (Table 16-4)</label>
+            <label for="cp-uwb-rate">?�이???�이??(Table 16-4)</label>
             <select id="cp-uwb-rate"></select>
           </div>
           <div class="row2">
             <div class="field">
               <label for="cp-uwb-sp">STS 구성 (15.4z)</label>
               <select id="cp-uwb-sp">
-                <option value="0">SP0 — STS 없음</option>
-                <option value="1" selected>SP1 — SFD 뒤 STS</option>
-                <option value="2">SP2 — PSDU 뒤 STS</option>
-                <option value="3">SP3 — STS 만</option>
+                <option value="0">SP0 ??STS ?�음</option>
+                <option value="1" selected>SP1 ??SFD ??STS</option>
+                <option value="2">SP2 ??PSDU ??STS</option>
+                <option value="3">SP3 ??STS �?/option>
               </select>
             </div>
             <div class="field">
@@ -436,14 +450,13 @@ table#wf-list tbody tr.sel td{background:var(--accent-soft)}
             </div>
           </div>
         </div>
-        </div>
         <div class="row2">
           <div class="field">
-            <label for="cp-len" id="cp-len-lbl">APEP (바이트)</label>
+            <label for="cp-len" id="cp-len-lbl">APEP (바이??</label>
             <input type="number" id="cp-len" value="1000" min="1" max="65535" step="1">
           </div>
           <div class="field">
-            <label for="cp-margin">여유 배수</label>
+            <label for="cp-margin">?�유 배수</label>
             <input type="number" id="cp-margin" value="2.5" min="1" max="10" step="0.1">
           </div>
         </div>
@@ -456,7 +469,7 @@ table#wf-list tbody tr.sel td{background:var(--accent-soft)}
           <div class="big" id="cp-big"></div>
         </div>
         <div class="out">
-          <div class="out-head">아날라이저 설정</div>
+          <div class="out-head">?�날?�이?� ?�정</div>
           <div class="scroll"><table id="cp-smp"><tbody></tbody></table></div>
         </div>
         <div class="note" id="cp-note"></div>
@@ -468,13 +481,13 @@ table#wf-list tbody tr.sel td{background:var(--accent-soft)}
   <div id="p-par" role="tabpanel" aria-labelledby="t-par" hidden>
     <div class="cols">
       <div class="card">
-        <h2>기준 레벨 계산</h2>
+        <h2>기�? ?�벨 계산</h2>
         <div class="field">
           <label for="pr-target">목표 출력 Target (dBm)</label>
           <input type="number" id="pr-target" value="14" step="0.1">
         </div>
         <div class="field">
-          <label for="pr-loss">케이블 손실 (dB)</label>
+          <label for="pr-loss">케?�블 ?�실 (dB)</label>
           <input type="number" id="pr-loss" value="9" step="0.1">
         </div>
         <div class="field">
@@ -482,18 +495,18 @@ table#wf-list tbody tr.sel td{background:var(--accent-soft)}
           <input type="number" id="pr-par" value="10" step="0.1">
         </div>
         <div class="field">
-          <label for="pr-gain">체인 이득 (dB)</label>
+          <label for="pr-gain">체인 ?�득 (dB)</label>
           <input type="number" id="pr-gain" value="0" step="0.1">
         </div>
         <hr style="border:none;border-top:1px solid var(--line-soft);margin:2px 0">
-        <h2>실측 PAR 역산</h2>
+        <h2>?�측 PAR ??��</h2>
         <div class="row2">
           <div class="field">
             <label for="pr-peak">Peak Power (dBm)</label>
             <input type="number" id="pr-peak" value="21" step="0.1">
           </div>
           <div class="field">
-            <label for="pr-avg">Power 평균 (dBm)</label>
+            <label for="pr-avg">Power ?�균 (dBm)</label>
             <input type="number" id="pr-avg" value="11" step="0.1">
           </div>
         </div>
@@ -506,103 +519,103 @@ table#wf-list tbody tr.sel td{background:var(--accent-soft)}
           <div class="big" id="pr-big"></div>
         </div>
         <div class="out">
-          <div class="out-head">변조별 전형 PAR</div>
+          <div class="out-head">변조별 ?�형 PAR</div>
           <div class="scroll"><table id="pr-tbl"><thead></thead><tbody></tbody></table></div>
         </div>
         <div class="note w">
-          <b>PAR 를 잘못 잡으면</b>
-          <span>· <b>너무 작게</b> → 피크가 ADC 상한 초과 → 클리핑 → EVM 악화, 파워 낮게 측정</span>
-          <span>· <b>너무 크게</b> → ADC 동적범위 낭비 → 측정 SNR 저하 → EVM 바닥값 상승</span>
-          <span>실측 PAR (Peak − Power) 를 재서 설정값과 1~2 dB 안에 있는지 확인하는 것이 가장 확실하다.</span>
+          <b>PAR �??�못 ?�으�?/b>
+          <span>· <b>?�무 ?�게</b> ???�크가 ADC ?�한 초과 ???�리????EVM ?�화, ?�워 ??�� 측정</span>
+          <span>· <b>?�무 ?�게</b> ??ADC ?�적범위 ??�� ??측정 SNR ?�????EVM 바닥�??�승</span>
+          <span>?�측 PAR (Peak ??Power) �??�서 ?�정값과 1~2 dB ?�에 ?�는지 ?�인?�는 것이 가???�실?�다.</span>
         </div>
       </div>
     </div>
   </div>
 
 
-  <!-- ==================== 웨이브폼 파일 ==================== -->
+  <!-- ==================== ?�이브폼 ?�일 ==================== -->
   <div id="p-wf" role="tabpanel" aria-labelledby="t-wf" hidden>
     <div class="cols">
       <div class="card">
-        <h2>파일 선택</h2>
+        <h2>?�일 ?�택</h2>
         <label class="drop" id="wf-drop">
-          <b>.iqvsg 파일 선택</b>
-          클릭하거나 여기로 끌어다 놓기<br>
-          <b style="font-size:13px;margin-top:4px">2개를 고르면 바로 비교</b>
+          <b>.iqvsg ?�일 ?�택</b>
+          ?�릭?�거???�기�??�어???�기<br>
+          <b style="font-size:13px;margin-top:4px">2개�? 고르�?바로 비교</b>
           <input type="file" id="wf-input" accept=".iqvsg" multiple>
         </label>
 
         <div class="field chk">
-          <label><input type="checkbox" id="wf-hidena"> 값이 없는 항목(N/A · XXX) 숨기기</label>
-          <label id="wf-lab-same" hidden><input type="checkbox" id="wf-hidesame"> 같은 값 숨기기 (차이만 보기)</label>
-          <label><input type="checkbox" id="wf-showkey"> SCPI 키 함께 표시</label>
+          <label><input type="checkbox" id="wf-hidena"> 값이 ?�는 ??��(N/A · XXX) ?�기�?/label>
+          <label id="wf-lab-same" hidden><input type="checkbox" id="wf-hidesame"> 같�? �??�기�?(차이�?보기)</label>
+          <label><input type="checkbox" id="wf-showkey"> SCPI ???�께 ?�시</label>
         </div>
 
         <div class="note" style="border-left-color:var(--ok)">
-          <b>파일은 어디로도 전송되지 않는다</b>
-          <span>브라우저 안에서 <b>헤더 앞부분만</b> 잘라 읽는다. 수백 MB 파일도 즉시 처리되고 IQ 데이터는 건드리지 않는다.</span>
+          <b>?�일?� ?�디로도 ?�송?��? ?�는??/b>
+          <span>브라?��? ?�에??<b>?�더 ?��?분만</b> ?�라 ?�는?? ?�백 MB ?�일??즉시 처리?�고 IQ ?�이?�는 건드리�? ?�는??</span>
         </div>
         <div class="note">
-          <b>값이 없을 때</b>
-          <span class="legend"><b>N/A</b> 그 규격에는 있는 항목인데 헤더에 기록이 없다 (구형 펌웨어가 안 남긴 경우)</span>
-          <span class="legend"><b>XXX</b> 그 규격·모듈에 애초에 해당 없는 항목 (11ac 파일의 HE 항목, WLAN 파일의 BT 항목 등)</span>
-          <span>값이 하나라도 있으면 언제나 값을 그대로 보여준다.</span>
+          <b>값이 ?�을 ??/b>
+          <span class="legend"><b>N/A</b> �?규격?�는 ?�는 ??��?�데 ?�더??기록???�다 (구형 ?�웨?��? ???�긴 경우)</span>
+          <span class="legend"><b>XXX</b> �?규격·모듈???�초???�당 ?�는 ??�� (11ac ?�일??HE ??��, WLAN ?�일??BT ??�� ??</span>
+          <span>값이 ?�나?�도 ?�으�??�제??값을 그�?�?보여준??</span>
         </div>
         <div class="note">
-          <b>표시 항목 (11그룹 165개)</b>
-          <span>파일 · 신호 · WLAN 공통 · HE/EHT · DSSS/CCK</span>
-          <span>필터/윈도우 · 패킷 · MAC 헤더</span>
-          <span>Degradation(WaveGen GUI 순서) · Bluetooth · UWB</span>
+          <b>?�시 ??�� (11그룹 165�?</b>
+          <span>?�일 · ?�호 · WLAN 공통 · HE/EHT · DSSS/CCK</span>
+          <span>?�터/?�도??· ?�킷 · MAC ?�더</span>
+          <span>Degradation(WaveGen GUI ?�서) · Bluetooth · UWB</span>
         </div>
         <div class="note">
           <b>비교 모드</b>
-          <span>다른 값은 <b>노란 배경</b>으로 표시하고, 그룹 머리에 차이 개수를 붙인다.</span>
-          <span>목록에서 <b>클릭 = A</b>, <b>Shift+클릭 = B</b>.</span>
-          <span><b>원본 SCPI 차이</b> 버튼은 위 164개 밖의 명령까지 전부 비교한다.</span>
+          <span>?�른 값�? <b>?��? 배경</b>?�로 ?�시?�고, 그룹 머리??차이 개수�?붙인??</span>
+          <span>목록?�서 <b>?�릭 = A</b>, <b>Shift+?�릭 = B</b>.</span>
+          <span><b>?�본 SCPI 차이</b> 버튼?� ??164�?밖의 명령까�? ?��? 비교?�다.</span>
         </div>
         <div class="note" style="border-left-color:var(--warn)">
-          <b>N/A 가 정상인 경우</b>
-          <span>WaveGen GUI 의 Phase Noise · AWGN SNR · IQ Gain/Phase/Delay · DCI/DCQ · SFactor · Channel Gain/Phase 는 생성 시점에만 적용되고 <b>.iqvsg 헤더에 저장되지 않는다</b>.</span>
-          <span>2008~2012 년 <code>.mod</code> 변환 BT 파일에는 ModuleConfiguration 자체가 없다.</span>
+          <b>N/A 가 ?�상??경우</b>
+          <span>WaveGen GUI ??Phase Noise · AWGN SNR · IQ Gain/Phase/Delay · DCI/DCQ · SFactor · Channel Gain/Phase ???�성 ?�점?�만 ?�용?�고 <b>.iqvsg ?�더???�?�되지 ?�는??/b>.</span>
+          <span>2008~2012 ??<code>.mod</code> 변??BT ?�일?�는 ModuleConfiguration ?�체가 ?�다.</span>
         </div>
       </div>
 
       <div style="display:flex;flex-direction:column;gap:14px">
         <div class="out" id="wf-listwrap" hidden>
-          <div class="out-head" id="wf-listhead">불러온 파일</div>
+          <div class="out-head" id="wf-listhead">불러???�일</div>
           <div class="scroll tblwrap"><table id="wf-list"><thead></thead><tbody></tbody></table></div>
         </div>
 
         <div class="out" id="wf-detwrap" hidden>
-          <div class="out-head"><span id="wf-dethead">상세</span><span class="hint" id="wf-cnt"></span></div>
+          <div class="out-head"><span id="wf-dethead">?�세</span><span class="hint" id="wf-cnt"></span></div>
 
           <div class="wf-mode">
             <div class="seg">
-              <button id="wf-m1" aria-selected="true">한 파일</button>
-              <button id="wf-m2" aria-selected="false">두 파일 비교</button>
+              <button id="wf-m1" aria-selected="true">???�일</button>
+              <button id="wf-m2" aria-selected="false">???�일 비교</button>
             </div>
             <div class="cmpsel" id="wf-cmpsel" hidden>
               <label>A <select id="wf-a"></select></label>
               <label>B <select id="wf-b"></select></label>
-              <button class="btn gh sm" id="wf-swap" title="A 와 B 를 맞바꾼다">A &#8646; B</button>
+              <button class="btn gh sm" id="wf-swap" title="A ?� B �?맞바꾼다">A &#8646; B</button>
             </div>
           </div>
 
           <div class="kv" id="wf-det"></div>
 
           <div class="wf-act">
-            <button class="btn" id="wf-tocap">이 조건으로 캡처 길이 계산</button>
-            <button class="btn gh" id="wf-raw">원본 SCPI 전체 보기</button>
+            <button class="btn" id="wf-tocap">??조건?�로 캡처 길이 계산</button>
+            <button class="btn gh" id="wf-raw">?�본 SCPI ?�체 보기</button>
           </div>
           <pre class="steps" id="wf-rawtxt" hidden></pre>
         </div>
 
-        <div class="note" id="wf-empty">왼쪽에서 <code>.iqvsg</code> 파일을 고르면 여기에 전체 항목이 나온다. 2개를 고르면 나란히 비교한다.</div>
+        <div class="note" id="wf-empty"><code>.iqvsg</code> ?�일??고르�??�기???�체 ??��???�온?? 2개�? 고르�??��???비교?�다.</div>
       </div>
     </div>
   </div>
 
-  <footer>계산 근거 — IEEE 802.11-2020 / 802.11ax / 802.11be, Bluetooth Core 5.x, IEEE 802.15.4</footer>
+  <footer>계산 근거 ??IEEE 802.11-2020 / 802.11ax / 802.11be, Bluetooth Core 5.x, IEEE 802.15.4</footer>
 </div>
 
 <script>
@@ -624,13 +637,12 @@ tabs.forEach(function(p){
   });
 });
 
-/* ================= 채널 데이터 =================
-   채널 번호마다 "그 번호가 어느 대역폭의 중심인가" 를 판정해
-   Low / Center / High 를 그 대역폭 열에만 채운다 (sqimway 방식).      */
+/* ================= 채널 ?�이??=================
+   채널 번호마다 "�?번호가 ?�느 ?�??��??중심?��?" �??�정??   Low / Center / High �?�??�??�� ?�에�?채운??(sqimway 방식).      */
 
-/* 6 GHz 는 번호 자체에 규칙이 있다 (잉여류가 서로 겹치지 않는다)
-     ch%4===1 → 20 | ch%8===3 → 40 | ch%16===7 → 80
-     ch%32===15 → 160 | ch%32===31 → 320 (11be 전용)                  */
+/* 6 GHz ??번호 ?�체??규칙???�다 (?�여류�? ?�로 겹치지 ?�는??
+     ch%4===1 ??20 | ch%8===3 ??40 | ch%16===7 ??80
+     ch%32===15 ??160 | ch%32===31 ??320 (11be ?�용)                  */
 function bw6(ch){
   if(ch % 4 === 1) return 20;
   if(ch % 8 === 3) return 40;
@@ -647,9 +659,9 @@ function unii6(ch){
   if(f <= 6875) return 'UNII-7';
   return 'UNII-8';
 }
-function isPsc(ch){ return (ch - 5) % 16 === 0 && ch >= 5; }   /* 우선 스캔 채널 */
+function isPsc(ch){ return (ch - 5) % 16 === 0 && ch >= 5; }   /* ?�선 ?�캔 채널 */
 
-/* 5 GHz 는 UNII 밴드 사이가 비어 있어 규칙이 안 통한다. 표로 고정한다. */
+/* 5 GHz ??UNII 밴드 ?�이가 비어 ?�어 규칙?????�한?? ?�로 고정?�다. */
 var BW5 = {};
 (function(){
   var put = function(list, bw){ list.forEach(function(c){ BW5[c] = bw; }); };
@@ -665,21 +677,21 @@ function unii5(ch){
   if(ch >= 52 && ch <= 64) return 'UNII-2A · DFS';
   if(ch >= 100 && ch <= 144) return 'UNII-2C · DFS';
   if(ch >= 149 && ch <= 165) return 'UNII-3';
-  return 'UNII-4 · 표준 목록 밖';
+  return 'UNII-4 · ?��? 목록 �?;
 }
 function f24(ch){ return ch === 14 ? 2484 : 2412 + 5 * (ch - 1); }
 
-/* 한 행 = { ch, cells:{ 대역폭: 중심주파수 }, note } */
+/* ????= { ch, cells:{ ?�??��: 중심주파??}, note } */
 function chRows(band, gen){
   var rows = [], n, f, bw, cells;
   if(band === '24'){
     for(n = 1; n <= 14; n++){
       f = f24(n); cells = {}; cells[20] = f;
-      /* 2.4 GHz 는 5 MHz 간격이라 같은 번호가 20 MHz 채널이자 40 MHz 중심이 된다 */
+      /* 2.4 GHz ??5 MHz 간격?�라 같�? 번호가 20 MHz 채널?�자 40 MHz 중심???�다 */
       if(n >= 3 && n <= 11) cells[40] = f;
       rows.push({ch:n, cells:cells,
-                 note: n === 14 ? '일본 전용 · CCK 만'
-                     : (n === 1 || n === 6 || n === 11) ? '비중첩 3채널' : ''});
+                 note: n === 14 ? '?�본 ?�용 · CCK �?
+                     : (n === 1 || n === 6 || n === 11) ? '비중�?3채널' : ''});
     }
     return rows;
   }
@@ -694,16 +706,16 @@ function chRows(band, gen){
   for(n = 1; n <= 233; n += 2){
     bw = bw6(n);
     if(!bw) continue;
-    if(bw === 320 && gen !== 'be') continue;      /* 11ax 에는 320 MHz 가 없다 */
+    if(bw === 320 && gen !== 'be') continue;      /* 11ax ?�는 320 MHz 가 ?�다 */
     f = f6(n);
-    if(f - bw / 2 < 5945 || f + bw / 2 > 7125) continue;   /* 규격 대역 밖 */
+    if(f - bw / 2 < 5945 || f + bw / 2 > 7125) continue;   /* 규격 ?�??�?*/
     cells = {}; cells[bw] = f;
     rows.push({ch:n, cells:cells, note:unii6(n) + (isPsc(n) ? ' · PSC' : '')});
   }
   return rows;
 }
 
-/* WLAN 이 아닌 대역은 단순 목록 */
+/* WLAN ???�닌 ?�??? ?�순 목록 */
 function btList(){ var a = [], k; for(k = 0; k <= 78; k++) a.push({ch:k, f:2402 + k}); return a; }
 function bleList(){
   var a = [], k, lbl;
@@ -711,7 +723,7 @@ function bleList(){
     if(k === 0) lbl = '광고 37';
     else if(k === 12) lbl = '광고 38';
     else if(k === 39) lbl = '광고 39';
-    else lbl = '데이터 ' + (k < 12 ? k - 1 : k - 2);
+    else lbl = '?�이??' + (k < 12 ? k - 1 : k - 2);
     a.push({ch:k, f:2402 + 2 * k, note:lbl});
   }
   return a;
@@ -722,57 +734,56 @@ var CH_COLS = {'24':[20, 40], '5':[20, 40, 80, 160], '6':[20, 40, 80, 160, 320]}
 
 
 /* ================= UWB (HRP · IEEE 802.15.4) =================
-   모든 값이 칩 하나에서 나온다.  Tc = 1 / peak PRF = 1 / 499.2 MHz = 2.0032 ns
+   모든 값이 �??�나?�서 ?�온??  Tc = 1 / peak PRF = 1 / 499.2 MHz = 2.0032 ns
 
-     N_c    = N_burst × N_cpb          심볼당 칩 수
-     T_burst= N_cpb   × Tc
+     N_c    = N_burst × N_cpb          ?�볼??�???     T_burst= N_cpb   × Tc
      T_dsym = N_burst × T_burst = N_c × Tc
      N_hop  = N_burst / 4
-     심볼레이트 = 1 / T_dsym
-     비트레이트 = 2 × FEC / T_dsym     (BPM-BPSK 라 심볼당 2배)
+     ?�볼?�이??= 1 / T_dsym
+     비트?�이??= 2 × FEC / T_dsym     (BPM-BPSK ???�볼??2�?
      Mean PRF  = N_cpb / T_dsym
    FEC = Viterbi × RS,  RS(63,55) = 55/63 = 0.873                        */
-var UWB_PEAK = 499.2;                       /* Mcps — 전 채널 공통 */
+var UWB_PEAK = 499.2;                       /* Mcps ????채널 공통 */
 var UWB_TC = 1000 / UWB_PEAK;               /* ns = 2.0032 */
 var UWB_RS = 55 / 63;                       /* 0.873 */
 
-/* [채널, 중심 MHz, 대역폭 MHz, 밴드, 비고] — 중심은 예외 없이 499.2 × M */
+/* [채널, 중심 MHz, ?�??�� MHz, 밴드, 비고] ??중심?� ?�외 ?�이 499.2 × M */
 var UWB_CH = [
-  [ 0,  499.2,  499.2, 'Sub-GHz', '필수'],
+  [ 0,  499.2,  499.2, 'Sub-GHz', '?�수'],
   [ 1, 3494.4,  499.2, 'Low',     ''],
   [ 2, 3993.6,  499.2, 'Low',     ''],
-  [ 3, 4492.8,  499.2, 'Low',     '필수'],
-  [ 4, 3993.6, 1331.2, 'Low',     '광대역 (ch2·3 묶음)'],
+  [ 3, 4492.8,  499.2, 'Low',     '?�수'],
+  [ 4, 3993.6, 1331.2, 'Low',     '광�???(ch2·3 묶음)'],
   [ 5, 6489.6,  499.2, 'High',    'FiRA 주력'],
   [ 6, 6988.8,  499.2, 'High',    ''],
-  [ 7, 6489.6, 1081.6, 'High',    '광대역'],
+  [ 7, 6489.6, 1081.6, 'High',    '광�???],
   [ 8, 7488.0,  499.2, 'High',    ''],
-  [ 9, 7987.2,  499.2, 'High',    '필수 · FiRA 주력'],
+  [ 9, 7987.2,  499.2, 'High',    '?�수 · FiRA 주력'],
   [10, 8486.4,  499.2, 'High',    ''],
-  [11, 7987.2, 1331.2, 'High',    '광대역 (ch9·10 묶음)'],
+  [11, 7987.2, 1331.2, 'High',    '광�???(ch9·10 묶음)'],
   [12, 8985.6,  499.2, 'High',    ''],
   [13, 9484.8,  499.2, 'High',    ''],
   [14, 9984.0,  499.2, 'High',    ''],
-  [15, 9484.8, 1354.97,'High',    '광대역']
+  [15, 9484.8, 1354.97,'High',    '광�???]
 ];
 
-/* 프리앰블 (SHR) — 삼진 코드 길이별 확산 간격과 심볼 길이
-   T_psym = 코드길이 × Δ × Tc                                           */
+/* ?�리?�블 (SHR) ???�진 코드 길이�??�산 간격�??�볼 길이
+   T_psym = 코드길이 × ? × Tc                                           */
 var UWB_CODE = {
-  31:  {delta:16, label:'길이 31 (필수)'},
-  127: {delta:4,  label:'길이 127 (선택)'}
+  31:  {delta:16, label:'길이 31 (?�수)'},
+  127: {delta:4,  label:'길이 127 (?�택)'}
 };
 function uwbTpsym(code){ return UWB_CODE[code].delta * code * UWB_TC / 1000; }  /* µs */
 var UWB_SYNC = [[16,'SHORT'], [64,'DEFAULT'], [1024,'MEDIUM'], [4096,'LONG']];
-var UWB_SFD  = [[8,'SHORT — 기본·중간 레이트'], [64,'LONG — 110 kb/s 전용']];
+var UWB_SFD  = [[8,'SHORT ??기본·중간 ?�이??], [64,'LONG ??110 kb/s ?�용']];
 
-/* 데이터 심볼 구조 — Table 16-4 를 그대로 (코드길이, N_burst, N_hop) 로 묶었다 */
+/* ?�이???�볼 구조 ??Table 16-4 �?그�?�?(코드길이, N_burst, N_hop) �?묶었??*/
 var UWB_GRP = [
   {code:31,  nburst:32,  nhop:8,  rows:[[128, 0.5], [16, 0.5], [2, 0.5], [1, 1]]},
   {code:31,  nburst:128, nhop:32, rows:[[32,  0.5], [4,  0.5], [2, 0.5], [1, 1]]},
   {code:127, nburst:8,   nhop:2,  rows:[[512, 0.5], [64, 0.5], [8, 0.5], [2, 0.5]]}
 ];
-/* 한 행을 계산해 준다 */
+/* ???�을 계산??준??*/
 function uwbRow(g, ncpb, vit){
   var nc = g.nburst * ncpb;
   var tburst = ncpb * UWB_TC;                  /* ns */
@@ -796,7 +807,7 @@ function uwbAllRows(){
 
 function renderUwbCh(q){
   $('ch-tbl').tHead.innerHTML =
-    '<tr><th>채널</th><th>중심 (MHz)</th><th>대역폭 (MHz)</th>' +
+    '<tr><th>채널</th><th>중심 (MHz)</th><th>?�??�� (MHz)</th>' +
     '<th class="ctrh">Low</th><th class="ctrh">High</th><th>밴드</th><th>비고</th></tr>';
   var out = UWB_CH.filter(function(r){
     if(!q) return true;
@@ -812,28 +823,28 @@ function renderUwbCh(q){
            '<td class="n hi">' + (Math.round((r[1] + r[2] / 2) * 10) / 10).toFixed(1) + '</td>' +
            '<td>' + r[3] + '</td><td>' + r[4] + '</td></tr>';
   }).join('');
-  $('ch-tbl').tBodies[0].innerHTML = out || '<tr><td colspan="7">일치하는 채널 없음</td></tr>';
-  $('ch-head').textContent = 'UWB HRP · IEEE 802.15.4 — 16 채널';
+  $('ch-tbl').tBodies[0].innerHTML = out || '<tr><td colspan="7">?�치?�는 채널 ?�음</td></tr>';
+  $('ch-head').textContent = 'UWB HRP · IEEE 802.15.4 ??16 채널';
   $('ch-note').innerHTML =
-    '중심 주파수는 전부 <b>499.2 × M MHz</b> (M 정수) 이고, <b>peak PRF 도 모든 채널이 499.2 MHz</b> 다. ' +
-    '그래서 칩 하나가 언제나 <b>Tc = 1/499.2 MHz = 2.0032 ns</b> 이고 모든 시간이 여기서 떨어진다.' +
-    '<br>기본 대역폭 499.2 MHz. ch4·7·11·15 는 인접 채널을 묶은 광대역이라 중심이 겹친다 — ' +
-    '<b>ch11(7987.2)은 ch9 와 같은 중심</b>이다.' +
-    '<br>필수 채널은 <b>0 / 3 / 9</b>. 휴대기기·FiRA 측위는 대부분 <b>ch5</b> 와 <b>ch9</b> 를 쓴다.' +
-    '<br>국가별 허용 대역이 다르니 실제 사용 채널은 규제 확인이 필요하다.';
+    '중심 주파?�는 ?��? <b>499.2 × M MHz</b> (M ?�수) ?�고, <b>peak PRF ??모든 채널??499.2 MHz</b> ?? ' +
+    '그래??�??�나가 ?�제??<b>Tc = 1/499.2 MHz = 2.0032 ns</b> ?�고 모든 ?�간???�기???�어진다.' +
+    '<br>기본 ?�??�� 499.2 MHz. ch4·7·11·15 ???�접 채널??묶�? 광�???��??중심??겹친????' +
+    '<b>ch11(7987.2)?� ch9 ?� 같�? 중심</b>?�다.' +
+    '<br>?�수 채널?� <b>0 / 3 / 9</b>. ?��?기기·FiRA 측위???�부�?<b>ch5</b> ?� <b>ch9</b> �??�다.' +
+    '<br>�??�??�용 ?�??�� ?�르???�제 ?�용 채널?� 규제 ?�인???�요?�다.';
 }
 
 function renderUwbRates(){
   $('mc-tbl').tHead.innerHTML =
     '<tr><th rowspan="2">코드<br>길이</th>' +
-    '<th colspan="3" class="bwh">변조 · 부호화</th>' +
-    '<th colspan="4" class="bwh">데이터 심볼 구조</th>' +
-    '<th colspan="2" class="bwh">시간</th>' +
+    '<th colspan="3" class="bwh">변�?· 부?�화</th>' +
+    '<th colspan="4" class="bwh">?�이???�볼 구조</th>' +
+    '<th colspan="2" class="bwh">?�간</th>' +
     '<th colspan="3" class="bwh">결과</th></tr>' +
     '<tr><th>Viterbi</th><th>RS</th><th>FEC</th>' +
-    '<th>N_burst</th><th>N_hop</th><th>N_cpb</th><th>칩/심볼</th>' +
+    '<th>N_burst</th><th>N_hop</th><th>N_cpb</th><th>�??�볼</th>' +
     '<th>T_burst</th><th class="ctrh">T_dsym</th>' +
-    '<th>심볼레이트</th><th class="ctrh">비트레이트</th><th class="ctrh">Mean PRF</th></tr>';
+    '<th>?�볼?�이??/th><th class="ctrh">비트?�이??/th><th class="ctrh">Mean PRF</th></tr>';
   $('mc-tbl').tBodies[0].innerHTML = uwbAllRows().map(function(r){
     return '<tr><td class="n chn">' + r.code + '</td>' +
            '<td class="n">' + r.vit + '</td><td class="n">' + f2(UWB_RS) + '</td>' +
@@ -846,36 +857,36 @@ function renderUwbRates(){
            '<td class="n ctr">' + f2(r.bitRate) + ' Mb/s</td>' +
            '<td class="n ctr">' + f2(r.meanPrf) + ' MHz</td></tr>';
   }).join('');
-  $('mc-head').textContent = 'UWB HRP — 레이트 · 타이밍 (Table 16-4)';
+  $('mc-head').textContent = 'UWB HRP ???�이??· ?�?�밍 (Table 16-4)';
   $('mc-note').innerHTML =
     '<b>Tc = 1 / peak PRF = 1 / 499.2 MHz = ' + (UWB_TC).toFixed(4) + ' ns</b>' +
     '<span>N_c = N_burst × N_cpb · T_burst = N_cpb × Tc · T_dsym = N_c × Tc</span>' +
-    '<span>심볼레이트 = 1/T_dsym · <b>비트레이트 = 2 × FEC / T_dsym</b> · Mean PRF = N_cpb / T_dsym</span>' +
+    '<span>?�볼?�이??= 1/T_dsym · <b>비트?�이??= 2 × FEC / T_dsym</b> · Mean PRF = N_cpb / T_dsym</span>' +
     '<span>N_hop = N_burst / 4 · FEC = Viterbi × RS(63,55) = Viterbi × ' + f2(UWB_RS) + '</span>' +
-    '<span>BPM-BPSK 라 심볼 하나가 2비트 값을 갖는다 — 비트레이트 식의 <b>2배</b> 가 그것이다.</span>';
+    '<span>BPM-BPSK ???�볼 ?�나가 2비트 값을 갖는????비트?�이???�의 <b>2�?/b> 가 그것?�다.</span>';
 }
 
-/* SHR 참고 — SYNC 코드와 SFD 는 규격이 정해 둔 시퀀스다. 인덱스를 고르는 것이지 만드는 게 아니다. */
+/* SHR 참고 ??SYNC 코드?� SFD ??규격???�해 ???�퀀?�다. ?�덱?��? 고르??것이지 만드??�??�니?? */
 var UWB_SYNC_TBL = [
-  ['1 – 2',   '31',  '0, 1, 8, 12',                     '필수'],
-  ['3 – 4',   '31',  '2, 5, 9, 13',                     '필수'],
-  ['5 – 6',   '31',  '3, 6, 10, 14',                    '필수'],
-  ['7 – 8',   '31',  '4, 7, 11, 15',                    '필수'],
-  ['9 – 12',  '127', '0–3, 5, 6, 8–10, 12–14',          '선택 (Table 16-7)'],
-  ['13 – 24', '127', '광대역 채널 포함',                 '선택'],
-  ['25 – 32', '91',  'FiRA HPRF',                       '802.15.4z 추가']
+  ['1 ??2',   '31',  '0, 1, 8, 12',                     '?�수'],
+  ['3 ??4',   '31',  '2, 5, 9, 13',                     '?�수'],
+  ['5 ??6',   '31',  '3, 6, 10, 14',                    '?�수'],
+  ['7 ??8',   '31',  '4, 7, 11, 15',                    '?�수'],
+  ['9 ??12',  '127', '0??, 5, 6, 8??0, 12??4',          '?�택 (Table 16-7)'],
+  ['13 ??24', '127', '광�???채널 ?�함',                 '?�택'],
+  ['25 ??32', '91',  'FiRA HPRF',                       '802.15.4z 추�?']
 ];
 var UWB_SFD_TBL = [
-  ['SHORT (8)',  '0 +1 0 −1 +1 0 0 −1',            '15.4 기본 · 중간 레이트'],
-  ['LONG (64)',  '규격 고정 64 심볼',               '15.4 · 110 kb/s 전용'],
-  ['SFD_4',      '−1 +1 −1 +1',                     '15.4z'],
-  ['SFD_8',      '−1 −1 −1 +1 −1 −1 +1 −1',         '15.4z BPRF — FiRA 파일이 쓰는 값']
+  ['SHORT (8)',  '0 +1 0 ?? +1 0 0 ??',            '15.4 기본 · 중간 ?�이??],
+  ['LONG (64)',  '규격 고정 64 ?�볼',               '15.4 · 110 kb/s ?�용'],
+  ['SFD_4',      '?? +1 ?? +1',                     '15.4z'],
+  ['SFD_8',      '?? ?? ?? +1 ?? ?? +1 ??',         '15.4z BPRF ??FiRA ?�일???�는 �?]
 ];
-/* PHR 19 비트 —  b0b1 Data Rate · b2–b8 Frame Length · b9 Ranging · b10 예약
-                    b11b12 Preamble Duration · b13–b18 SECDED                */
+/* PHR 19 비트 ?? b0b1 Data Rate · b2?�b8 Frame Length · b9 Ranging · b10 ?�약
+                    b11b12 Preamble Duration · b13?�b18 SECDED                */
 var UWB_PHR_RATE = {'00':[0.11, 0.11], '01':[0.85, 0.85], '10':[6.81, 1.70], '11':[27.24, 6.81]};
 var UWB_PHR_PRE  = {'00':16, '01':64, '10':1024, '11':4096};
-/* SECDED — 단일 정정 이중 검출 해밍 블록 부호 */
+/* SECDED ???�일 ?�정 ?�중 검�??�밍 블록 부??*/
 function uwbSecded(b){
   var X = function(){ var v = 0, i; for(i = 0; i < arguments.length; i++) v ^= b[arguments[i]]; return v; };
   b[18] = X(1, 0, 8, 6, 4, 3, 10, 11);
@@ -883,7 +894,7 @@ function uwbSecded(b){
   b[16] = X(1, 8, 7, 3, 2, 9, 10);
   b[15] = X(8, 7, 6, 5, 4, 9, 10);
   b[14] = X(12, 11);
-  b[13] = X(0,1,2,3,4,5,6,7,8,9,10,11,12,14,15,16,17,18);   /* 전체 패리티 */
+  b[13] = X(0,1,2,3,4,5,6,7,8,9,10,11,12,14,15,16,17,18);   /* ?�체 ?�리??*/
   return b;
 }
 function renderUwbPhr(){
@@ -895,7 +906,7 @@ function renderUwbPhr(){
   b[0] = +dr.charAt(0); b[1] = +dr.charAt(1);
   for(i = 0; i < 7; i++) b[2 + i] = (len >> i) & 1;      /* b2 = LSB */
   b[9] = $('ph-rng').checked ? 1 : 0;
-  b[10] = 0;                                             /* 예약 */
+  b[10] = 0;                                             /* ?�약 */
   b[11] = +pd.charAt(0); b[12] = +pd.charAt(1);
   uwbSecded(b);
 
@@ -915,12 +926,12 @@ function renderUwbPhr(){
   var rate = UWB_PHR_RATE[dr][lo ? 1 : 0];
   $('mc-phr-note').innerHTML =
     '<b>' + b.join('') + '</b>' +
-    '<span>Data Rate <b>' + dr + '</b> → ' + rate + ' Mb/s' +
+    '<span>Data Rate <b>' + dr + '</b> ??' + rate + ' Mb/s' +
     (lo ? ' (Mean PRF 3.90)' : ' (Mean PRF 15.60 / 62.40)') + '</span>' +
-    '<span>Frame Length <b>' + len + ' 바이트</b> — 7비트라 최대 127</span>' +
-    '<span>Preamble Duration <b>' + pd + '</b> → SYNC ' + UWB_PHR_PRE[pd] + ' 심볼</span>' +
-    '<span>SECDED <b>' + b.slice(13).join('') + '</b> — b14=XOR(b12,b11), b13 은 나머지 전체의 패리티</span>' +
-    '<span>PHR 은 데이터 레이트가 6.81 Mb/s 이상일 때도 <b>850 kb/s</b> 로 보내는 것이 기본이다.</span>';
+    '<span>Frame Length <b>' + len + ' 바이??/b> ??7비트??최�? 127</span>' +
+    '<span>Preamble Duration <b>' + pd + '</b> ??SYNC ' + UWB_PHR_PRE[pd] + ' ?�볼</span>' +
+    '<span>SECDED <b>' + b.slice(13).join('') + '</b> ??b14=XOR(b12,b11), b13 ?� ?�머지 ?�체???�리??/span>' +
+    '<span>PHR ?� ?�이???�이?��? 6.81 Mb/s ?�상???�도 <b>850 kb/s</b> �?보내??것이 기본?�다.</span>';
 }
 ['ph-prf','ph-rate','ph-len','ph-pre','ph-rng'].forEach(function(id){
   $(id).addEventListener('change', renderUwbPhr);
@@ -929,19 +940,19 @@ function renderUwbPhr(){
 
 function renderUwbShr(){
   $('mc-shr-tbl').tHead.innerHTML =
-    '<tr><th>구분</th><th>값</th><th>적용 채널 / 비고</th><th></th></tr>';
-  var h = '<tr><td colspan="4" class="grpr">SYNC — 삼진 프리앰블 코드</td></tr>';
+    '<tr><th>구분</th><th>�?/th><th>?�용 채널 / 비고</th><th></th></tr>';
+  var h = '<tr><td colspan="4" class="grpr">SYNC ???�진 ?�리?�블 코드</td></tr>';
   h += UWB_SYNC_TBL.map(function(r){
     return '<tr><td class="chn">코드 ' + r[0] + '</td><td class="n ctr">길이 ' + r[1] +
            '</td><td class="n">ch ' + r[2] + '</td><td>' + r[3] + '</td></tr>';
   }).join('');
-  h += '<tr><td colspan="4" class="grpr">SYNC 반복 횟수 (프리앰블 종류)</td></tr>';
+  h += '<tr><td colspan="4" class="grpr">SYNC 반복 ?�수 (?�리?�블 종류)</td></tr>';
   h += UWB_SYNC.map(function(r){
-    return '<tr><td class="chn">' + r[1] + '</td><td class="n ctr">' + r[0] + ' 심볼</td>' +
-           '<td class="n">코드 31 → ' + f1(r[0] * uwbTpsym(31)) + ' µs · 코드 127 → ' +
+    return '<tr><td class="chn">' + r[1] + '</td><td class="n ctr">' + r[0] + ' ?�볼</td>' +
+           '<td class="n">코드 31 ??' + f1(r[0] * uwbTpsym(31)) + ' µs · 코드 127 ??' +
            f1(r[0] * uwbTpsym(127)) + ' µs</td><td></td></tr>';
   }).join('');
-  h += '<tr><td colspan="4" class="grpr">SFD — 시작 프레임 구분자</td></tr>';
+  h += '<tr><td colspan="4" class="grpr">SFD ???�작 ?�레??구분??/td></tr>';
   h += UWB_SFD_TBL.map(function(r){
     return '<tr><td class="chn">' + r[0] + '</td><td class="n ctr">' + r[1] +
            '</td><td>' + r[2] + '</td><td></td></tr>';
@@ -966,20 +977,20 @@ function renderCh(){
 
     if(band === '24'){
       head = 'WLAN 2.4 GHz · ISM';
-      note = '채널 간격 5 MHz, 점유 20 MHz 라 <b>ch1 은 ch2/3/4 와 겹친다</b>. 비중첩 조합은 <b>1 / 6 / 11</b>.' +
-             '<br>40 MHz 는 중심이 ch3~ch11 일 때만 성립한다 — 예로 <b>ch3 중심이면 2402–2442</b> 를 쓴다.';
+      note = '채널 간격 5 MHz, ?�유 20 MHz ??<b>ch1 ?� ch2/3/4 ?� 겹친??/b>. 비중�?조합?� <b>1 / 6 / 11</b>.' +
+             '<br>40 MHz ??중심??ch3~ch11 ???�만 ?�립?�다 ???�로 <b>ch3 중심?�면 2402??442</b> �??�다.';
     } else if(band === '5'){
       head = 'WLAN 5 GHz · UNII';
-      note = 'f = 5000 + 5×ch. 20 MHz 채널과 40/80/160 MHz <b>중심 채널 번호가 서로 다르다</b> — ' +
-             'ch36+ch40 을 묶은 40 MHz 의 중심은 <b>ch38</b>, 그 넷을 묶은 80 MHz 는 <b>ch42</b> 다.' +
-             '<br><b>UNII-2A / 2C 는 DFS 필수</b>. ch169~177(UNII-4)은 WiFi 표준 채널 목록 밖.';
+      note = 'f = 5000 + 5×ch. 20 MHz 채널�?40/80/160 MHz <b>중심 채널 번호가 ?�로 ?�르??/b> ??' +
+             'ch36+ch40 ??묶�? 40 MHz ??중심?� <b>ch38</b>, �??�을 묶�? 80 MHz ??<b>ch42</b> ??' +
+             '<br><b>UNII-2A / 2C ??DFS ?�수</b>. ch169~177(UNII-4)?� WiFi ?��? 채널 목록 �?';
     } else {
-      head = 'WLAN 6 GHz · UNII-5~8' + (gen === 'be' ? ' (11be · 320 MHz 포함)' : ' (11ax · 160 MHz 까지)');
-      note = 'f = 5950 + 5×ch. 번호만 보면 대역폭을 알 수 있다 — ' +
-             '<b>4로 나눈 나머지 1이면 20 MHz</b>, 8로 나눠 3이면 40, 16으로 나눠 7이면 80, ' +
-             '32로 나눠 15면 160, 31이면 320 MHz 중심이다.' +
-             '<br>그래서 11ax 표에는 <b>ch31 이 없다</b> — 320 MHz 전용 번호라서다.' +
-             '<br><b>PSC</b> 는 AP 가 우선 스캔하는 채널(ch5 부터 16 간격)이다.';
+      head = 'WLAN 6 GHz · UNII-5~8' + (gen === 'be' ? ' (11be · 320 MHz ?�함)' : ' (11ax · 160 MHz 까�?)');
+      note = 'f = 5950 + 5×ch. 번호�?보면 ?�??��???????�다 ??' +
+             '<b>4�??�눈 ?�머지 1?�면 20 MHz</b>, 8�??�눠 3?�면 40, 16?�로 ?�눠 7?�면 80, ' +
+             '32�??�눠 15�?160, 31?�면 320 MHz 중심?�다.' +
+             '<br>그래??11ax ?�에??<b>ch31 ???�다</b> ??320 MHz ?�용 번호?�서??' +
+             '<br><b>PSC</b> ??AP 가 ?�선 ?�캔?�는 채널(ch5 부??16 간격)?�다.';
     }
 
     $('ch-tbl').tHead.innerHTML =
@@ -1011,8 +1022,8 @@ function renderCh(){
     }).join('');
 
     $('ch-tbl').tBodies[0].innerHTML = out ||
-      '<tr><td colspan="' + (cols.length * 3 + 2) + '">일치하는 채널 없음</td></tr>';
-    $('ch-head').textContent = head + ' — ' + rows.length + '행';
+      '<tr><td colspan="' + (cols.length * 3 + 2) + '">?�치?�는 채널 ?�음</td></tr>';
+    $('ch-head').textContent = head + ' ??' + rows.length + '??;
     $('ch-note').innerHTML = note;
     return;
   }
@@ -1020,19 +1031,19 @@ function renderCh(){
   /* BT / BLE / Zigbee */
   var list;
   if(band === 'bt'){ list = btList(); head = 'Bluetooth BR/EDR · 79 채널';
-    note = 'f = 2402 + k MHz (k = 0…78), 채널 간격 <b>1 MHz</b>. 1600 hop/s 주파수 호핑.'; }
+    note = 'f = 2402 + k MHz (k = 0??8), 채널 간격 <b>1 MHz</b>. 1600 hop/s 주파???�핑.'; }
   else if(band === 'ble'){ list = bleList(); head = 'Bluetooth LE · 40 채널';
-    note = 'f = 2402 + 2k MHz, 간격 <b>2 MHz</b>. 광고 채널 37/38/39 는 <b>WiFi 1·6·11 사이 틈</b>에 배치.'; }
+    note = 'f = 2402 + 2k MHz, 간격 <b>2 MHz</b>. 광고 채널 37/38/39 ??<b>WiFi 1·6·11 ?�이 ??/b>??배치.'; }
   else { list = zbList(); head = 'Zigbee · IEEE 802.15.4 2.4 GHz';
-    note = 'f = 2405 + 5×(ch−11) MHz, ch 11–26. 점유 대역폭 <b>2 MHz</b>, 250 kbps O-QPSK.'; }
+    note = 'f = 2405 + 5×(ch??1) MHz, ch 11??6. ?�유 ?�??�� <b>2 MHz</b>, 250 kbps O-QPSK.'; }
 
   $('ch-tbl').tHead.innerHTML = '<tr><th>채널</th><th>중심 (MHz)</th><th>비고</th></tr>';
   $('ch-tbl').tBodies[0].innerHTML = list.filter(function(r){
     return !q || String(r.ch).indexOf(q) === 0 || String(r.f).indexOf(q) === 0;
   }).map(function(r){
     return '<tr><td class="n chn">' + r.ch + '</td><td class="n ctr">' + r.f + '</td><td>' + (r.note || '') + '</td></tr>';
-  }).join('') || '<tr><td colspan="3">일치하는 채널 없음</td></tr>';
-  $('ch-head').textContent = head + ' — ' + list.length + '개';
+  }).join('') || '<tr><td colspan="3">?�치?�는 채널 ?�음</td></tr>';
+  $('ch-head').textContent = head + ' ??' + list.length + '�?;
   $('ch-note').innerHTML = note;
 }
 ['ch-band', 'ch-gen', 'ch-find', 'ch-psc'].forEach(function(id){
@@ -1040,7 +1051,7 @@ function renderCh(){
   $(id).addEventListener('change', renderCh);
 });
 
-/* ================= MCS 데이터 레이트 =================
+/* ================= MCS ?�이???�이??=================
    Rate = N_SD × N_BPSCS × R × N_SS / T_SYM                              */
 var MCS_STD = {
   ht:  {label:'802.11n (HT)',   nsd:{20:52, 40:108}, dft:3.2, gis:[0.8, 0.4], max:7,  nss:4},
@@ -1048,7 +1059,7 @@ var MCS_STD = {
   he:  {label:'802.11ax (HE)',  nsd:{20:234, 40:468, 80:980, 160:1960}, dft:12.8, gis:[0.8, 1.6, 3.2], max:11, nss:8},
   eht: {label:'802.11be (EHT)', nsd:{20:234, 40:468, 80:980, 160:1960, 320:3920}, dft:12.8, gis:[0.8, 1.6, 3.2], max:13, nss:8}
 };
-/* VHT 에만 있는 금지 조합 (802.11ac Table 21-30 등) */
+/* VHT ?�만 ?�는 금�? 조합 (802.11ac Table 21-30 ?? */
 function vhtBad(bw, mcs, nss){
   if(bw === 20 && mcs === 9 && !(nss === 3 || nss === 6)) return true;
   if(bw === 80 && mcs === 6 && (nss === 3 || nss === 7)) return true;
@@ -1059,7 +1070,7 @@ function mcsRate(nsd, bpscs, r, nss, tsym){ return nsd * bpscs * r * nss / tsym;
 
 function renderMcs(){
   var key = $('mc-std').value;
-  $('mc-nss').parentNode.hidden = (key === 'uwb');   /* UWB 는 공간 스트림 개념이 다르다 */
+  $('mc-nss').parentNode.hidden = (key === 'uwb');   /* UWB ??공간 ?�트�?개념???�르??*/
   $('mc-shr').hidden = (key !== 'uwb');
   $('mc-phr').hidden = (key !== 'uwb');
   if(key === 'uwb'){ renderUwbRates(); renderUwbShr(); renderUwbPhr(); return; }
@@ -1068,7 +1079,7 @@ function renderMcs(){
   var bws = Object.keys(S.nsd).map(Number);
 
   $('mc-tbl').tHead.innerHTML =
-    '<tr><th rowspan="2">MCS</th><th rowspan="2">변조</th><th rowspan="2">부호율</th><th rowspan="2">NSS</th>' +
+    '<tr><th rowspan="2">MCS</th><th rowspan="2">변�?/th><th rowspan="2">부?�율</th><th rowspan="2">NSS</th>' +
     bws.map(function(b){ return '<th colspan="' + S.gis.length + '" class="bwh">' + b + ' MHz</th>'; }).join('') +
     '</tr><tr>' +
     bws.map(function(){ return S.gis.map(function(g){ return '<th>GI ' + g + '</th>'; }).join(''); }).join('') +
@@ -1097,17 +1108,17 @@ function renderMcs(){
     }
   }
   $('mc-tbl').tBodies[0].innerHTML = body;
-  $('mc-head').textContent = S.label + ' — 데이터 레이트 (Mbit/s)';
+  $('mc-head').textContent = S.label + ' ???�이???�이??(Mbit/s)';
   $('mc-note').innerHTML =
     '<b>Rate = N_SD × N_BPSCS × R × N_SS ÷ T_SYM</b>' +
     '<span>T_SYM = ' + S.dft + ' µs + GI. ' +
     (key === 'he' || key === 'eht'
-      ? 'HE/EHT 는 부반송파 간격이 1/4 로 좁아져 심볼이 4배 길지만 N_SD 도 4배라 레이트는 유지된다.'
+      ? 'HE/EHT ??부반송??간격??1/4 �?좁아???�볼??4�?길�?�?N_SD ??4배라 ?�이?�는 ?��??�다.'
       : '') + '</span>' +
     (key === 'vht'
-      ? '<span>빈칸은 <b>802.11ac 금지 조합</b> — 20 MHz MCS9(NSS 3·6 제외), 80 MHz MCS6(NSS 3·7), 160 MHz MCS9(NSS 3).</span>'
+      ? '<span>빈칸?� <b>802.11ac 금�? 조합</b> ??20 MHz MCS9(NSS 3·6 ?�외), 80 MHz MCS6(NSS 3·7), 160 MHz MCS9(NSS 3).</span>'
       : '') +
-    (key === 'ht' ? '<span>HT 는 MCS 번호가 스트림까지 포함한다 — NSS2 의 MCS0 은 <b>MCS8</b>.</span>' : '');
+    (key === 'ht' ? '<span>HT ??MCS 번호가 ?�트림까지 ?�함?�다 ??NSS2 ??MCS0 ?� <b>MCS8</b>.</span>' : '');
 }
 ['mc-std', 'mc-nss'].forEach(function(id){ $(id).addEventListener('change', renderMcs); });
 
@@ -1137,9 +1148,9 @@ var STD = {
 };
 var DSSS_RATES = [{v:1,t:'1 Mbps (DBPSK)'},{v:2,t:'2 Mbps (DQPSK)'},{v:5.5,t:'5.5 Mbps (CCK)'},{v:11,t:'11 Mbps (CCK)'}];
 var BT_TYPES = [
-  {v:'DH1', t:'DH1 / 2-DH1 / 3-DH1 (1 슬롯)', us:366,  slot:1},
-  {v:'DH3', t:'DH3 / 2-DH3 / 3-DH3 (3 슬롯)', us:1622, slot:3},
-  {v:'DH5', t:'DH5 / 2-DH5 / 3-DH5 (5 슬롯)', us:2871, slot:5}
+  {v:'DH1', t:'DH1 / 2-DH1 / 3-DH1 (1 ?�롯)', us:366,  slot:1},
+  {v:'DH3', t:'DH3 / 2-DH3 / 3-DH3 (3 ?�롯)', us:1622, slot:3},
+  {v:'DH5', t:'DH5 / 2-DH5 / 3-DH5 (5 ?�롯)', us:2871, slot:5}
 ];
 var BLE_PHY = [
   {v:'1M', t:'LE 1M', usPerBit:1,   hdr:10},
@@ -1170,7 +1181,7 @@ function syncCapInputs(){
   $('cp-ltf-wrap').hidden = !(std==='11ax'||std==='11be');
   $('cp-rate-wrap').hidden = !(isDsss||isBt||isBle);
   $('cp-len').parentNode.hidden = isBt || (isUwb && $('cp-uwb-sp').value === '3');
-  if(isUwb) $('cp-len-lbl').textContent = 'PSDU (바이트)';
+  if(isUwb) $('cp-len-lbl').textContent = 'PSDU (바이??';
 
   if(isOfdm){
     var S = STD[std];
@@ -1178,16 +1189,16 @@ function syncCapInputs(){
     var curBw = $('cp-bw').value;
     fillSel($('cp-bw'), bws, S.nsd[curBw] ? curBw : bws[bws.length>1?1:0].v);
     var ms = MCS.filter(function(x){ return x.m<=S.maxMcs; })
-                .map(function(x){ return {v:x.m, t:'MCS'+x.m+' — '+x.mod+' '+ (x.r===1/2?'1/2':x.r===3/4?'3/4':x.r===2/3?'2/3':'5/6')}; });
+                .map(function(x){ return {v:x.m, t:'MCS'+x.m+' ??'+x.mod+' '+ (x.r===1/2?'1/2':x.r===3/4?'3/4':x.r===2/3?'2/3':'5/6')}; });
     var curM = $('cp-mcs').value;
     fillSel($('cp-mcs'), ms, (curM!=='' && parseInt(curM,10)<=S.maxMcs) ? curM : 7);
     fillSel($('cp-gi'), S.gis.map(function(g){ return {v:g, t:g+' µs'}; }), S.gis.indexOf(parseFloat($('cp-gi').value))>=0 ? $('cp-gi').value : S.gis[S.gis.length>1?1:0]);
-    $('cp-len-lbl').textContent = (std==='11ac'||std==='11ax'||std==='11be') ? 'APEP (바이트)' : '페이로드 (바이트)';
+    $('cp-len-lbl').textContent = (std==='11ac'||std==='11ax'||std==='11be') ? 'APEP (바이??' : '?�이로드 (바이??';
   }
-  if(isDsss){ fillSel($('cp-rate'), DSSS_RATES.map(function(r){return {v:r.v,t:r.t};}), 11); $('cp-len-lbl').textContent='페이로드 (바이트)'; }
+  if(isDsss){ fillSel($('cp-rate'), DSSS_RATES.map(function(r){return {v:r.v,t:r.t};}), 11); $('cp-len-lbl').textContent='?�이로드 (바이??'; }
   if(isBt)  { fillSel($('cp-rate'), BT_TYPES.map(function(r){return {v:r.v,t:r.t};}), 'DH5'); }
-  if(isBle) { fillSel($('cp-rate'), BLE_PHY.map(function(r){return {v:r.v,t:r.t};}), '1M'); $('cp-len-lbl').textContent='페이로드 (바이트)'; }
-  if(isZb)  { $('cp-len-lbl').textContent='PSDU (바이트, 최대 127)'; }
+  if(isBle) { fillSel($('cp-rate'), BLE_PHY.map(function(r){return {v:r.v,t:r.t};}), '1M'); $('cp-len-lbl').textContent='?�이로드 (바이??'; }
+  if(isZb)  { $('cp-len-lbl').textContent='PSDU (바이?? 최�? 127)'; }
   calcCap();
 }
 
@@ -1216,35 +1227,35 @@ function calcCap(){
     occ=bw;
     steps.push(['N_SD', nsd + '  (' + S.label + ' ' + bw + 'MHz)']);
     steps.push(['N_DBPS', nsd + ' × ' + mcs.b + ' × ' + (mcs.r===1/2?'1/2':mcs.r===3/4?'3/4':mcs.r===2/3?'2/3':'5/6') + ' × ' + nss + ' = ' + ndbps + ' bit']);
-    steps.push(['비트수', '8 × ' + L + ' + 16 + 6 = ' + bits]);
+    steps.push(['비트??, '8 × ' + L + ' + 16 + 6 = ' + bits]);
     steps.push(['N_SYM', 'ceil(' + bits + ' / ' + ndbps + ') = ' + nsym]);
     steps.push(['T_SYM', S.dft + ' + ' + gi + ' = ' + f1(tsym) + ' µs']);
     steps.push(['T_DATA', nsym + ' × ' + f1(tsym) + ' = ' + f1(data) + ' µs']);
-    steps.push(['프리앰블', f1(pre) + ' µs  (N_LTF ' + nLtf(nss) + ')']);
-    extra = (ndbps/8).toFixed(0) + ' 바이트/심볼';
+    steps.push(['?�리?�블', f1(pre) + ' µs  (N_LTF ' + nLtf(nss) + ')']);
+    extra = (ndbps/8).toFixed(0) + ' 바이???�볼';
   } else if(std==='11b'){
     var rate=parseFloat($('cp-rate').value)||11;
     pre=(rate===1)?192:192;
     data=8*L/rate;
     occ=22;
-    steps.push(['프리앰블', 'Long 192 µs  (Short 96 µs 선택 시 −96)']);
+    steps.push(['?�리?�블', 'Long 192 µs  (Short 96 µs ?�택 ????6)']);
     steps.push(['T_DATA', '8 × ' + L + ' / ' + rate + ' Mbps = ' + f1(data) + ' µs']);
     extra = rate + ' Mbps';
   } else if(std==='bt'){
     var bt=BT_TYPES.filter(function(x){return x.v===$('cp-rate').value;})[0]||BT_TYPES[2];
     pre=0; data=bt.us; occ=1;
-    steps.push(['패킷 형식', bt.v + '  (' + bt.slot + ' 슬롯, 슬롯 = 625 µs)']);
-    steps.push(['최대 점유', bt.us + ' µs']);
-    extra = bt.slot + ' 슬롯';
+    steps.push(['?�킷 ?�식', bt.v + '  (' + bt.slot + ' ?�롯, ?�롯 = 625 µs)']);
+    steps.push(['최�? ?�유', bt.us + ' µs']);
+    extra = bt.slot + ' ?�롯';
   } else if(std==='ble'){
     var ph=BLE_PHY.filter(function(x){return x.v===$('cp-rate').value;})[0]||BLE_PHY[0];
     var bytes=ph.hdr+L;
     pre=0; data=bytes*8*ph.usPerBit; occ=2;
-    steps.push(['총 바이트', ph.hdr + ' (헤더/CRC) + ' + L + ' = ' + bytes + ' B']);
+    steps.push(['�?바이??, ph.hdr + ' (?�더/CRC) + ' + L + ' = ' + bytes + ' B']);
     steps.push(['T_PKT', bytes + ' × 8 × ' + ph.usPerBit + ' = ' + f1(data) + ' µs']);
     extra = ph.t;
   } else if(std==='uwb'){
-    /* SHR : 프리앰블 심볼 하나 = 코드길이 × Δ 칩 */
+    /* SHR : ?�리?�블 ?�볼 ?�나 = 코드길이 × ? �?*/
     var code=parseInt($('cp-uwb-code').value,10);
     var tps=uwbTpsym(code);                       /* µs */
     var nSync=parseInt($('cp-uwb-sync').value,10), nSfd=parseInt($('cp-uwb-sfd').value,10);
@@ -1254,25 +1265,25 @@ function calcCap(){
     var tSync=nSync*tps, tSfd=nSfd*tps;
     var tSts=(sp===0)?0:stsUs;
     var tPhr=(sp===3)?0:19/phrRate;               /* PHR 19 bit */
-    var tPsdu=(sp===3)?0:(8*L+48)/R.bitRate;      /* PSDU + RS 패리티 48 bit */
+    var tPsdu=(sp===3)?0:(8*L+48)/R.bitRate;      /* PSDU + RS ?�리??48 bit */
     pre=tSync+tSfd; data=tSts+tPhr+tPsdu;
-    occ=499.2; recFs=2400;                        /* IQxel UWB 모듈 실측 샘플링 */
+    occ=499.2; recFs=2400;                        /* IQxel UWB 모듈 ?�측 ?�플�?*/
     steps.push(['Tc', '1 / 499.2 MHz = ' + UWB_TC.toFixed(4) + ' ns']);
     steps.push(['T_psym', code + ' × ' + UWB_CODE[code].delta + ' = ' + (code*UWB_CODE[code].delta) +
-                          ' 칩 = ' + f2(tps*1000) + ' ns']);
+                          ' �?= ' + f2(tps*1000) + ' ns']);
     steps.push(['SYNC', nSync + ' × ' + f2(tps) + ' = ' + f1(tSync) + ' µs']);
     steps.push(['SFD', nSfd + ' × ' + f2(tps) + ' = ' + f1(tSfd) + ' µs']);
-    steps.push(['SHR 합계', f1(tSync+tSfd) + ' µs']);
-    steps.push(['T_dsym', R.nburst + ' × ' + R.ncpb + ' = ' + R.nc + ' 칩 = ' + f2(R.tdsym) + ' ns']);
-    steps.push(['비트레이트', '2 × ' + f2(R.fec) + ' / ' + f2(R.tdsym) + 'ns = ' + f2(R.bitRate) + ' Mb/s']);
-    steps.push(['STS', sp===0 ? '없음 (SP0)' : (f1(tSts) + ' µs = ' + Math.round(tSts*499.2) + ' 칩')]);
-    steps.push(['PHR', sp===3 ? '없음 (SP3)' : ('19 bit / ' + f2(phrRate) + ' = ' + f2(tPhr) + ' µs')]);
-    steps.push(['PSDU', sp===3 ? '없음 (SP3)' : ('(8 × ' + L + ' + 48) / ' + f2(R.bitRate) + ' = ' + f1(tPsdu) + ' µs')]);
+    steps.push(['SHR ?�계', f1(tSync+tSfd) + ' µs']);
+    steps.push(['T_dsym', R.nburst + ' × ' + R.ncpb + ' = ' + R.nc + ' �?= ' + f2(R.tdsym) + ' ns']);
+    steps.push(['비트?�이??, '2 × ' + f2(R.fec) + ' / ' + f2(R.tdsym) + 'ns = ' + f2(R.bitRate) + ' Mb/s']);
+    steps.push(['STS', sp===0 ? '?�음 (SP0)' : (f1(tSts) + ' µs = ' + Math.round(tSts*499.2) + ' �?)]);
+    steps.push(['PHR', sp===3 ? '?�음 (SP3)' : ('19 bit / ' + f2(phrRate) + ' = ' + f2(tPhr) + ' µs')]);
+    steps.push(['PSDU', sp===3 ? '?�음 (SP3)' : ('(8 × ' + L + ' + 48) / ' + f2(R.bitRate) + ' = ' + f1(tPsdu) + ' µs')]);
     extra = 'SP' + sp + ' · 코드 ' + code + ' · Mean PRF ' + f2(R.meanPrf) + ' MHz';
   } else {
     var zbB=6+Math.min(L,127);
     pre=0; data=zbB*8*4; occ=2;
-    steps.push(['총 바이트', '6 (프리앰블/SFD/PHR) + ' + Math.min(L,127) + ' = ' + zbB + ' B']);
+    steps.push(['�?바이??, '6 (?�리?�블/SFD/PHR) + ' + Math.min(L,127) + ' = ' + zbB + ' B']);
     steps.push(['T_PKT', zbB + ' × 8 bit × 4 µs = ' + f1(data) + ' µs  (250 kbps)']);
     extra = '250 kbps O-QPSK';
   }
@@ -1286,29 +1297,29 @@ function calcCap(){
     '<div><span class="k">권장 캡처 (×' + margin + ')</span><span class="v acc">' + rec + '<span class="u"> µs</span></span></div>' +
     '<div><span class="k">참고</span><span class="v" style="font-size:14px">' + extra + '</span></div>';
 
-  /* 샘플링 */
+  /* ?�플�?*/
   var minFs=occ*2, cand=[40,80,160,320,640,1280,2400];
   var fs=recFs||(cand.filter(function(c){return c>=minFs;})[0]||minFs);
   var samples=Math.round(fs*1e6*rec*1e-6);
   var mem=samples*8/1048576;
   $('cp-smp').tBodies[0].innerHTML =
-    '<tr><td>신호 점유 대역폭</td><td class="n">' + occ + ' MHz</td></tr>' +
-    '<tr><td>최소 샘플링 (2 × BW)</td><td class="n">' + minFs + ' MHz</td></tr>' +
-    '<tr><td><b>권장 샘플링</b></td><td class="n"><b>' + fs + ' MHz</b>' +
-       (recFs ? ' <span class="pill p-acc">장비 실측값</span>' : '') + '</td></tr>' +
-    '<tr><td>캡처 샘플 수</td><td class="n">' + samples.toLocaleString() + '</td></tr>' +
-    '<tr><td>IQ 메모리 (complex float32)</td><td class="n">' + f1(mem) + ' MB</td></tr>';
+    '<tr><td>?�호 ?�유 ?�??��</td><td class="n">' + occ + ' MHz</td></tr>' +
+    '<tr><td>최소 ?�플�?(2 × BW)</td><td class="n">' + minFs + ' MHz</td></tr>' +
+    '<tr><td><b>권장 ?�플�?/b></td><td class="n"><b>' + fs + ' MHz</b>' +
+       (recFs ? ' <span class="pill p-acc">?�비 ?�측�?/span>' : '') + '</td></tr>' +
+    '<tr><td>캡처 ?�플 ??/td><td class="n">' + samples.toLocaleString() + '</td></tr>' +
+    '<tr><td>IQ 메모�?(complex float32)</td><td class="n">' + f1(mem) + ' MB</td></tr>';
 
   if(std==='uwb'){
     $('cp-note').innerHTML =
-      '<b>UWB 는 근사치다</b> — SYNC/SFD 심볼 길이는 Ipatov 코드의 0 밀도에 따라 달라져서 ' +
-      '공칭 <code>코드길이 × Δ ÷ 499.2</code> 와 실제 파형이 몇 % 차이 날 수 있다. ' +
-      '<b>정확한 값은 웨이브폼 파일 탭에서 SampleCount 를 직접 읽어라.</b>' +
-      '<br>기본값은 라이브러리의 <code>FiRA_SP1_BPRF_SET3.iqvsg</code> 설정과 같다 ' +
+      '<b>UWB ??근사치다</b> ??SYNC/SFD ?�볼 길이??Ipatov 코드??0 밀?�에 ?�라 ?�라?�서 ' +
+      '공칭 <code>코드길이 × ? ÷ 499.2</code> ?� ?�제 ?�형??�?% 차이 ?????�다. ' +
+      '<b>?�확??값�? ?�이브폼 ?�일 ??��??SampleCount �?직접 ?�어??</b>' +
+      '<br>기본값�? ?�이브러리의 <code>FiRA_SP1_BPRF_SET3.iqvsg</code> ?�정�?같다 ' +
       '(BPRF 62.4 MHz · SYNC 64 · SFD 8 · STS 64 µs · 6.81 Mbps · PSDU 20 B).';
     return;
   }
-  $('cp-note').innerHTML = '<b>캡처가 짧으면</b> 패킷이 잘려 분석 실패 또는 파워 오측. <b>길면</b> 시간만 조금 손해 — 트리거 사용 시 Capture Delay 가 압도하므로 <b>2~3배로 넉넉하게</b> 잡는 편이 안전하다.';
+  $('cp-note').innerHTML = '<b>캡처가 짧으�?/b> ?�킷???�려 분석 ?�패 ?�는 ?�워 ?�측. <b>길면</b> ?�간�?조금 ?�해 ???�리�??�용 ??Capture Delay 가 ?�도?��?�?<b>2~3배로 ?�넉?�게</b> ?�는 ?�이 ?�전?�다.';
 }
 ['cp-std','cp-bw','cp-mcs','cp-nss','cp-gi','cp-ltf','cp-rate','cp-len','cp-margin',
  'cp-uwb-code','cp-uwb-sync','cp-uwb-sfd','cp-uwb-rate','cp-uwb-phr',
@@ -1320,16 +1331,16 @@ function calcCap(){
 
 /* ================= PAR ================= */
 var PARTBL = [
-  ['DSSS / CCK (11b)',            '3 – 5',   '거의 일정 포락선'],
-  ['Legacy OFDM (11a/g)',         '10 – 12', '48 부반송파 합성'],
-  ['HT / VHT (11n/ac)',           '10 – 12', '52 – 468 부반송파'],
-  ['HE / EHT (11ax/be)',          '11 – 13', '부반송파 4배, 피크 확률 증가'],
-  ['BT BR (GFSK)',                '0 – 1',   '정포락선 변조'],
-  ['BT EDR (π/4-DQPSK, 8DPSK)',   '3 – 4',   ''],
-  ['BLE 1M / 2M (GFSK)',          '0 – 1',   '정포락선'],
-  ['Zigbee (O-QPSK half-sine)',   '0.3 – 1', '거의 정포락선'],
-  ['UWB HRP (BPM-BPSK 펄스)',     '10 – 15', '듀티가 매우 낮은 임펄스 - 피크가 평균보다 훨씬 높다'],
-  ['UWB SP3 (STS 만)',            '9 – 12',  'PHR/PSDU 가 없어 SP1 보다 조금 낮다']
+  ['DSSS / CCK (11b)',            '3 ??5',   '거의 ?�정 ?�락??],
+  ['Legacy OFDM (11a/g)',         '10 ??12', '48 부반송???�성'],
+  ['HT / VHT (11n/ac)',           '10 ??12', '52 ??468 부반송??],
+  ['HE / EHT (11ax/be)',          '11 ??13', '부반송??4�? ?�크 ?�률 증�?'],
+  ['BT BR (GFSK)',                '0 ??1',   '?�포?�선 변�?],
+  ['BT EDR (?/4-DQPSK, 8DPSK)',   '3 ??4',   ''],
+  ['BLE 1M / 2M (GFSK)',          '0 ??1',   '?�포?�선'],
+  ['Zigbee (O-QPSK half-sine)',   '0.3 ??1', '거의 ?�포?�선'],
+  ['UWB HRP (BPM-BPSK ?�스)',     '10 ??15', '?�?��? 매우 ??? ?�펄??- ?�크가 ?�균보다 ?�씬 ?�다'],
+  ['UWB SP3 (STS �?',            '9 ??12',  'PHR/PSDU 가 ?�어 SP1 보다 조금 ??��']
 ];
 function calcPar(){
   var t=parseFloat($('pr-target').value)||0, l=parseFloat($('pr-loss').value)||0;
@@ -1338,58 +1349,58 @@ function calcPar(){
   var pk=parseFloat($('pr-peak').value)||0, av=parseFloat($('pr-avg').value)||0;
   var meas=pk-av, diff=meas-p;
   $('pr-steps').innerHTML =
-    '<span class="lbl">공식      </span>Ref = Target − CableLoss + PAR + ChainGain\n' +
-    '<span class="lbl">대입      </span>' + f2(t) + ' − ' + f2(l) + ' + ' + f2(p) + ' + ' + f2(g) + '\n' +
-    '<span class="lbl">테스터 평균</span>' + f2(t-l) + ' dBm  <span class="lbl">(Target − CableLoss)</span>';
-  var pill = Math.abs(diff)<=1 ? '<span class="pill p-ok">적정</span>'
-           : diff>0 ? '<span class="pill p-warn">설정보다 ' + f1(diff) + ' dB 큼 — 클리핑 위험</span>'
-                    : '<span class="pill p-acc">설정보다 ' + f1(-diff) + ' dB 작음</span>';
+    '<span class="lbl">공식      </span>Ref = Target ??CableLoss + PAR + ChainGain\n' +
+    '<span class="lbl">?�??     </span>' + f2(t) + ' ??' + f2(l) + ' + ' + f2(p) + ' + ' + f2(g) + '\n' +
+    '<span class="lbl">?�스???�균</span>' + f2(t-l) + ' dBm  <span class="lbl">(Target ??CableLoss)</span>';
+  var pill = Math.abs(diff)<=1 ? '<span class="pill p-ok">?�정</span>'
+           : diff>0 ? '<span class="pill p-warn">?�정보다 ' + f1(diff) + ' dB ?????�리???�험</span>'
+                    : '<span class="pill p-acc">?�정보다 ' + f1(-diff) + ' dB ?�음</span>';
   $('pr-big').innerHTML =
     '<div><span class="k">VSA Reference Level</span><span class="v acc">' + f2(ref) + '<span class="u"> dBm</span></span></div>' +
-    '<div><span class="k">실측 PAR (Peak − Power)</span><span class="v">' + f2(meas) + '<span class="u"> dB</span></span></div>' +
-    '<div><span class="k">설정 대비</span><span class="v" style="font-size:13px">' + pill + '</span></div>';
+    '<div><span class="k">?�측 PAR (Peak ??Power)</span><span class="v">' + f2(meas) + '<span class="u"> dB</span></span></div>' +
+    '<div><span class="k">?�정 ?��?/span><span class="v" style="font-size:13px">' + pill + '</span></div>';
 }
 ['pr-target','pr-loss','pr-par','pr-gain','pr-peak','pr-avg'].forEach(function(id){
   $(id).addEventListener('input', calcPar);
 });
-$('pr-tbl').tHead.innerHTML = '<tr><th>변조</th><th>전형 PAR (dB)</th><th>비고</th></tr>';
+$('pr-tbl').tHead.innerHTML = '<tr><th>변�?/th><th>?�형 PAR (dB)</th><th>비고</th></tr>';
 $('pr-tbl').tBodies[0].innerHTML = PARTBL.map(function(r){
   return '<tr><td>'+r[0]+'</td><td class="n">'+r[1]+'</td><td>'+r[2]+'</td></tr>';
 }).join('');
 
 
-/* ================= 웨이브폼 파일 (.iqvsg) =================
-   파일 앞부분만 slice 로 읽어 <LPHeader> XML 을 파싱한다.
-   IQ 데이터는 읽지 않으므로 수백 MB 파일도 즉시 처리된다.           */
+/* ================= ?�이브폼 ?�일 (.iqvsg) =================
+   ?�일 ?��?분만 slice �??�어 <LPHeader> XML ???�싱?�다.
+   IQ ?�이?�는 ?��? ?�으므�??�백 MB ?�일??즉시 처리?�다.           */
 var WF = [], WFsel = 0, HDR_END = '</LPHeader>';
-var WFmode = 'one', WFa = 0, WFb = 1;   /* 'one' = 한 파일, 'cmp' = 두 파일 비교 */
+var WFmode = 'one', WFa = 0, WFb = 1;   /* 'one' = ???�일, 'cmp' = ???�일 비교 */
 var W = 'CONFigure:WAVE:';
 
-/* 표시할 전체 필드 스키마. 파일에 없으면 N/A 로 나온다.
-   fmt: ''=첫 원소 | 'all'=배열 전체 | 'MHz'=Hz→MHz | 'us'=s→µs | 'ns'=s→ns */
+/* ?�시???�체 ?�드 ?�키�? ?�일???�으�?N/A �??�온??
+   fmt: ''=�??�소 | 'all'=배열 ?�체 | 'MHz'=Hz?�MHz | 'us'=s?�µs | 'ns'=s?�ns */
 var WF_SCHEMA = [
-['파일', [
-  ['파일명',        '@name'],
-  ['크기',          '@size'],
-  ['헤더 / 데이터', '@split'],
-  ['세그먼트(포트) 수', '@seg'],
-  ['바이트/샘플',   '@bps'],
-  ['데이터 크기 검증', '@chk'],
+['?�일', [
+  ['?�일�?,        '@name'],
+  ['?�기',          '@size'],
+  ['?�더 / ?�이??, '@split'],
+  ['?�그먼트(?�트) ??, '@seg'],
+  ['바이???�플',   '@bps'],
+  ['?�이???�기 검�?, '@chk'],
   ['Module',        '@mod'],
   ['FileType',      '@FileType'],
   ['Source',        '@Source'],
   ['Encoding',      '@Encoding'],
-  ['생성 일시',     '@DateTime'],
-  ['장비 IDN',      '@IDN'],
+  ['?�성 ?�시',     '@DateTime'],
+  ['?�비 IDN',      '@IDN'],
   ['Description',   '@Description']
 ]],
-['신호', [
+['?�호', [
   ['SamplingRate',  '@SamplingRate'],
   ['SampleCount',   '@SampleCount'],
-  ['파형 길이',     '@dur'],
+  ['?�형 길이',     '@dur'],
   ['Wave Gap',      W+'GAP', 'us'],
   ['Clock (CLOCk)', W+'CLOCk'],
-  ['NETX (여분 Tx 포트)', W+'NETX'],
+  ['NETX (?�분 Tx ?�트)', W+'NETX'],
   ['Packet Type',   W+'PTYPe'],
   ['Frame Type',    W+'FTYPe']
 ]],
@@ -1419,7 +1430,7 @@ var WF_SCHEMA = [
   ['Spatial Map',   W+'OFDM:SMAPping:TYPE'],
   ['MCS Table',     W+'MCSTable']
 ]],
-['HE / EHT 전용', [
+['HE / EHT ?�용', [
   ['PPDU Format',   W+'OFDM:PFORmat'],
   ['BSS Color',     W+'OFDM:BSSColor'],
   ['L-SIG Length',  W+'OFDM:LSIG:LENGth'],
@@ -1431,7 +1442,7 @@ var WF_SCHEMA = [
   ['RU Freq Seg',   W+'OFDM:RUINdex:FSEGment'],
   ['STA ID',        W+'OFDM:STAid'],
   ['SIG-B MCS',     W+'OFDM:SIGB:MCS'],
-  ['SIG-B 압축',    W+'OFDM:SIGB:COMPression'],
+  ['SIG-B ?�축',    W+'OFDM:SIGB:COMPression'],
   ['SIG-B DCM',     W+'OFDM:SIGB:DCM'],
   ['A-Factor',      W+'OFDM:AFACtor'],
   ['PE Disambig.',  W+'OFDM:PEDisambiguity'],
@@ -1454,7 +1465,7 @@ var WF_SCHEMA = [
   ['Filter Length', W+'DSSS:FILTer:LENGth'],
   ['Filter Rolloff',W+'DSSS:FILTer:ROLLoff']
 ]],
-['필터 · 윈도우', [
+['?�터 · ?�도??, [
   ['OFDM Filter',   W+'OFDM:FILTer'],
   ['Filter Alpha',  W+'OFDM:FILTer:ALPHa'],
   ['Filter Delay',  W+'OFDM:FILTer:DELay'],
@@ -1467,10 +1478,10 @@ var WF_SCHEMA = [
   ['CFR',           W+'CFR'],
   ['CFR Crest',     W+'CFR:CFACtor']
 ]],
-['패킷 (PSDU)', [
+['?�킷 (PSDU)', [
   ['MPDU1 길이',    W+'PSDU:MPDU1:NBYTes'],
   ['MPDU 개수',     W+'PSDU:NMPDus'],
-  ['PSDU 길이 (비-WLAN)', W+'PSDU:NBYTes'],
+  ['PSDU 길이 (�?WLAN)', W+'PSDU:NBYTes'],
   ['Data Type',     W+'PSDU:DATA:TYPE'],
   ['PN Seed',       W+'PSDU:DATA:PN:SEED'],
   ['Data Bits',     W+'PSDU:DATA:BITS:ASCii'],
@@ -1478,20 +1489,20 @@ var WF_SCHEMA = [
   ['Scrambler',     W+'SCRambler'],
   ['Length Ext.',   W+'PSDU:LEXTension']
 ]],
-['MAC 헤더', [
+['MAC ?�더', [
   ['Address 1',     W+'PSDU:MACHeader:ADDRess1'],
   ['Address 2',     W+'PSDU:MACHeader:ADDRess2'],
   ['Address 3',     W+'PSDU:MACHeader:ADDRess3'],
   ['Address 4',     W+'PSDU:MACHeader:ADDRess4'],
   ['Frame Ctrl 모드',W+'PSDU:MACHeader:FCONtrol:MODE'],
-  ['Frame Ctrl 타입',W+'PSDU:MACHeader:FCONtrol:TYPE'],
-  ['Frame Ctrl 값', W+'PSDU:MACHeader:FCONtrol:USER'],
+  ['Frame Ctrl ?�??,W+'PSDU:MACHeader:FCONtrol:TYPE'],
+  ['Frame Ctrl �?, W+'PSDU:MACHeader:FCONtrol:USER'],
   ['Duration',      W+'PSDU:MACHeader:DURation'],
   ['Sequence',      W+'PSDU:MACHeader:SEQuence'],
   ['QoS',           W+'PSDU:MACHeader:QOS'],
   ['HT Control',    W+'PSDU:MACHeader:HTControl:TYPE']
 ]],
-['Degradation (WaveGen 순서)', [
+['Degradation (WaveGen ?�서)', [
   ['Clock Error (ppm)',      W+'DEGRadation:SCLock'],
   ['Freq. Error (Hz)',       W+'DEGRadation:FREQuency'],
   ['Phase Noise (dBc/Hz)',   W+'DEGRadation:PNOise'],
@@ -1541,10 +1552,10 @@ var WF_SCHEMA = [
   ['LE Sync Word',  W+'LENergy:SWORd'],
   ['All Ones',      W+'BEONes:STATe'],
   ['Front-End Zero',W+'FEZeros:STATe'],
-  ['Dirty Tx 주파수', W+'FDFRequency'],
-  ['Dirty Tx 시간',  W+'FDTime']
+  ['Dirty Tx 주파??, W+'FDFRequency'],
+  ['Dirty Tx ?�간',  W+'FDTime']
 ]],
-['UWB · 기타', [
+['UWB · 기�?', [
   ['Bandwidth',     W+'BW'],
   ['Mean PRF',      W+'MPRF'],
   ['Data Rate',     W+'DRATe'],
@@ -1571,12 +1582,12 @@ var WF_SCHEMA = [
   ['NSTS',          W+'NSTS'],
   ['Multipath',     W+'MPATh:STATe'],
   ['Multipath Taps',W+'MPATh:NTAPs'],
-  ['Multipath 지연',W+'MPATh:DELay', 'us'],
-  ['Multipath 전력',W+'MPATh:POWer']
+  ['Multipath 지??,W+'MPATh:DELay', 'us'],
+  ['Multipath ?�력',W+'MPATh:POWer']
 ]]
 ];
 
-/* ---- 헤더 파싱 ---- */
+/* ---- ?�더 ?�싱 ---- */
 function wfTag(xml, n){
   var m = xml.match(new RegExp('<' + n + '>([\\s\\S]*?)<\\/' + n + '>'));
   return m ? m[1].trim() : null;
@@ -1594,14 +1605,14 @@ function wfCmds(xml){
   }
   return {map:map, order:order, mods:mods};
 }
-/* 키 그대로 → :AUSers → :USER1 순으로 찾는다 */
+/* ??그�?�???:AUSers ??:USER1 ?�으�?찾는??*/
 function wfGet(M, k){
   if(M[k] !== undefined) return M[k];
   if(M[k+':AUSers'] !== undefined) return M[k+':AUSers'];
   if(M[k+':USER1'] !== undefined) return M[k+':USER1'];
   return null;
 }
-/* "(AUTO{74})" "(0,2,2,...)" 같은 배열 인자에서 첫 원소만 */
+/* "(AUTO{74})" "(0,2,2,...)" 같�? 배열 ?�자?�서 �??�소�?*/
 function wfFirst(v){
   if(v === null || v === undefined || v === '') return null;
   v = String(v).trim();
@@ -1612,7 +1623,7 @@ function wfFirst(v){
   }
   return v.replace(/\{\d+\}$/, '').trim() || null;
 }
-/* 배열 전체를 짧게 (앞 8개까지) */
+/* 배열 ?�체�?짧게 (??8개까지) */
 function wfAll(v){
   if(v === null || v === undefined || v === '') return null;
   v = String(v).trim();
@@ -1620,9 +1631,9 @@ function wfAll(v){
   var e = v.lastIndexOf(')');
   var it = v.slice(1, e < 0 ? v.length : e).split(',');
   return it.slice(0, 8).map(function(x){ return wfNum(x.trim()); }).join(', ') +
-         (it.length > 8 ? ' ... (총 ' + it.length + ')' : '');
+         (it.length > 8 ? ' ... (�?' + it.length + ')' : '');
 }
-/* "5.000000e-01" 같은 지수 표기를 보기 좋은 숫자로 (그 외 문자열은 그대로) */
+/* "5.000000e-01" 같�? 지???�기�?보기 좋�? ?�자�?(�???문자?��? 그�?�? */
 function wfNum(s){
   if(typeof s !== 'string' || !/^[+-]?\d+(\.\d+)?[eE][+-]?\d+$/.test(s)) return s;
   var n = parseFloat(s);
@@ -1657,7 +1668,7 @@ function wfParse(file){
       var xml = txt.slice(0, k + HDR_END.length), C = wfCmds(xml);
       var sc = parseInt(wfTag(xml, 'SampleCount') || '0', 10);
       var sr = parseInt(wfTag(xml, 'SamplingRate') || '0', 10);
-      /* <DataInfo> 블록 하나가 VSG 포트 하나다. 4포트 파일은 데이터가 4배가 된다. */
+      /* <DataInfo> 블록 ?�나가 VSG ?�트 ?�나?? 4?�트 ?�일?� ?�이?��? 4배�? ?�다. */
       var segs = (xml.match(/<DataInfo>/g) || []).length || 1;
       return {
         name:file.name, size:file.size, hdrEnd:end, cmds:C.map, order:C.order,
@@ -1677,27 +1688,27 @@ function wfParse(file){
   return step(0);
 }
 
-/* ---- 값 얻기: @xxx 는 파생값, 나머지는 SCPI 키 ---- */
+/* ---- �??�기: @xxx ???�생�? ?�머지??SCPI ??---- */
 function wfValue(w, key, fmt){
   if(key.charAt(0) !== '@') return wfFmt(wfGet(w.cmds || {}, key), fmt);
   switch(key){
     case '@name':  return w.name;
     case '@size':  return w.size.toLocaleString() + ' B';
     case '@split': return w.hdrEnd.toLocaleString() + ' B  /  ' + (w.size - w.hdrEnd).toLocaleString() + ' B';
-    case '@seg':   return (w.segs || 1) + '개' + ((w.segs || 1) > 1
-                     ? '   (세그먼트당 ' + ((w.size - w.hdrEnd) / w.segs).toLocaleString() + ' B)' : '');
+    case '@seg':   return (w.segs || 1) + '�? + ((w.segs || 1) > 1
+                     ? '   (?�그먼트??' + ((w.size - w.hdrEnd) / w.segs).toLocaleString() + ' B)' : '');
     case '@bps':   if(!w.sc) return null;
-                   /* Encoding=True 면 IQ 가 LitePoint 인코딩 상태라 float32 로 바로 못 읽는다 */
+                   /* Encoding=True �?IQ 가 LitePoint ?�코???�태??float32 �?바로 �??�는??*/
                    return f2(w.bps) + ' B' + (Math.abs(w.bps - 8) < 0.01
-                     ? ((w.tags && w.tags.Encoding === 'True') ? '  (인코딩됨)' : '  (complex float32)')
+                     ? ((w.tags && w.tags.Encoding === 'True') ? '  (?�코?�됨)' : '  (complex float32)')
                      : '  (비표준)');
     case '@chk':   if(!w.sc) return null;
-                   /* 데이터는 예외 없이 세그먼트 × SampleCount × 8 이어야 한다 */
+                   /* ?�이?�는 ?�외 ?�이 ?�그먼트 × SampleCount × 8 ?�어???�다 */
                    var exp = (w.segs || 1) * w.sc * 8, act = w.size - w.hdrEnd, d = act - exp;
-                   var al = (w.sc % 8 === 0) ? 'SampleCount 8의 배수' : 'SampleCount 가 8의 배수가 아님';
-                   return (d === 0 ? '정합 (' + exp.toLocaleString() + ' B) · ' + al
-                                   : (d < 0 ? '부족 ' : '여분 ') + Math.abs(d) +
-                                     ' B — 기대 ' + exp.toLocaleString() + ' B · 잘렸거나 덧붙은 파일');
+                   var al = (w.sc % 8 === 0) ? 'SampleCount 8??배수' : 'SampleCount 가 8??배수가 ?�님';
+                   return (d === 0 ? '?�합 (' + exp.toLocaleString() + ' B) · ' + al
+                                   : (d < 0 ? '부�?' : '?�분 ') + Math.abs(d) +
+                                     ' B ??기�? ' + exp.toLocaleString() + ' B · ?�렸거나 ?�붙?� ?�일');
     case '@mod':   return (w.mods && w.mods.length) ? w.mods.join(', ') : null;
     case '@SamplingRate': return w.sr ? w.sr.toLocaleString() + ' Hz  (' + (w.sr / 1e6) + ' MHz)' : null;
     case '@SampleCount':  return w.sc ? w.sc.toLocaleString() : null;
@@ -1717,29 +1728,29 @@ function wfBw(w){
 function wfCol(w, k){ return (w.cmds && wfFirst(wfGet(w.cmds, W + k))) || 'N/A'; }
 
 
-/* ================= 규격 적용 여부 =================
-   값이 없을 때 N/A(규격엔 있는데 기록이 없음) 와 XXX(규격에 해당 없음) 를 가른다.
-   토큰 의미
-     any     : 모든 파일                 wifi : WIFI 모듈
-     ofdm    : WLAN OFDM (A/G/N/AC/AX/BE, 11b 제외)
+/* ================= 규격 ?�용 ?��? =================
+   값이 ?�을 ??N/A(규격???�는??기록???�음) ?� XXX(규격???�당 ?�음) �?가른다.
+   ?�큰 ?��?
+     any     : 모든 ?�일                 wifi : WIFI 모듈
+     ofdm    : WLAN OFDM (A/G/N/AC/AX/BE, 11b ?�외)
      ht      : 11n            htvht : 11n/11ac       vht : 11ac
-     vhthe   : 11ac/ax/be     he    : 11ax/11be      mimo: 11n 이상
+     vhthe   : 11ac/ax/be     he    : 11ax/11be      mimo: 11n ?�상
      dsss    : 11b            pkt   : WLAN+UWB+Zigbee
      bt / uwb / btuwb / nonwifi                                        */
 var WF_APPLY_GRP = {
-  '파일': 'any',
-  '신호': 'any',
+  '?�일': 'any',
+  '?�호': 'any',
   'WLAN 공통': 'ofdm',
-  'HE / EHT 전용': 'he',
+  'HE / EHT ?�용': 'he',
   'DSSS / CCK': 'dsss',
-  '필터 · 윈도우': 'ofdm',
-  '패킷 (PSDU)': 'pkt',
-  'MAC 헤더': 'wifi',
-  'Degradation (WaveGen 순서)': 'any',
+  '?�터 · ?�도??: 'ofdm',
+  '?�킷 (PSDU)': 'pkt',
+  'MAC ?�더': 'wifi',
+  'Degradation (WaveGen ?�서)': 'any',
   'Bluetooth': 'bt',
-  'UWB · 기타': 'uwb'
+  'UWB · 기�?': 'uwb'
 };
-/* 그룹 기본값을 덮어쓰는 행 단위 예외 */
+/* 그룹 기본값을 ??��?�는 ???�위 ?�외 */
 var WF_APPLY_KEY = {};
 (function(){
   var m = {
@@ -1763,14 +1774,14 @@ function wfCtx(w){
   return {
     mod: mods.length ? mods[0] : '',
     std: w ? wfStd(w) : '',
-    unknown: !mods.length            /* ModuleConfiguration 자체가 없는 구형 .mod 변환 파일 */
+    unknown: !mods.length            /* ModuleConfiguration ?�체가 ?�는 구형 .mod 변???�일 */
   };
 }
 function wfApplies(tok, c){
-  /* 파일이 무엇인지 알 수 없으면 '해당 없음' 이라고 단정하지 않는다 */
+  /* ?�일??무엇?��? ?????�으�?'?�당 ?�음' ?�라�??�정?��? ?�는??*/
   if(c.unknown) return true;
   var wifi = (c.mod === 'WIFI'), s = c.std;
-  if(wifi && !s) return true;        /* WIFI 인데 Standard 가 없는 캡처 파일 */
+  if(wifi && !s) return true;        /* WIFI ?�데 Standard 가 ?�는 캡처 ?�일 */
   var ofdm = wifi && (s === 'A' || s === 'G' || s === 'N' || s === 'AC' || s === 'AX' || s === 'BE');
   switch(tok){
     case 'any':     return true;
@@ -1791,7 +1802,7 @@ function wfApplies(tok, c){
     default:        return true;
   }
 }
-/* 셀 하나를 결정한다: 값이 있으면 값, 없으면 N/A 또는 XXX */
+/* ?� ?�나�?결정?�다: 값이 ?�으�?�? ?�으�?N/A ?�는 XXX */
 function wfCell(w, grpName, row, ctx){
   var v = wfValue(w, row[1], row[2]);
   if(v !== null && v !== '') return {t:String(v), c:''};
@@ -1802,10 +1813,10 @@ function wfCell(w, grpName, row, ctx){
 function wfRenderList(){
   if(!WF.length){ $('wf-listwrap').hidden = true; return; }
   $('wf-listwrap').hidden = false;
-  $('wf-listhead').textContent = '불러온 파일 — ' + WF.length + '개' +
-    (WFmode === 'cmp' ? '  (행을 누르면 A, Shift+누르면 B)' : '  (행을 누르면 상세)');
+  $('wf-listhead').textContent = '불러???�일 ??' + WF.length + '�? +
+    (WFmode === 'cmp' ? '  (?�을 ?�르�?A, Shift+?�르�?B)' : '  (?�을 ?�르�??�세)');
   $('wf-list').tHead.innerHTML =
-    '<tr><th></th><th>파일</th><th>규격</th><th>MCS</th><th>BW</th><th>NSS</th><th>코딩</th><th>길이 µs</th><th>Fs MHz</th></tr>';
+    '<tr><th></th><th>?�일</th><th>규격</th><th>MCS</th><th>BW</th><th>NSS</th><th>코딩</th><th>길이 µs</th><th>Fs MHz</th></tr>';
   $('wf-list').tBodies[0].innerHTML = WF.map(function(w, i){
     var tag = '', sel = '';
     if(WFmode === 'cmp'){
@@ -1813,7 +1824,7 @@ function wfRenderList(){
       else if(i === WFb){ tag = '<span class="pill p-warn">B</span>'; sel = ' sel'; }
     } else if(i === WFsel){ sel = ' sel'; }
     if(w.bad) return '<tr class="clk' + sel + '" data-i="' + i + '"><td>' + tag + '</td><td>' + w.name +
-      '</td><td colspan="7"><span class="pill p-crit">LPHeader 없음</span></td></tr>';
+      '</td><td colspan="7"><span class="pill p-crit">LPHeader ?�음</span></td></tr>';
     var bw = wfBw(w);
     return '<tr class="clk' + sel + '" data-i="' + i + '">' +
       '<td>' + tag + '</td>' +
@@ -1840,16 +1851,16 @@ function wfRenderList(){
   });
 }
 
-/* ---- 한 파일 상세: 스키마 전체를 돌면서 없는 값은 N/A ---- */
+/* ---- ???�일 ?�세: ?�키�??�체�??�면???�는 값�? N/A ---- */
 function wfShowOne(){
   var w = WF[WFsel];
   $('wf-det').className = 'kv';
   $('wf-dethead').textContent = w.name;
 
   if(w.bad){
-    $('wf-det').innerHTML = '<div class="grp">파일</div>' +
-      '<div class="k">크기</div><div class="v">' + w.size.toLocaleString() + ' B</div>' +
-      '<div class="k">상태</div><div class="v">LPHeader 를 찾지 못했다 — iqvsg 가 아니거나 손상된 파일</div>';
+    $('wf-det').innerHTML = '<div class="grp">?�일</div>' +
+      '<div class="k">?�기</div><div class="v">' + w.size.toLocaleString() + ' B</div>' +
+      '<div class="k">?�태</div><div class="v">LPHeader �?찾�? 못했????iqvsg 가 ?�니거나 ?�상???�일</div>';
     $('wf-rawtxt').textContent = '';
     $('wf-cnt').textContent = '';
     return;
@@ -1874,14 +1885,14 @@ function wfShowOne(){
   });
 
   $('wf-det').innerHTML = html;
-  $('wf-cnt').textContent = '확인 ' + nHave + ' / 규격 해당 ' + nAppl +
-                            '  ·  규격 해당없음(XXX) ' + nXX +
-                            '  ·  SCPI 명령 ' + (w.order ? w.order.length : 0) + '개';
+  $('wf-cnt').textContent = '?�인 ' + nHave + ' / 규격 ?�당 ' + nAppl +
+                            '  ·  규격 ?�당?�음(XXX) ' + nXX +
+                            '  ·  SCPI 명령 ' + (w.order ? w.order.length : 0) + '�?;
 
   var M = w.cmds || {};
   $('wf-rawtxt').textContent = (w.order || []).map(function(k){
     return k + (M[k] ? '  ' + M[k] : '');
-  }).join('\n') || '(ModuleConfiguration 없음 — 구형 .mod 변환 파일)';
+  }).join('\n') || '(ModuleConfiguration ?�음 ??구형 .mod 변???�일)';
 }
 
 function wfK(row, showKey){
@@ -1892,16 +1903,16 @@ function wfGrp(name, badge){
   return '<div class="grp">' + name + '<span class="gn">' + badge + '</span></div>';
 }
 
-/* ---- 두 파일 비교 ---- */
+/* ---- ???�일 비교 ---- */
 function wfShowCmp(){
   var A = WF[WFa], B = WF[WFb];
   $('wf-det').className = 'kv cmp';
-  $('wf-dethead').textContent = A.name + '   ↔   ' + B.name;
+  $('wf-dethead').textContent = A.name + '   ??  ' + B.name;
 
   var hideNA = $('wf-hidena').checked, showKey = $('wf-showkey').checked,
       hideSame = $('wf-hidesame').checked;
   var ctxA = wfCtx(A), ctxB = wfCtx(B);
-  var html = '<div class="hcell">항목</div><div class="hcell">A · ' + A.name +
+  var html = '<div class="hcell">??��</div><div class="hcell">A · ' + A.name +
              '</div><div class="hcell">B · ' + B.name + '</div>';
   var nDiff = 0, nTotal = 0;
 
@@ -1912,22 +1923,22 @@ function wfShowCmp(){
       var same = (ca.t === cb.t);
       nTotal++;
       if(!same){ d++; nDiff++; }
-      if(hideNA && ca.c !== '' && cb.c !== '') return;   /* 양쪽 다 값 없음 */
+      if(hideNA && ca.c !== '' && cb.c !== '') return;   /* ?�쪽 ??�??�음 */
       if(hideSame && same) return;
       var df = same ? '' : ' diff';
       body += wfK(row, showKey) +
               '<div class="v' + ca.c + df + '">' + ca.t + '</div>' +
               '<div class="v' + cb.c + df + '">' + cb.t + '</div>';
     });
-    if(body) html += wfGrp(grp[0], d ? '차이 ' + d : '동일') + body;
+    if(body) html += wfGrp(grp[0], d ? '차이 ' + d : '?�일') + body;
   });
 
   $('wf-det').innerHTML = html;
-  $('wf-cnt').textContent = '다른 항목 ' + nDiff + ' / ' + nTotal +
+  $('wf-cnt').textContent = '?�른 ??�� ' + nDiff + ' / ' + nTotal +
                             '  ·  SCPI 명령 A ' + (A.order ? A.order.length : 0) +
                             ' · B ' + (B.order ? B.order.length : 0);
 
-  /* 스키마에 없는 항목까지 포함한 원본 SCPI 차이 */
+  /* ?�키마에 ?�는 ??��까�? ?�함???�본 SCPI 차이 */
   var MA = A.cmds || {}, MB = B.cmds || {}, keys = {};
   (A.order || []).forEach(function(k){ keys[k] = 1; });
   (B.order || []).forEach(function(k){ keys[k] = 1; });
@@ -1939,9 +1950,9 @@ function wfShowCmp(){
     else if(a !== b){ dv.push('  ' + k + '\n      A  ' + wfCut(a) + '\n      B  ' + wfCut(b)); }
   });
   var txt = '';
-  txt += '[값이 다른 명령]  ' + dv.length + '개\n' + (dv.join('\n') || '  (없음)') + '\n\n';
-  txt += '[A 에만 있는 명령]  ' + oa.length + '개\n' + (oa.join('\n') || '  (없음)') + '\n\n';
-  txt += '[B 에만 있는 명령]  ' + ob.length + '개\n' + (ob.join('\n') || '  (없음)');
+  txt += '[값이 ?�른 명령]  ' + dv.length + '�?n' + (dv.join('\n') || '  (?�음)') + '\n\n';
+  txt += '[A ?�만 ?�는 명령]  ' + oa.length + '�?n' + (oa.join('\n') || '  (?�음)') + '\n\n';
+  txt += '[B ?�만 ?�는 명령]  ' + ob.length + '�?n' + (ob.join('\n') || '  (?�음)');
   $('wf-rawtxt').textContent = txt;
 }
 function wfCut(v){
@@ -1949,7 +1960,7 @@ function wfCut(v){
   return v.length > 110 ? v.slice(0, 110) + ' ...' : v;
 }
 
-/* ---- 모드 전환 · 렌더 ---- */
+/* ---- 모드 ?�환 · ?�더 ---- */
 function wfRender(){
   if(!WF.length) return;
   var cmp = (WFmode === 'cmp');
@@ -1960,8 +1971,8 @@ function wfRender(){
   $('wf-m2').disabled = (WF.length < 2);
   $('wf-cmpsel').hidden = !cmp;
   $('wf-lab-same').hidden = !cmp;
-  $('wf-raw').textContent = ($('wf-rawtxt').hidden ? '원본 SCPI ' : '원본 SCPI ') +
-                            (cmp ? '차이 ' : '전체 ') + ($('wf-rawtxt').hidden ? '보기' : '숨기기');
+  $('wf-raw').textContent = ($('wf-rawtxt').hidden ? '?�본 SCPI ' : '?�본 SCPI ') +
+                            (cmp ? '차이 ' : '?�체 ') + ($('wf-rawtxt').hidden ? '보기' : '?�기�?);
   if(cmp){
     if(WFa >= WF.length) WFa = 0;
     if(WFb >= WF.length) WFb = Math.min(1, WF.length - 1);
@@ -1987,7 +1998,7 @@ $('wf-swap').addEventListener('click', function(){ var t = WFa; WFa = WFb; WFb =
   $(id).addEventListener('change', function(){ if(WF.length) wfRender(); });
 });
 
-/* ---- 캡처 탭으로 조건 넘기기 (비교 모드에서는 A 기준) ---- */
+/* ---- 캡처 ??���?조건 ?�기�?(비교 모드?�서??A 기�?) ---- */
 function wfToCap(){
   var w = WF[WFmode === 'cmp' ? WFa : WFsel];
   if(!w || w.bad) return;
@@ -2017,17 +2028,17 @@ $('wf-raw').addEventListener('click', function(){
   var el = $('wf-rawtxt');
   el.hidden = !el.hidden;
   var cmp = (WFmode === 'cmp');
-  this.textContent = '원본 SCPI ' + (cmp ? '차이 ' : '전체 ') + (el.hidden ? '보기' : '숨기기');
+  this.textContent = '?�본 SCPI ' + (cmp ? '차이 ' : '?�체 ') + (el.hidden ? '보기' : '?�기�?);
 });
 
-/* ---- 파일 입력 · 드래그 ---- */
+/* ---- ?�일 ?�력 · ?�래�?---- */
 function wfLoad(files){
   var arr = Array.prototype.slice.call(files).filter(function(f){ return /\.iqvsg$/i.test(f.name); });
   if(!arr.length) return;
   Promise.all(arr.map(wfParse)).then(function(res){
     WF = res;
     WFsel = 0; WFa = 0; WFb = Math.min(1, WF.length - 1);
-    WFmode = (WF.length >= 2) ? 'cmp' : 'one';   // 2개 이상이면 바로 비교 화면
+    WFmode = (WF.length >= 2) ? 'cmp' : 'one';   // 2�??�상?�면 바로 비교 ?�면
     $('wf-empty').hidden = true;
     wfRender();
   });
@@ -2044,14 +2055,14 @@ $('wf-drop').addEventListener('drop', function(ev){
 });
 
 /* init */
-/* UWB 데이터 레이트 선택지 — Table 16-4 행을 그대로 쓴다 */
+/* UWB ?�이???�이???�택지 ??Table 16-4 ?�을 그�?�??�다 */
 $('ph-rate').innerHTML = ['00','01','10','11'].map(function(k){
-  return '<option value="' + k + '"' + (k === '10' ? ' selected' : '') + '>' + k + ' — ' +
+  return '<option value="' + k + '"' + (k === '10' ? ' selected' : '') + '>' + k + ' ??' +
          UWB_PHR_RATE[k][0] + ' / ' + UWB_PHR_RATE[k][1] + ' Mb/s</option>';
 }).join('');
 $('cp-uwb-rate').innerHTML = uwbAllRows().map(function(r, i){
   return '<option value="' + i + '"' + (r.bitRate > 6.8 && r.bitRate < 6.9 && r.code === 127 ? ' selected' : '') + '>' +
-         f2(r.bitRate) + ' Mb/s — 코드 ' + r.code + ' · Mean PRF ' + f2(r.meanPrf) +
+         f2(r.bitRate) + ' Mb/s ??코드 ' + r.code + ' · Mean PRF ' + f2(r.meanPrf) +
          ' · N_cpb ' + r.ncpb + '</option>';
 }).join('');
 renderCh();
