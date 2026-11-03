@@ -1,0 +1,2064 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>RF 계측 계산기</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --ground:#EFF3F5; --surface:#FFFFFF; --surface-2:#E4EAEE; --surface-3:#F5F8F9;
+  --line:#CBD6DB; --line-soft:#DFE7EA;
+  --ink:#131A1E; --ink-mid:#465660; --ink-soft:#6E7F89;
+  --accent:#0E6B76; --accent-ink:#FFFFFF; --accent-soft:#DCEDF0;
+  --ok:#256B40; --ok-soft:#DFEDE4;
+  --warn:#8A5A08; --warn-soft:#F8EEDA;
+  --crit:#9E2B22; --crit-soft:#F9E5E3;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0D1215; --surface:#151D21; --surface-2:#1D272C; --surface-3:#111A1E;
+    --line:#2B383E; --line-soft:#212C31;
+    --ink:#E1EAED; --ink-mid:#A2B1B8; --ink-soft:#7A8A93;
+    --accent:#4FBECB; --accent-ink:#06191D; --accent-soft:#12333A;
+    --ok:#77C79A; --ok-soft:#152D1F;
+    --warn:#DFAF5F; --warn-soft:#312512;
+    --crit:#EE8E85; --crit-soft:#331A17;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0D1215; --surface:#151D21; --surface-2:#1D272C; --surface-3:#111A1E;
+  --line:#2B383E; --line-soft:#212C31;
+  --ink:#E1EAED; --ink-mid:#A2B1B8; --ink-soft:#7A8A93;
+  --accent:#4FBECB; --accent-ink:#06191D; --accent-soft:#12333A;
+  --ok:#77C79A; --ok-soft:#152D1F;
+  --warn:#DFAF5F; --warn-soft:#312512;
+  --crit:#EE8E85; --crit-soft:#331A17;
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--ground); color:var(--ink);
+  font-family:"IBM Plex Sans","Malgun Gothic","맑은 고딕",system-ui,sans-serif;
+  font-size:15px; line-height:1.55; margin:0;
+  padding-block:26px 64px; padding-left:16px; padding-right:16px;
+}
+.wrap{max-width:1000px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+
+.mast{display:flex;flex-direction:column;gap:6px}
+.kicker{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:600}
+h1{font-size:clamp(22px,4vw,28px);font-weight:700;letter-spacing:-.02em;margin:0;line-height:1.15}
+.dek{margin:0;color:var(--ink-mid);font-size:13.5px;max-width:70ch}
+
+/* tabs */
+nav.tabs{display:flex;flex-wrap:wrap;gap:6px;border-bottom:2px solid var(--line);padding-bottom:0}
+nav.tabs button{
+  font-family:"IBM Plex Sans Condensed","IBM Plex Sans",sans-serif;
+  font-size:13.5px;font-weight:600;letter-spacing:.02em;
+  background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;
+  color:var(--ink-soft);padding:9px 14px;cursor:pointer;
+}
+nav.tabs button:hover{color:var(--ink)}
+nav.tabs button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+nav.tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+
+/* panel grid */
+.cols{display:grid;grid-template-columns:minmax(240px,300px) 1fr;gap:16px;align-items:start}
+@media (max-width:760px){.cols{grid-template-columns:1fr}}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:14px 15px;display:flex;flex-direction:column;gap:12px}
+.card h2{font-size:12px;font-family:"IBM Plex Sans Condensed","IBM Plex Sans",sans-serif;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-soft);margin:0}
+
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:12.5px;color:var(--ink-mid);font-weight:500}
+.field select,.field input{
+  font-family:"IBM Plex Sans",sans-serif;font-size:14px;
+  background:var(--surface-3);color:var(--ink);
+  border:1px solid var(--line);border-radius:3px;padding:7px 9px;width:100%;
+}
+.field input[type=number]{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+.field select:focus-visible,.field input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* result */
+.out{background:var(--surface);border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.out-head{background:var(--surface-2);border-bottom:1px solid var(--line);padding:9px 14px;font-family:"IBM Plex Sans Condensed","IBM Plex Sans",sans-serif;font-size:11.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-soft)}
+.steps{margin:0;padding:12px 14px;font-family:"IBM Plex Mono",monospace;font-size:12.5px;line-height:1.75;color:var(--ink);overflow-x:auto;white-space:pre}
+.steps .lbl{color:var(--ink-soft)}
+.steps .hi{color:var(--accent);font-weight:600}
+
+.big{display:flex;flex-wrap:wrap;gap:1px;background:var(--line);border-top:1px solid var(--line)}
+.big > div{flex:1 1 130px;background:var(--surface);padding:11px 14px;display:flex;flex-direction:column;gap:2px}
+.big .k{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);font-family:"IBM Plex Sans Condensed","IBM Plex Sans",sans-serif;font-weight:600}
+.big .v{font-family:"IBM Plex Mono",monospace;font-size:19px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink)}
+.big .v.acc{color:var(--accent)}
+.big .u{font-size:12px;color:var(--ink-soft);font-weight:400}
+
+/* tables */
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:4px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{text-align:left;padding:7px 11px;border-bottom:1px solid var(--line-soft);white-space:nowrap}
+thead th{background:var(--surface-2);border-bottom:1px solid var(--line);font-family:"IBM Plex Sans Condensed","IBM Plex Sans",sans-serif;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;position:sticky;top:0}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:var(--surface-3)}
+td.n{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+.tblwrap{max-height:460px;overflow:auto}
+code{font-family:"IBM Plex Mono",monospace;font-size:.9em;background:var(--surface-2);padding:1px 5px;border-radius:2px}
+
+.pill{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;font-weight:500;padding:1px 6px;border-radius:2px;border:1px solid transparent}
+.p-ok{background:var(--ok-soft);color:var(--ok);border-color:var(--ok)}
+.p-warn{background:var(--warn-soft);color:var(--warn);border-color:var(--warn)}
+.p-crit{background:var(--crit-soft);color:var(--crit);border-color:var(--crit)}
+.p-acc{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+
+.note{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:0 3px 3px 0;padding:11px 13px;font-size:13px;color:var(--ink-mid);display:flex;flex-direction:column;gap:5px}
+.note.w{border-left-color:var(--warn)}
+.note b{color:var(--ink)}
+footer{border-top:1px solid var(--line);padding-top:12px;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-soft)}
+[hidden]{display:none!important}
+/* --- PHR 비트맵 --- */
+.phrctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:10px;padding:11px 12px;border-bottom:1px solid var(--line);background:var(--surface-3)}
+#mc-phr-tbl td{text-align:center;padding:5px 3px}
+#mc-phr-tbl td.bidx{font-size:10px;color:var(--ink-soft);background:var(--surface-2)}
+#mc-phr-tbl td.bval{font-size:15px;font-weight:700;font-family:"IBM Plex Mono",monospace}
+#mc-phr-tbl td.fname{font-size:11px;font-weight:600;letter-spacing:.04em;border-bottom:2px solid var(--line)}
+.f-a{background:var(--accent-soft);color:var(--accent)}
+.f-b{background:var(--ok-soft);color:var(--ok)}
+.f-c{background:var(--warn-soft);color:var(--warn)}
+.f-d{background:var(--surface-2);color:var(--ink-soft)}
+.f-e{background:var(--crit-soft);color:var(--crit)}
+.f-f{background:var(--surface-2);color:var(--ink-mid)}
+#mc-phr-note b{font-family:"IBM Plex Mono",monospace;letter-spacing:.08em}
+td.grpr{background:var(--surface-2);font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-soft)}
+/* --- Low/Center/High 채널 표 --- */
+table.lch th.bwh{text-align:center;border-left:2px solid var(--line);background:var(--accent-soft);color:var(--accent)}
+table.lch th.ctrh{color:var(--accent)}
+table.lch td{padding:5px 9px;font-size:12.5px}
+table.lch td.chn{font-weight:700;color:var(--ink);background:var(--surface-2)}
+table.lch td.lo,table.lch td.hi{color:var(--ink-soft)}
+table.lch td.lo{border-left:2px solid var(--line-soft)}
+table.lch td.ctr{font-weight:700;color:var(--accent)}
+table.lch td.e{background:var(--surface-3)}
+table.lch td.e:first-of-type{border-left:2px solid var(--line-soft)}
+table.lch thead th{white-space:nowrap}
+
+/* --- 웨이브폼 파일 탭 --- */
+.drop{border:2px dashed var(--line);border-radius:5px;background:var(--surface-2);padding:22px 16px;text-align:center;color:var(--ink-mid);font-size:13px;cursor:pointer;display:block}
+.drop:hover,.drop.on{border-color:var(--accent);background:var(--accent-soft);color:var(--ink)}
+.drop b{display:block;font-size:15px;color:var(--ink);margin-bottom:4px}
+.drop input{display:none}
+.field.chk{gap:7px}
+.field.chk label{display:flex;align-items:center;gap:7px;cursor:pointer;color:var(--ink)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:1px;background:var(--line-soft);max-height:62vh;overflow:auto}
+.kv > div{background:var(--surface);padding:6px 12px;font-size:13px}
+.kv .k{color:var(--ink-soft);font-family:"IBM Plex Sans Condensed","IBM Plex Sans",sans-serif;font-size:11.5px;font-weight:600;letter-spacing:.04em;white-space:nowrap;display:flex;flex-direction:column;gap:1px;justify-content:center}
+.kv .k .sk{font-family:"IBM Plex Mono",monospace;font-size:9.5px;font-weight:400;letter-spacing:0;color:var(--ink-mid);opacity:.75}
+.kv .v{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;word-break:break-all}
+.kv .v.na{color:var(--ink-soft);opacity:.55}
+.kv .v.xx{color:var(--ink-soft);opacity:.42;font-style:italic;background:repeating-linear-gradient(135deg,transparent,transparent 5px,var(--surface-2) 5px,var(--surface-2) 6px)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink-mid);align-items:center}
+.legend b{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink)}
+.kv .grp{grid-column:1/-1;background:var(--surface-2);padding:8px 12px;font-family:"IBM Plex Sans Condensed","IBM Plex Sans",sans-serif;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);display:flex;justify-content:space-between;align-items:center}
+.kv .grp .gn{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:0;text-transform:none;opacity:.8}
+.out-head .hint{float:right;font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--ink-soft)}
+.wf-act{padding:11px 12px;border-top:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap}
+#wf-rawtxt{border-top:1px solid var(--line);max-height:340px;overflow:auto}
+table#wf-list tbody tr.clk{cursor:pointer}
+table#wf-list tbody tr.sel td{background:var(--accent-soft)}
+.btn{font-family:"IBM Plex Sans",sans-serif;font-size:13px;font-weight:600;background:var(--accent);color:var(--accent-ink);border:none;border-radius:3px;padding:8px 14px;cursor:pointer}
+.btn:hover{opacity:.9}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn.gh{background:none;color:var(--accent);border:1px solid var(--line)}
+.btn.sm{padding:5px 9px;font-size:12px}
+/* 비교 모드 */
+.kv.cmp{grid-template-columns:auto 1fr 1fr}
+.kv .hcell{background:var(--surface-2);position:sticky;top:0;z-index:2;padding:7px 12px;font-family:"IBM Plex Sans Condensed","IBM Plex Sans",sans-serif;font-size:11px;font-weight:600;letter-spacing:.05em;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kv .v.diff{background:var(--warn-soft);color:var(--ink)}
+.kv .v.diff.na{color:var(--warn);opacity:1}
+.wf-mode{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:9px 12px;border-bottom:1px solid var(--line);background:var(--surface-3)}
+.seg{display:flex;border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.seg button{font-family:"IBM Plex Sans Condensed","IBM Plex Sans",sans-serif;font-size:12.5px;font-weight:600;background:var(--surface);color:var(--ink-soft);border:none;padding:6px 12px;cursor:pointer}
+.seg button + button{border-left:1px solid var(--line)}
+.seg button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+.seg button:disabled{opacity:.4;cursor:not-allowed}
+.cmpsel{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--ink-soft)}
+.cmpsel label{display:flex;gap:5px;align-items:center;font-family:"IBM Plex Mono",monospace;font-weight:600}
+.cmpsel select{font-family:"IBM Plex Sans",sans-serif;font-size:12.5px;background:var(--surface-3);color:var(--ink);border:1px solid var(--line);border-radius:3px;padding:4px 6px;max-width:200px}
+
+</style>
+
+<div class="wrap">
+
+  <header class="mast">
+    <div class="kicker">WLAN · BT · BLE · Zigbee</div>
+    <h1>RF 계측 계산기</h1>
+    <p class="dek">채널–주파수 표, PPDU 길이에서 캡처 길이·샘플링 레이트 산출, PAR 기반 기준 레벨 계산. 802.11 a/b/g/n/ac/ax/be 와 BT / BLE / Zigbee.</p>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" id="t-ch"  aria-selected="true"  aria-controls="p-ch">채널 표</button>
+    <button role="tab" id="t-mcs" aria-selected="false" aria-controls="p-mcs">MCS 레이트</button>
+    <button role="tab" id="t-cap" aria-selected="false" aria-controls="p-cap">캡처 길이 · 샘플링</button>
+    <button role="tab" id="t-par" aria-selected="false" aria-controls="p-par">PAR · 기준 레벨</button>
+    <button role="tab" id="t-wf" aria-selected="false" aria-controls="p-wf">웨이브폼 파일</button>
+  </nav>
+
+  <!-- ==================== 채널 표 ==================== -->
+  <div id="p-ch" role="tabpanel" aria-labelledby="t-ch">
+    <div class="cols">
+      <div class="card">
+        <h2>대역</h2>
+        <div class="field">
+          <label for="ch-band">규격 / 대역</label>
+          <select id="ch-band">
+            <option value="24">WLAN 2.4 GHz</option>
+            <option value="5" selected>WLAN 5 GHz</option>
+            <option value="6">WLAN 6 GHz</option>
+            <option value="bt">Bluetooth BR/EDR</option>
+            <option value="ble">Bluetooth LE</option>
+            <option value="zb">Zigbee (802.15.4)</option>
+            <option value="uwb">UWB (802.15.4z · FiRA)</option>
+          </select>
+        </div>
+        <div class="field" id="ch-gen-wrap" hidden>
+          <label for="ch-gen">세대</label>
+          <select id="ch-gen">
+            <option value="ax" selected>Wi-Fi 6E (11ax) — 160 MHz 까지</option>
+            <option value="be">Wi-Fi 7 (11be) — 320 MHz 포함</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="ch-find">주파수 또는 채널 검색</label>
+          <input type="text" id="ch-find" placeholder="예: 5190 또는 38" autocomplete="off">
+        </div>
+        <div class="field chk" id="ch-psc-wrap" hidden>
+          <label><input type="checkbox" id="ch-psc"> PSC(우선 스캔) 채널만</label>
+        </div>
+        <div class="note">
+          <b>표 읽는 법</b>
+          <span>한 행이 채널 번호 하나다. 그 번호가 <b>어느 대역폭의 중심</b>인지에 따라 해당 열에만 Low / Center / High 가 찬다.</span>
+          <span>빈 열은 그 번호가 그 대역폭의 중심이 될 수 없다는 뜻이다.</span>
+        </div>
+        <div class="note" id="ch-note"></div>
+      </div>
+      <div class="out">
+        <div class="out-head" id="ch-head">채널</div>
+        <div class="scroll tblwrap"><table id="ch-tbl" class="lch"><thead></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MCS 데이터 레이트 ==================== -->
+  <div id="p-mcs" role="tabpanel" aria-labelledby="t-mcs" hidden>
+    <div class="cols">
+      <div class="card">
+        <h2>조건</h2>
+        <div class="field">
+          <label for="mc-std">규격</label>
+          <select id="mc-std">
+            <option value="ht">802.11n (HT)</option>
+            <option value="vht">802.11ac (VHT)</option>
+            <option value="he" selected>802.11ax (HE)</option>
+            <option value="eht">802.11be (EHT)</option>
+            <option value="uwb">UWB (802.15.4z · FiRA)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="mc-nss">공간 스트림</label>
+          <select id="mc-nss">
+            <option value="1" selected>1 SS</option>
+            <option value="2">2 SS</option>
+            <option value="3">3 SS</option>
+            <option value="4">4 SS</option>
+            <option value="8">8 SS</option>
+            <option value="all">전체</option>
+          </select>
+        </div>
+        <div class="note" id="mc-note"></div>
+        <div class="note">
+          <b>N_SD (데이터 부반송파)</b>
+          <span>HT/VHT — 20:52 · 40:108 · 80:234 · 160:468</span>
+          <span>HE/EHT — 20:234 · 40:468 · 80:980 · 160:1960 · 320:3920</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="out">
+          <div class="out-head" id="mc-head">데이터 레이트</div>
+          <div class="scroll tblwrap"><table id="mc-tbl" class="lch"><thead></thead><tbody></tbody></table></div>
+        </div>
+        <div class="out" id="mc-phr" hidden>
+          <div class="out-head">PHR — 19 비트 구성 · SECDED 계산</div>
+          <div class="phrctl">
+            <div class="field">
+              <label for="ph-prf">Mean PRF</label>
+              <select id="ph-prf">
+                <option value="hi" selected>15.60 또는 62.40 MHz</option>
+                <option value="lo">3.90 MHz</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="ph-rate">Data Rate (b0 b1)</label>
+              <select id="ph-rate"></select>
+            </div>
+            <div class="field">
+              <label for="ph-len">Frame Length (b2–b8)</label>
+              <input type="number" id="ph-len" value="20" min="0" max="127" step="1">
+            </div>
+            <div class="field">
+              <label for="ph-pre">Preamble Duration (b11 b12)</label>
+              <select id="ph-pre">
+                <option value="00">00 — SYNC 16</option>
+                <option value="01" selected>01 — SYNC 64</option>
+                <option value="10">10 — SYNC 1024</option>
+                <option value="11">11 — SYNC 4096</option>
+              </select>
+            </div>
+            <div class="field chk">
+              <label><input type="checkbox" id="ph-rng"> Ranging (b9) — RFRAME 이면 1</label>
+            </div>
+          </div>
+          <div class="scroll"><table id="mc-phr-tbl"><thead></thead><tbody></tbody></table></div>
+          <div class="note" id="mc-phr-note" style="border:none;border-top:1px solid var(--line);border-radius:0"></div>
+        </div>
+        <div class="out" id="mc-shr" hidden>
+          <div class="out-head">SHR — SYNC · SFD 시퀀스</div>
+          <div class="scroll"><table id="mc-shr-tbl"><thead></thead><tbody></tbody></table></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 캡처 ==================== -->
+  <div id="p-cap" role="tabpanel" aria-labelledby="t-cap" hidden>
+    <div class="cols">
+      <div class="card">
+        <h2>신호 조건</h2>
+        <div class="field">
+          <label for="cp-std">규격</label>
+          <select id="cp-std">
+            <option value="11b">802.11b (DSSS/CCK)</option>
+            <option value="11ag">802.11a/g (Legacy OFDM)</option>
+            <option value="11n">802.11n (HT)</option>
+            <option value="11ac">802.11ac (VHT)</option>
+            <option value="11ax" selected>802.11ax (HE)</option>
+            <option value="11be">802.11be (EHT)</option>
+            <option value="bt">Bluetooth BR/EDR</option>
+            <option value="ble">Bluetooth LE</option>
+            <option value="zb">Zigbee</option>
+            <option value="uwb">UWB (802.15.4z · FiRA)</option>
+          </select>
+        </div>
+        <div class="row2">
+          <div class="field" id="cp-bw-wrap">
+            <label for="cp-bw">대역폭</label>
+            <select id="cp-bw"></select>
+          </div>
+          <div class="field" id="cp-mcs-wrap">
+            <label for="cp-mcs">MCS</label>
+            <select id="cp-mcs"></select>
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field" id="cp-nss-wrap">
+            <label for="cp-nss">공간 스트림</label>
+            <select id="cp-nss">
+              <option value="1" selected>1 SS</option>
+              <option value="2">2 SS</option>
+              <option value="3">3 SS</option>
+              <option value="4">4 SS</option>
+            </select>
+          </div>
+          <div class="field" id="cp-gi-wrap">
+            <label for="cp-gi">GI</label>
+            <select id="cp-gi"></select>
+          </div>
+        </div>
+        <div class="field" id="cp-ltf-wrap">
+          <label for="cp-ltf">HE/EHT-LTF</label>
+          <select id="cp-ltf">
+            <option value="1" selected>1x (3.2 µs)</option>
+            <option value="2">2x (6.4 µs)</option>
+            <option value="4">4x (12.8 µs)</option>
+          </select>
+        </div>
+        <div class="field" id="cp-rate-wrap" hidden>
+          <label for="cp-rate">전송률</label>
+          <select id="cp-rate"></select>
+        </div>
+        <div id="cp-uwb-wrap" hidden style="display:flex;flex-direction:column;gap:10px">
+          <div class="row2">
+            <div class="field">
+              <label for="cp-uwb-code">SYNC 코드 길이</label>
+              <select id="cp-uwb-code">
+                <option value="31">31 — 필수 (Δ 16칩)</option>
+                <option value="127" selected>127 — 선택 (Δ 4칩)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="cp-uwb-sync">SYNC 반복</label>
+              <select id="cp-uwb-sync">
+                <option value="16">16 — SHORT</option>
+                <option value="64" selected>64 — DEFAULT</option>
+                <option value="1024">1024 — MEDIUM</option>
+                <option value="4096">4096 — LONG</option>
+              </select>
+            </div>
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label for="cp-uwb-sfd">SFD</label>
+              <select id="cp-uwb-sfd">
+                <option value="8" selected>SHORT — 8 심볼</option>
+                <option value="64">LONG — 64 심볼 (110 kb/s)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="cp-uwb-phr">PHR 레이트</label>
+              <select id="cp-uwb-phr">
+                <option value="0" selected>AUTO — 850 kb/s</option>
+                <option value="1">데이터 레이트와 동일</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label for="cp-uwb-rate">데이터 레이트 (Table 16-4)</label>
+            <select id="cp-uwb-rate"></select>
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label for="cp-uwb-sp">STS 구성 (15.4z)</label>
+              <select id="cp-uwb-sp">
+                <option value="0">SP0 — STS 없음</option>
+                <option value="1" selected>SP1 — SFD 뒤 STS</option>
+                <option value="2">SP2 — PSDU 뒤 STS</option>
+                <option value="3">SP3 — STS 만</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="cp-uwb-sts">STS 길이 (µs)</label>
+              <input type="number" id="cp-uwb-sts" value="64" min="0" max="1000" step="0.1">
+            </div>
+          </div>
+        </div>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label for="cp-len" id="cp-len-lbl">APEP (바이트)</label>
+            <input type="number" id="cp-len" value="1000" min="1" max="65535" step="1">
+          </div>
+          <div class="field">
+            <label for="cp-margin">여유 배수</label>
+            <input type="number" id="cp-margin" value="2.5" min="1" max="10" step="0.1">
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="out">
+          <div class="out-head">계산 과정</div>
+          <pre class="steps" id="cp-steps"></pre>
+          <div class="big" id="cp-big"></div>
+        </div>
+        <div class="out">
+          <div class="out-head">아날라이저 설정</div>
+          <div class="scroll"><table id="cp-smp"><tbody></tbody></table></div>
+        </div>
+        <div class="note" id="cp-note"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== PAR ==================== -->
+  <div id="p-par" role="tabpanel" aria-labelledby="t-par" hidden>
+    <div class="cols">
+      <div class="card">
+        <h2>기준 레벨 계산</h2>
+        <div class="field">
+          <label for="pr-target">목표 출력 Target (dBm)</label>
+          <input type="number" id="pr-target" value="14" step="0.1">
+        </div>
+        <div class="field">
+          <label for="pr-loss">케이블 손실 (dB)</label>
+          <input type="number" id="pr-loss" value="9" step="0.1">
+        </div>
+        <div class="field">
+          <label for="pr-par">PAR (dB)</label>
+          <input type="number" id="pr-par" value="10" step="0.1">
+        </div>
+        <div class="field">
+          <label for="pr-gain">체인 이득 (dB)</label>
+          <input type="number" id="pr-gain" value="0" step="0.1">
+        </div>
+        <hr style="border:none;border-top:1px solid var(--line-soft);margin:2px 0">
+        <h2>실측 PAR 역산</h2>
+        <div class="row2">
+          <div class="field">
+            <label for="pr-peak">Peak Power (dBm)</label>
+            <input type="number" id="pr-peak" value="21" step="0.1">
+          </div>
+          <div class="field">
+            <label for="pr-avg">Power 평균 (dBm)</label>
+            <input type="number" id="pr-avg" value="11" step="0.1">
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="out">
+          <div class="out-head">VSA Reference Level</div>
+          <pre class="steps" id="pr-steps"></pre>
+          <div class="big" id="pr-big"></div>
+        </div>
+        <div class="out">
+          <div class="out-head">변조별 전형 PAR</div>
+          <div class="scroll"><table id="pr-tbl"><thead></thead><tbody></tbody></table></div>
+        </div>
+        <div class="note w">
+          <b>PAR 를 잘못 잡으면</b>
+          <span>· <b>너무 작게</b> → 피크가 ADC 상한 초과 → 클리핑 → EVM 악화, 파워 낮게 측정</span>
+          <span>· <b>너무 크게</b> → ADC 동적범위 낭비 → 측정 SNR 저하 → EVM 바닥값 상승</span>
+          <span>실측 PAR (Peak − Power) 를 재서 설정값과 1~2 dB 안에 있는지 확인하는 것이 가장 확실하다.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ==================== 웨이브폼 파일 ==================== -->
+  <div id="p-wf" role="tabpanel" aria-labelledby="t-wf" hidden>
+    <div class="cols">
+      <div class="card">
+        <h2>파일 선택</h2>
+        <label class="drop" id="wf-drop">
+          <b>.iqvsg 파일 선택</b>
+          클릭하거나 여기로 끌어다 놓기<br>
+          <b style="font-size:13px;margin-top:4px">2개를 고르면 바로 비교</b>
+          <input type="file" id="wf-input" accept=".iqvsg" multiple>
+        </label>
+
+        <div class="field chk">
+          <label><input type="checkbox" id="wf-hidena"> 값이 없는 항목(N/A · XXX) 숨기기</label>
+          <label id="wf-lab-same" hidden><input type="checkbox" id="wf-hidesame"> 같은 값 숨기기 (차이만 보기)</label>
+          <label><input type="checkbox" id="wf-showkey"> SCPI 키 함께 표시</label>
+        </div>
+
+        <div class="note" style="border-left-color:var(--ok)">
+          <b>파일은 어디로도 전송되지 않는다</b>
+          <span>브라우저 안에서 <b>헤더 앞부분만</b> 잘라 읽는다. 수백 MB 파일도 즉시 처리되고 IQ 데이터는 건드리지 않는다.</span>
+        </div>
+        <div class="note">
+          <b>값이 없을 때</b>
+          <span class="legend"><b>N/A</b> 그 규격에는 있는 항목인데 헤더에 기록이 없다 (구형 펌웨어가 안 남긴 경우)</span>
+          <span class="legend"><b>XXX</b> 그 규격·모듈에 애초에 해당 없는 항목 (11ac 파일의 HE 항목, WLAN 파일의 BT 항목 등)</span>
+          <span>값이 하나라도 있으면 언제나 값을 그대로 보여준다.</span>
+        </div>
+        <div class="note">
+          <b>표시 항목 (11그룹 165개)</b>
+          <span>파일 · 신호 · WLAN 공통 · HE/EHT · DSSS/CCK</span>
+          <span>필터/윈도우 · 패킷 · MAC 헤더</span>
+          <span>Degradation(WaveGen GUI 순서) · Bluetooth · UWB</span>
+        </div>
+        <div class="note">
+          <b>비교 모드</b>
+          <span>다른 값은 <b>노란 배경</b>으로 표시하고, 그룹 머리에 차이 개수를 붙인다.</span>
+          <span>목록에서 <b>클릭 = A</b>, <b>Shift+클릭 = B</b>.</span>
+          <span><b>원본 SCPI 차이</b> 버튼은 위 164개 밖의 명령까지 전부 비교한다.</span>
+        </div>
+        <div class="note" style="border-left-color:var(--warn)">
+          <b>N/A 가 정상인 경우</b>
+          <span>WaveGen GUI 의 Phase Noise · AWGN SNR · IQ Gain/Phase/Delay · DCI/DCQ · SFactor · Channel Gain/Phase 는 생성 시점에만 적용되고 <b>.iqvsg 헤더에 저장되지 않는다</b>.</span>
+          <span>2008~2012 년 <code>.mod</code> 변환 BT 파일에는 ModuleConfiguration 자체가 없다.</span>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="out" id="wf-listwrap" hidden>
+          <div class="out-head" id="wf-listhead">불러온 파일</div>
+          <div class="scroll tblwrap"><table id="wf-list"><thead></thead><tbody></tbody></table></div>
+        </div>
+
+        <div class="out" id="wf-detwrap" hidden>
+          <div class="out-head"><span id="wf-dethead">상세</span><span class="hint" id="wf-cnt"></span></div>
+
+          <div class="wf-mode">
+            <div class="seg">
+              <button id="wf-m1" aria-selected="true">한 파일</button>
+              <button id="wf-m2" aria-selected="false">두 파일 비교</button>
+            </div>
+            <div class="cmpsel" id="wf-cmpsel" hidden>
+              <label>A <select id="wf-a"></select></label>
+              <label>B <select id="wf-b"></select></label>
+              <button class="btn gh sm" id="wf-swap" title="A 와 B 를 맞바꾼다">A &#8646; B</button>
+            </div>
+          </div>
+
+          <div class="kv" id="wf-det"></div>
+
+          <div class="wf-act">
+            <button class="btn" id="wf-tocap">이 조건으로 캡처 길이 계산</button>
+            <button class="btn gh" id="wf-raw">원본 SCPI 전체 보기</button>
+          </div>
+          <pre class="steps" id="wf-rawtxt" hidden></pre>
+        </div>
+
+        <div class="note" id="wf-empty">왼쪽에서 <code>.iqvsg</code> 파일을 고르면 여기에 전체 항목이 나온다. 2개를 고르면 나란히 비교한다.</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>계산 근거 — IEEE 802.11-2020 / 802.11ax / 802.11be, Bluetooth Core 5.x, IEEE 802.15.4</footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+var $ = function(id){ return document.getElementById(id); };
+var f1 = function(x){ return (Math.round(x*10)/10).toFixed(1); };
+var f2 = function(x){ return (Math.round(x*100)/100).toFixed(2); };
+
+/* ---------------- tabs ---------------- */
+var tabs = [['t-ch','p-ch'],['t-mcs','p-mcs'],['t-cap','p-cap'],['t-par','p-par'],['t-wf','p-wf']];
+tabs.forEach(function(p){
+  $(p[0]).addEventListener('click', function(){
+    tabs.forEach(function(q){
+      var on = q[0]===p[0];
+      $(q[0]).setAttribute('aria-selected', on ? 'true':'false');
+      $(q[1]).hidden = !on;
+    });
+  });
+});
+
+/* ================= 채널 데이터 =================
+   채널 번호마다 "그 번호가 어느 대역폭의 중심인가" 를 판정해
+   Low / Center / High 를 그 대역폭 열에만 채운다 (sqimway 방식).      */
+
+/* 6 GHz 는 번호 자체에 규칙이 있다 (잉여류가 서로 겹치지 않는다)
+     ch%4===1 → 20 | ch%8===3 → 40 | ch%16===7 → 80
+     ch%32===15 → 160 | ch%32===31 → 320 (11be 전용)                  */
+function bw6(ch){
+  if(ch % 4 === 1) return 20;
+  if(ch % 8 === 3) return 40;
+  if(ch % 16 === 7) return 80;
+  if(ch % 32 === 15) return 160;
+  if(ch % 32 === 31) return 320;
+  return 0;
+}
+function f6(ch){ return 5950 + 5 * ch; }
+function unii6(ch){
+  var f = f6(ch);
+  if(f < 6425) return 'UNII-5';
+  if(f < 6525) return 'UNII-6';
+  if(f <= 6875) return 'UNII-7';
+  return 'UNII-8';
+}
+function isPsc(ch){ return (ch - 5) % 16 === 0 && ch >= 5; }   /* 우선 스캔 채널 */
+
+/* 5 GHz 는 UNII 밴드 사이가 비어 있어 규칙이 안 통한다. 표로 고정한다. */
+var BW5 = {};
+(function(){
+  var put = function(list, bw){ list.forEach(function(c){ BW5[c] = bw; }); };
+  put([36,40,44,48, 52,56,60,64, 100,104,108,112,116,120,124,128,132,136,140,144,
+       149,153,157,161, 165,169,173,177], 20);
+  put([38,46, 54,62, 102,110,118,126,134,142, 151,159, 167,175], 40);
+  put([42,58, 106,122,138, 155, 171], 80);
+  put([50, 114, 163], 160);
+})();
+function f5(ch){ return 5000 + 5 * ch; }
+function unii5(ch){
+  if(ch >= 36 && ch <= 48) return 'UNII-1';
+  if(ch >= 52 && ch <= 64) return 'UNII-2A · DFS';
+  if(ch >= 100 && ch <= 144) return 'UNII-2C · DFS';
+  if(ch >= 149 && ch <= 165) return 'UNII-3';
+  return 'UNII-4 · 표준 목록 밖';
+}
+function f24(ch){ return ch === 14 ? 2484 : 2412 + 5 * (ch - 1); }
+
+/* 한 행 = { ch, cells:{ 대역폭: 중심주파수 }, note } */
+function chRows(band, gen){
+  var rows = [], n, f, bw, cells;
+  if(band === '24'){
+    for(n = 1; n <= 14; n++){
+      f = f24(n); cells = {}; cells[20] = f;
+      /* 2.4 GHz 는 5 MHz 간격이라 같은 번호가 20 MHz 채널이자 40 MHz 중심이 된다 */
+      if(n >= 3 && n <= 11) cells[40] = f;
+      rows.push({ch:n, cells:cells,
+                 note: n === 14 ? '일본 전용 · CCK 만'
+                     : (n === 1 || n === 6 || n === 11) ? '비중첩 3채널' : ''});
+    }
+    return rows;
+  }
+  if(band === '5'){
+    Object.keys(BW5).map(Number).sort(function(a, b){ return a - b; }).forEach(function(c){
+      bw = BW5[c]; cells = {}; cells[bw] = f5(c);
+      rows.push({ch:c, cells:cells, note:unii5(c)});
+    });
+    return rows;
+  }
+  /* 6 GHz */
+  for(n = 1; n <= 233; n += 2){
+    bw = bw6(n);
+    if(!bw) continue;
+    if(bw === 320 && gen !== 'be') continue;      /* 11ax 에는 320 MHz 가 없다 */
+    f = f6(n);
+    if(f - bw / 2 < 5945 || f + bw / 2 > 7125) continue;   /* 규격 대역 밖 */
+    cells = {}; cells[bw] = f;
+    rows.push({ch:n, cells:cells, note:unii6(n) + (isPsc(n) ? ' · PSC' : '')});
+  }
+  return rows;
+}
+
+/* WLAN 이 아닌 대역은 단순 목록 */
+function btList(){ var a = [], k; for(k = 0; k <= 78; k++) a.push({ch:k, f:2402 + k}); return a; }
+function bleList(){
+  var a = [], k, lbl;
+  for(k = 0; k <= 39; k++){
+    if(k === 0) lbl = '광고 37';
+    else if(k === 12) lbl = '광고 38';
+    else if(k === 39) lbl = '광고 39';
+    else lbl = '데이터 ' + (k < 12 ? k - 1 : k - 2);
+    a.push({ch:k, f:2402 + 2 * k, note:lbl});
+  }
+  return a;
+}
+function zbList(){ var a = [], n; for(n = 11; n <= 26; n++) a.push({ch:n, f:2405 + 5 * (n - 11)}); return a; }
+
+var CH_COLS = {'24':[20, 40], '5':[20, 40, 80, 160], '6':[20, 40, 80, 160, 320]};
+
+
+/* ================= UWB (HRP · IEEE 802.15.4) =================
+   모든 값이 칩 하나에서 나온다.  Tc = 1 / peak PRF = 1 / 499.2 MHz = 2.0032 ns
+
+     N_c    = N_burst × N_cpb          심볼당 칩 수
+     T_burst= N_cpb   × Tc
+     T_dsym = N_burst × T_burst = N_c × Tc
+     N_hop  = N_burst / 4
+     심볼레이트 = 1 / T_dsym
+     비트레이트 = 2 × FEC / T_dsym     (BPM-BPSK 라 심볼당 2배)
+     Mean PRF  = N_cpb / T_dsym
+   FEC = Viterbi × RS,  RS(63,55) = 55/63 = 0.873                        */
+var UWB_PEAK = 499.2;                       /* Mcps — 전 채널 공통 */
+var UWB_TC = 1000 / UWB_PEAK;               /* ns = 2.0032 */
+var UWB_RS = 55 / 63;                       /* 0.873 */
+
+/* [채널, 중심 MHz, 대역폭 MHz, 밴드, 비고] — 중심은 예외 없이 499.2 × M */
+var UWB_CH = [
+  [ 0,  499.2,  499.2, 'Sub-GHz', '필수'],
+  [ 1, 3494.4,  499.2, 'Low',     ''],
+  [ 2, 3993.6,  499.2, 'Low',     ''],
+  [ 3, 4492.8,  499.2, 'Low',     '필수'],
+  [ 4, 3993.6, 1331.2, 'Low',     '광대역 (ch2·3 묶음)'],
+  [ 5, 6489.6,  499.2, 'High',    'FiRA 주력'],
+  [ 6, 6988.8,  499.2, 'High',    ''],
+  [ 7, 6489.6, 1081.6, 'High',    '광대역'],
+  [ 8, 7488.0,  499.2, 'High',    ''],
+  [ 9, 7987.2,  499.2, 'High',    '필수 · FiRA 주력'],
+  [10, 8486.4,  499.2, 'High',    ''],
+  [11, 7987.2, 1331.2, 'High',    '광대역 (ch9·10 묶음)'],
+  [12, 8985.6,  499.2, 'High',    ''],
+  [13, 9484.8,  499.2, 'High',    ''],
+  [14, 9984.0,  499.2, 'High',    ''],
+  [15, 9484.8, 1354.97,'High',    '광대역']
+];
+
+/* 프리앰블 (SHR) — 삼진 코드 길이별 확산 간격과 심볼 길이
+   T_psym = 코드길이 × Δ × Tc                                           */
+var UWB_CODE = {
+  31:  {delta:16, label:'길이 31 (필수)'},
+  127: {delta:4,  label:'길이 127 (선택)'}
+};
+function uwbTpsym(code){ return UWB_CODE[code].delta * code * UWB_TC / 1000; }  /* µs */
+var UWB_SYNC = [[16,'SHORT'], [64,'DEFAULT'], [1024,'MEDIUM'], [4096,'LONG']];
+var UWB_SFD  = [[8,'SHORT — 기본·중간 레이트'], [64,'LONG — 110 kb/s 전용']];
+
+/* 데이터 심볼 구조 — Table 16-4 를 그대로 (코드길이, N_burst, N_hop) 로 묶었다 */
+var UWB_GRP = [
+  {code:31,  nburst:32,  nhop:8,  rows:[[128, 0.5], [16, 0.5], [2, 0.5], [1, 1]]},
+  {code:31,  nburst:128, nhop:32, rows:[[32,  0.5], [4,  0.5], [2, 0.5], [1, 1]]},
+  {code:127, nburst:8,   nhop:2,  rows:[[512, 0.5], [64, 0.5], [8, 0.5], [2, 0.5]]}
+];
+/* 한 행을 계산해 준다 */
+function uwbRow(g, ncpb, vit){
+  var nc = g.nburst * ncpb;
+  var tburst = ncpb * UWB_TC;                  /* ns */
+  var tdsym = nc * UWB_TC;                     /* ns */
+  var fec = vit * UWB_RS;
+  return {
+    code:g.code, nburst:g.nburst, nhop:g.nhop, ncpb:ncpb, nc:nc,
+    vit:vit, fec:fec, tburst:tburst, tdsym:tdsym,
+    symRate: 1000 / tdsym,                     /* MHz */
+    bitRate: 2 * fec * 1000 / tdsym,           /* Mb/s */
+    meanPrf: ncpb * 1000 / tdsym               /* MHz */
+  };
+}
+function uwbAllRows(){
+  var out = [];
+  UWB_GRP.forEach(function(g){
+    g.rows.forEach(function(r){ out.push(uwbRow(g, r[0], r[1])); });
+  });
+  return out;
+}
+
+function renderUwbCh(q){
+  $('ch-tbl').tHead.innerHTML =
+    '<tr><th>채널</th><th>중심 (MHz)</th><th>대역폭 (MHz)</th>' +
+    '<th class="ctrh">Low</th><th class="ctrh">High</th><th>밴드</th><th>비고</th></tr>';
+  var out = UWB_CH.filter(function(r){
+    if(!q) return true;
+    if(String(r[0]) === q) return true;
+    if(String(r[1]).indexOf(q) === 0) return true;
+    var n = parseFloat(q);
+    return !isNaN(n) && n >= r[1] - r[2] / 2 && n <= r[1] + r[2] / 2;
+  }).map(function(r){
+    return '<tr><td class="n chn">' + r[0] + '</td>' +
+           '<td class="n ctr">' + r[1].toFixed(1) + '</td>' +
+           '<td class="n">' + r[2].toFixed(1) + '</td>' +
+           '<td class="n lo">' + (Math.round((r[1] - r[2] / 2) * 10) / 10).toFixed(1) + '</td>' +
+           '<td class="n hi">' + (Math.round((r[1] + r[2] / 2) * 10) / 10).toFixed(1) + '</td>' +
+           '<td>' + r[3] + '</td><td>' + r[4] + '</td></tr>';
+  }).join('');
+  $('ch-tbl').tBodies[0].innerHTML = out || '<tr><td colspan="7">일치하는 채널 없음</td></tr>';
+  $('ch-head').textContent = 'UWB HRP · IEEE 802.15.4 — 16 채널';
+  $('ch-note').innerHTML =
+    '중심 주파수는 전부 <b>499.2 × M MHz</b> (M 정수) 이고, <b>peak PRF 도 모든 채널이 499.2 MHz</b> 다. ' +
+    '그래서 칩 하나가 언제나 <b>Tc = 1/499.2 MHz = 2.0032 ns</b> 이고 모든 시간이 여기서 떨어진다.' +
+    '<br>기본 대역폭 499.2 MHz. ch4·7·11·15 는 인접 채널을 묶은 광대역이라 중심이 겹친다 — ' +
+    '<b>ch11(7987.2)은 ch9 와 같은 중심</b>이다.' +
+    '<br>필수 채널은 <b>0 / 3 / 9</b>. 휴대기기·FiRA 측위는 대부분 <b>ch5</b> 와 <b>ch9</b> 를 쓴다.' +
+    '<br>국가별 허용 대역이 다르니 실제 사용 채널은 규제 확인이 필요하다.';
+}
+
+function renderUwbRates(){
+  $('mc-tbl').tHead.innerHTML =
+    '<tr><th rowspan="2">코드<br>길이</th>' +
+    '<th colspan="3" class="bwh">변조 · 부호화</th>' +
+    '<th colspan="4" class="bwh">데이터 심볼 구조</th>' +
+    '<th colspan="2" class="bwh">시간</th>' +
+    '<th colspan="3" class="bwh">결과</th></tr>' +
+    '<tr><th>Viterbi</th><th>RS</th><th>FEC</th>' +
+    '<th>N_burst</th><th>N_hop</th><th>N_cpb</th><th>칩/심볼</th>' +
+    '<th>T_burst</th><th class="ctrh">T_dsym</th>' +
+    '<th>심볼레이트</th><th class="ctrh">비트레이트</th><th class="ctrh">Mean PRF</th></tr>';
+  $('mc-tbl').tBodies[0].innerHTML = uwbAllRows().map(function(r){
+    return '<tr><td class="n chn">' + r.code + '</td>' +
+           '<td class="n">' + r.vit + '</td><td class="n">' + f2(UWB_RS) + '</td>' +
+           '<td class="n">' + f2(r.fec) + '</td>' +
+           '<td class="n">' + r.nburst + '</td><td class="n">' + r.nhop + '</td>' +
+           '<td class="n">' + r.ncpb + '</td><td class="n">' + r.nc + '</td>' +
+           '<td class="n">' + f2(r.tburst) + ' ns</td>' +
+           '<td class="n ctr">' + f2(r.tdsym) + ' ns</td>' +
+           '<td class="n">' + f2(r.symRate) + ' MHz</td>' +
+           '<td class="n ctr">' + f2(r.bitRate) + ' Mb/s</td>' +
+           '<td class="n ctr">' + f2(r.meanPrf) + ' MHz</td></tr>';
+  }).join('');
+  $('mc-head').textContent = 'UWB HRP — 레이트 · 타이밍 (Table 16-4)';
+  $('mc-note').innerHTML =
+    '<b>Tc = 1 / peak PRF = 1 / 499.2 MHz = ' + (UWB_TC).toFixed(4) + ' ns</b>' +
+    '<span>N_c = N_burst × N_cpb · T_burst = N_cpb × Tc · T_dsym = N_c × Tc</span>' +
+    '<span>심볼레이트 = 1/T_dsym · <b>비트레이트 = 2 × FEC / T_dsym</b> · Mean PRF = N_cpb / T_dsym</span>' +
+    '<span>N_hop = N_burst / 4 · FEC = Viterbi × RS(63,55) = Viterbi × ' + f2(UWB_RS) + '</span>' +
+    '<span>BPM-BPSK 라 심볼 하나가 2비트 값을 갖는다 — 비트레이트 식의 <b>2배</b> 가 그것이다.</span>';
+}
+
+/* SHR 참고 — SYNC 코드와 SFD 는 규격이 정해 둔 시퀀스다. 인덱스를 고르는 것이지 만드는 게 아니다. */
+var UWB_SYNC_TBL = [
+  ['1 – 2',   '31',  '0, 1, 8, 12',                     '필수'],
+  ['3 – 4',   '31',  '2, 5, 9, 13',                     '필수'],
+  ['5 – 6',   '31',  '3, 6, 10, 14',                    '필수'],
+  ['7 – 8',   '31',  '4, 7, 11, 15',                    '필수'],
+  ['9 – 12',  '127', '0–3, 5, 6, 8–10, 12–14',          '선택 (Table 16-7)'],
+  ['13 – 24', '127', '광대역 채널 포함',                 '선택'],
+  ['25 – 32', '91',  'FiRA HPRF',                       '802.15.4z 추가']
+];
+var UWB_SFD_TBL = [
+  ['SHORT (8)',  '0 +1 0 −1 +1 0 0 −1',            '15.4 기본 · 중간 레이트'],
+  ['LONG (64)',  '규격 고정 64 심볼',               '15.4 · 110 kb/s 전용'],
+  ['SFD_4',      '−1 +1 −1 +1',                     '15.4z'],
+  ['SFD_8',      '−1 −1 −1 +1 −1 −1 +1 −1',         '15.4z BPRF — FiRA 파일이 쓰는 값']
+];
+/* PHR 19 비트 —  b0b1 Data Rate · b2–b8 Frame Length · b9 Ranging · b10 예약
+                    b11b12 Preamble Duration · b13–b18 SECDED                */
+var UWB_PHR_RATE = {'00':[0.11, 0.11], '01':[0.85, 0.85], '10':[6.81, 1.70], '11':[27.24, 6.81]};
+var UWB_PHR_PRE  = {'00':16, '01':64, '10':1024, '11':4096};
+/* SECDED — 단일 정정 이중 검출 해밍 블록 부호 */
+function uwbSecded(b){
+  var X = function(){ var v = 0, i; for(i = 0; i < arguments.length; i++) v ^= b[arguments[i]]; return v; };
+  b[18] = X(1, 0, 8, 6, 4, 3, 10, 11);
+  b[17] = X(0, 6, 5, 3, 2, 9, 10, 12);
+  b[16] = X(1, 8, 7, 3, 2, 9, 10);
+  b[15] = X(8, 7, 6, 5, 4, 9, 10);
+  b[14] = X(12, 11);
+  b[13] = X(0,1,2,3,4,5,6,7,8,9,10,11,12,14,15,16,17,18);   /* 전체 패리티 */
+  return b;
+}
+function renderUwbPhr(){
+  var dr = $('ph-rate').value, pd = $('ph-pre').value;
+  var lo = ($('ph-prf').value === 'lo');
+  var len = Math.max(0, Math.min(127, parseInt($('ph-len').value, 10) || 0));
+  var b = [], i;
+  for(i = 0; i < 19; i++) b.push(0);
+  b[0] = +dr.charAt(0); b[1] = +dr.charAt(1);
+  for(i = 0; i < 7; i++) b[2 + i] = (len >> i) & 1;      /* b2 = LSB */
+  b[9] = $('ph-rng').checked ? 1 : 0;
+  b[10] = 0;                                             /* 예약 */
+  b[11] = +pd.charAt(0); b[12] = +pd.charAt(1);
+  uwbSecded(b);
+
+  var FIELD = [[0,1,'Data Rate','f-a'], [2,8,'Frame Length','f-b'], [9,9,'Ranging','f-c'],
+               [10,10,'Reserved','f-d'], [11,12,'Preamble Dur.','f-e'], [13,18,'SECDED','f-f']];
+  var hb = '', hl = '', hf = '';
+  FIELD.forEach(function(F){
+    for(i = F[0]; i <= F[1]; i++){
+      hl += '<td class="n bidx">b' + i + '</td>';
+      hb += '<td class="n bval ' + F[3] + '">' + b[i] + '</td>';
+    }
+    hf += '<td class="n fname ' + F[3] + '" colspan="' + (F[1] - F[0] + 1) + '">' + F[2] + '</td>';
+  });
+  $('mc-phr-tbl').tHead.innerHTML = '<tr>' + hf + '</tr><tr>' + hl + '</tr>';
+  $('mc-phr-tbl').tBodies[0].innerHTML = '<tr>' + hb + '</tr>';
+
+  var rate = UWB_PHR_RATE[dr][lo ? 1 : 0];
+  $('mc-phr-note').innerHTML =
+    '<b>' + b.join('') + '</b>' +
+    '<span>Data Rate <b>' + dr + '</b> → ' + rate + ' Mb/s' +
+    (lo ? ' (Mean PRF 3.90)' : ' (Mean PRF 15.60 / 62.40)') + '</span>' +
+    '<span>Frame Length <b>' + len + ' 바이트</b> — 7비트라 최대 127</span>' +
+    '<span>Preamble Duration <b>' + pd + '</b> → SYNC ' + UWB_PHR_PRE[pd] + ' 심볼</span>' +
+    '<span>SECDED <b>' + b.slice(13).join('') + '</b> — b14=XOR(b12,b11), b13 은 나머지 전체의 패리티</span>' +
+    '<span>PHR 은 데이터 레이트가 6.81 Mb/s 이상일 때도 <b>850 kb/s</b> 로 보내는 것이 기본이다.</span>';
+}
+['ph-prf','ph-rate','ph-len','ph-pre','ph-rng'].forEach(function(id){
+  $(id).addEventListener('change', renderUwbPhr);
+  $(id).addEventListener('input', renderUwbPhr);
+});
+
+function renderUwbShr(){
+  $('mc-shr-tbl').tHead.innerHTML =
+    '<tr><th>구분</th><th>값</th><th>적용 채널 / 비고</th><th></th></tr>';
+  var h = '<tr><td colspan="4" class="grpr">SYNC — 삼진 프리앰블 코드</td></tr>';
+  h += UWB_SYNC_TBL.map(function(r){
+    return '<tr><td class="chn">코드 ' + r[0] + '</td><td class="n ctr">길이 ' + r[1] +
+           '</td><td class="n">ch ' + r[2] + '</td><td>' + r[3] + '</td></tr>';
+  }).join('');
+  h += '<tr><td colspan="4" class="grpr">SYNC 반복 횟수 (프리앰블 종류)</td></tr>';
+  h += UWB_SYNC.map(function(r){
+    return '<tr><td class="chn">' + r[1] + '</td><td class="n ctr">' + r[0] + ' 심볼</td>' +
+           '<td class="n">코드 31 → ' + f1(r[0] * uwbTpsym(31)) + ' µs · 코드 127 → ' +
+           f1(r[0] * uwbTpsym(127)) + ' µs</td><td></td></tr>';
+  }).join('');
+  h += '<tr><td colspan="4" class="grpr">SFD — 시작 프레임 구분자</td></tr>';
+  h += UWB_SFD_TBL.map(function(r){
+    return '<tr><td class="chn">' + r[0] + '</td><td class="n ctr">' + r[1] +
+           '</td><td>' + r[2] + '</td><td></td></tr>';
+  }).join('');
+  $('mc-shr-tbl').tBodies[0].innerHTML = h;
+}
+
+function renderCh(){
+  var band = $('ch-band').value, gen = $('ch-gen').value;
+  var q = $('ch-find').value.trim().toLowerCase();
+  var isW = (band === '24' || band === '5' || band === '6');
+  $('ch-gen-wrap').hidden = (band !== '6');
+  $('ch-psc-wrap').hidden = (band !== '6');
+  if(band === 'uwb'){ renderUwbCh(q); return; }
+
+  var head, note = '';
+  if(isW){
+    var cols = CH_COLS[band].slice();
+    if(band === '6' && gen !== 'be') cols = cols.filter(function(c){ return c !== 320; });
+    var rows = chRows(band, gen);
+    if(band === '6' && $('ch-psc').checked) rows = rows.filter(function(r){ return isPsc(r.ch); });
+
+    if(band === '24'){
+      head = 'WLAN 2.4 GHz · ISM';
+      note = '채널 간격 5 MHz, 점유 20 MHz 라 <b>ch1 은 ch2/3/4 와 겹친다</b>. 비중첩 조합은 <b>1 / 6 / 11</b>.' +
+             '<br>40 MHz 는 중심이 ch3~ch11 일 때만 성립한다 — 예로 <b>ch3 중심이면 2402–2442</b> 를 쓴다.';
+    } else if(band === '5'){
+      head = 'WLAN 5 GHz · UNII';
+      note = 'f = 5000 + 5×ch. 20 MHz 채널과 40/80/160 MHz <b>중심 채널 번호가 서로 다르다</b> — ' +
+             'ch36+ch40 을 묶은 40 MHz 의 중심은 <b>ch38</b>, 그 넷을 묶은 80 MHz 는 <b>ch42</b> 다.' +
+             '<br><b>UNII-2A / 2C 는 DFS 필수</b>. ch169~177(UNII-4)은 WiFi 표준 채널 목록 밖.';
+    } else {
+      head = 'WLAN 6 GHz · UNII-5~8' + (gen === 'be' ? ' (11be · 320 MHz 포함)' : ' (11ax · 160 MHz 까지)');
+      note = 'f = 5950 + 5×ch. 번호만 보면 대역폭을 알 수 있다 — ' +
+             '<b>4로 나눈 나머지 1이면 20 MHz</b>, 8로 나눠 3이면 40, 16으로 나눠 7이면 80, ' +
+             '32로 나눠 15면 160, 31이면 320 MHz 중심이다.' +
+             '<br>그래서 11ax 표에는 <b>ch31 이 없다</b> — 320 MHz 전용 번호라서다.' +
+             '<br><b>PSC</b> 는 AP 가 우선 스캔하는 채널(ch5 부터 16 간격)이다.';
+    }
+
+    $('ch-tbl').tHead.innerHTML =
+      '<tr><th rowspan="2">채널</th>' +
+      cols.map(function(c){ return '<th colspan="3" class="bwh">' + c + ' MHz</th>'; }).join('') +
+      '<th rowspan="2">비고</th></tr>' +
+      '<tr>' + cols.map(function(){ return '<th>Low</th><th class="ctrh">Center</th><th>High</th>'; }).join('') + '</tr>';
+
+    var out = rows.filter(function(r){
+      if(!q) return true;
+      if(String(r.ch).indexOf(q) === 0) return true;
+      for(var k in r.cells){
+        var f = r.cells[k], b = parseInt(k, 10);
+        if(String(f).indexOf(q) === 0) return true;
+        var n = parseFloat(q);
+        if(!isNaN(n) && n >= f - b / 2 && n <= f + b / 2) return true;
+      }
+      return false;
+    }).map(function(r){
+      var t = '<tr><td class="n chn">' + r.ch + '</td>';
+      cols.forEach(function(c){
+        var f = r.cells[c];
+        if(f === undefined){ t += '<td class="e"></td><td class="e"></td><td class="e"></td>'; }
+        else t += '<td class="n lo">' + (f - c / 2) + '</td>' +
+                  '<td class="n ctr">' + f + '</td>' +
+                  '<td class="n hi">' + (f + c / 2) + '</td>';
+      });
+      return t + '<td>' + (r.note || '') + '</td></tr>';
+    }).join('');
+
+    $('ch-tbl').tBodies[0].innerHTML = out ||
+      '<tr><td colspan="' + (cols.length * 3 + 2) + '">일치하는 채널 없음</td></tr>';
+    $('ch-head').textContent = head + ' — ' + rows.length + '행';
+    $('ch-note').innerHTML = note;
+    return;
+  }
+
+  /* BT / BLE / Zigbee */
+  var list;
+  if(band === 'bt'){ list = btList(); head = 'Bluetooth BR/EDR · 79 채널';
+    note = 'f = 2402 + k MHz (k = 0…78), 채널 간격 <b>1 MHz</b>. 1600 hop/s 주파수 호핑.'; }
+  else if(band === 'ble'){ list = bleList(); head = 'Bluetooth LE · 40 채널';
+    note = 'f = 2402 + 2k MHz, 간격 <b>2 MHz</b>. 광고 채널 37/38/39 는 <b>WiFi 1·6·11 사이 틈</b>에 배치.'; }
+  else { list = zbList(); head = 'Zigbee · IEEE 802.15.4 2.4 GHz';
+    note = 'f = 2405 + 5×(ch−11) MHz, ch 11–26. 점유 대역폭 <b>2 MHz</b>, 250 kbps O-QPSK.'; }
+
+  $('ch-tbl').tHead.innerHTML = '<tr><th>채널</th><th>중심 (MHz)</th><th>비고</th></tr>';
+  $('ch-tbl').tBodies[0].innerHTML = list.filter(function(r){
+    return !q || String(r.ch).indexOf(q) === 0 || String(r.f).indexOf(q) === 0;
+  }).map(function(r){
+    return '<tr><td class="n chn">' + r.ch + '</td><td class="n ctr">' + r.f + '</td><td>' + (r.note || '') + '</td></tr>';
+  }).join('') || '<tr><td colspan="3">일치하는 채널 없음</td></tr>';
+  $('ch-head').textContent = head + ' — ' + list.length + '개';
+  $('ch-note').innerHTML = note;
+}
+['ch-band', 'ch-gen', 'ch-find', 'ch-psc'].forEach(function(id){
+  $(id).addEventListener('input', renderCh);
+  $(id).addEventListener('change', renderCh);
+});
+
+/* ================= MCS 데이터 레이트 =================
+   Rate = N_SD × N_BPSCS × R × N_SS / T_SYM                              */
+var MCS_STD = {
+  ht:  {label:'802.11n (HT)',   nsd:{20:52, 40:108}, dft:3.2, gis:[0.8, 0.4], max:7,  nss:4},
+  vht: {label:'802.11ac (VHT)', nsd:{20:52, 40:108, 80:234, 160:468}, dft:3.2, gis:[0.8, 0.4], max:9, nss:8},
+  he:  {label:'802.11ax (HE)',  nsd:{20:234, 40:468, 80:980, 160:1960}, dft:12.8, gis:[0.8, 1.6, 3.2], max:11, nss:8},
+  eht: {label:'802.11be (EHT)', nsd:{20:234, 40:468, 80:980, 160:1960, 320:3920}, dft:12.8, gis:[0.8, 1.6, 3.2], max:13, nss:8}
+};
+/* VHT 에만 있는 금지 조합 (802.11ac Table 21-30 등) */
+function vhtBad(bw, mcs, nss){
+  if(bw === 20 && mcs === 9 && !(nss === 3 || nss === 6)) return true;
+  if(bw === 80 && mcs === 6 && (nss === 3 || nss === 7)) return true;
+  if(bw === 160 && mcs === 9 && nss === 3) return true;
+  return false;
+}
+function mcsRate(nsd, bpscs, r, nss, tsym){ return nsd * bpscs * r * nss / tsym; }
+
+function renderMcs(){
+  var key = $('mc-std').value;
+  $('mc-nss').parentNode.hidden = (key === 'uwb');   /* UWB 는 공간 스트림 개념이 다르다 */
+  $('mc-shr').hidden = (key !== 'uwb');
+  $('mc-phr').hidden = (key !== 'uwb');
+  if(key === 'uwb'){ renderUwbRates(); renderUwbShr(); renderUwbPhr(); return; }
+  var S = MCS_STD[key];
+  var nssSel = $('mc-nss').value;
+  var bws = Object.keys(S.nsd).map(Number);
+
+  $('mc-tbl').tHead.innerHTML =
+    '<tr><th rowspan="2">MCS</th><th rowspan="2">변조</th><th rowspan="2">부호율</th><th rowspan="2">NSS</th>' +
+    bws.map(function(b){ return '<th colspan="' + S.gis.length + '" class="bwh">' + b + ' MHz</th>'; }).join('') +
+    '</tr><tr>' +
+    bws.map(function(){ return S.gis.map(function(g){ return '<th>GI ' + g + '</th>'; }).join(''); }).join('') +
+    '</tr>';
+
+  var body = '', nss, m;
+  for(nss = 1; nss <= S.nss; nss++){
+    if(nssSel !== 'all' && parseInt(nssSel, 10) !== nss) continue;
+    for(m = 0; m <= S.max; m++){
+      var M = MCS[m];
+      if(!M) continue;
+      var htIdx = (key === 'ht') ? (nss - 1) * 8 + m : m;
+      var t = '<tr><td class="n chn">' + htIdx + '</td><td>' + M.mod + '</td><td class="n">' +
+              (M.r === 1/2 ? '1/2' : M.r === 3/4 ? '3/4' : M.r === 2/3 ? '2/3' : '5/6') +
+              '</td><td class="n">' + nss + '</td>';
+      var any = false;
+      bws.forEach(function(b){
+        S.gis.forEach(function(g){
+          if(key === 'vht' && vhtBad(b, m, nss)){ t += '<td class="e"></td>'; return; }
+          var v = mcsRate(S.nsd[b], M.b, M.r, nss, S.dft + g);
+          any = true;
+          t += '<td class="n">' + (v >= 1000 ? (Math.round(v * 10) / 10).toLocaleString() : f1(v)) + '</td>';
+        });
+      });
+      if(any) body += t + '</tr>';
+    }
+  }
+  $('mc-tbl').tBodies[0].innerHTML = body;
+  $('mc-head').textContent = S.label + ' — 데이터 레이트 (Mbit/s)';
+  $('mc-note').innerHTML =
+    '<b>Rate = N_SD × N_BPSCS × R × N_SS ÷ T_SYM</b>' +
+    '<span>T_SYM = ' + S.dft + ' µs + GI. ' +
+    (key === 'he' || key === 'eht'
+      ? 'HE/EHT 는 부반송파 간격이 1/4 로 좁아져 심볼이 4배 길지만 N_SD 도 4배라 레이트는 유지된다.'
+      : '') + '</span>' +
+    (key === 'vht'
+      ? '<span>빈칸은 <b>802.11ac 금지 조합</b> — 20 MHz MCS9(NSS 3·6 제외), 80 MHz MCS6(NSS 3·7), 160 MHz MCS9(NSS 3).</span>'
+      : '') +
+    (key === 'ht' ? '<span>HT 는 MCS 번호가 스트림까지 포함한다 — NSS2 의 MCS0 은 <b>MCS8</b>.</span>' : '');
+}
+['mc-std', 'mc-nss'].forEach(function(id){ $(id).addEventListener('change', renderMcs); });
+
+/* ================= 캡처 계산 ================= */
+var MCS = [
+  {m:0,  mod:'BPSK',      b:1,  r:1/2},
+  {m:1,  mod:'QPSK',      b:2,  r:1/2},
+  {m:2,  mod:'QPSK',      b:2,  r:3/4},
+  {m:3,  mod:'16-QAM',    b:4,  r:1/2},
+  {m:4,  mod:'16-QAM',    b:4,  r:3/4},
+  {m:5,  mod:'64-QAM',    b:6,  r:2/3},
+  {m:6,  mod:'64-QAM',    b:6,  r:3/4},
+  {m:7,  mod:'64-QAM',    b:6,  r:5/6},
+  {m:8,  mod:'256-QAM',   b:8,  r:3/4},
+  {m:9,  mod:'256-QAM',   b:8,  r:5/6},
+  {m:10, mod:'1024-QAM',  b:10, r:3/4},
+  {m:11, mod:'1024-QAM',  b:10, r:5/6},
+  {m:12, mod:'4096-QAM',  b:12, r:3/4},
+  {m:13, mod:'4096-QAM',  b:12, r:5/6}
+];
+var STD = {
+  '11ag': {label:'Legacy OFDM', dft:3.2, gis:[0.8],          nsd:{20:48}, preBase:20, ltf:0, maxMcs:7, ofdm:true},
+  '11n':  {label:'HT',          dft:3.2, gis:[0.8,0.4],      nsd:{20:52,40:108}, preBase:32, ltf:4, maxMcs:7, ofdm:true},
+  '11ac': {label:'VHT',         dft:3.2, gis:[0.8,0.4],      nsd:{20:52,40:108,80:234,160:468}, preBase:36, ltf:4, maxMcs:9, ofdm:true},
+  '11ax': {label:'HE',          dft:12.8, gis:[0.8,1.6,3.2], nsd:{20:234,40:468,80:980,160:1960}, preBase:36, ltf:-1, maxMcs:11, ofdm:true},
+  '11be': {label:'EHT',         dft:12.8, gis:[0.8,1.6,3.2], nsd:{20:234,40:468,80:980,160:1960,320:3920}, preBase:40, ltf:-1, maxMcs:13, ofdm:true}
+};
+var DSSS_RATES = [{v:1,t:'1 Mbps (DBPSK)'},{v:2,t:'2 Mbps (DQPSK)'},{v:5.5,t:'5.5 Mbps (CCK)'},{v:11,t:'11 Mbps (CCK)'}];
+var BT_TYPES = [
+  {v:'DH1', t:'DH1 / 2-DH1 / 3-DH1 (1 슬롯)', us:366,  slot:1},
+  {v:'DH3', t:'DH3 / 2-DH3 / 3-DH3 (3 슬롯)', us:1622, slot:3},
+  {v:'DH5', t:'DH5 / 2-DH5 / 3-DH5 (5 슬롯)', us:2871, slot:5}
+];
+var BLE_PHY = [
+  {v:'1M', t:'LE 1M', usPerBit:1,   hdr:10},
+  {v:'2M', t:'LE 2M', usPerBit:0.5, hdr:11},
+  {v:'S2', t:'LE Coded S=2', usPerBit:2, hdr:10},
+  {v:'S8', t:'LE Coded S=8', usPerBit:8, hdr:10}
+];
+
+function nLtf(nss){ return nss<=1?1 : nss<=2?2 : 4; }
+
+function fillSel(el, arr, sel){
+  el.innerHTML = arr.map(function(o){
+    return '<option value="'+o.v+'"'+(String(o.v)===String(sel)?' selected':'')+'>'+o.t+'</option>';
+  }).join('');
+}
+
+function syncCapInputs(){
+  var std = $('cp-std').value;
+  var isOfdm = !!STD[std];
+  var isDsss = std==='11b';
+  var isBt = std==='bt', isBle = std==='ble', isZb = std==='zb', isUwb = std==='uwb';
+  $('cp-uwb-wrap').hidden = !isUwb;
+
+  $('cp-bw-wrap').hidden  = !isOfdm;
+  $('cp-mcs-wrap').hidden = !isOfdm;
+  $('cp-nss-wrap').hidden = !isOfdm || std==='11ag';
+  $('cp-gi-wrap').hidden  = !isOfdm;
+  $('cp-ltf-wrap').hidden = !(std==='11ax'||std==='11be');
+  $('cp-rate-wrap').hidden = !(isDsss||isBt||isBle);
+  $('cp-len').parentNode.hidden = isBt || (isUwb && $('cp-uwb-sp').value === '3');
+  if(isUwb) $('cp-len-lbl').textContent = 'PSDU (바이트)';
+
+  if(isOfdm){
+    var S = STD[std];
+    var bws = Object.keys(S.nsd).map(function(k){ return {v:k, t:k+' MHz'}; });
+    var curBw = $('cp-bw').value;
+    fillSel($('cp-bw'), bws, S.nsd[curBw] ? curBw : bws[bws.length>1?1:0].v);
+    var ms = MCS.filter(function(x){ return x.m<=S.maxMcs; })
+                .map(function(x){ return {v:x.m, t:'MCS'+x.m+' — '+x.mod+' '+ (x.r===1/2?'1/2':x.r===3/4?'3/4':x.r===2/3?'2/3':'5/6')}; });
+    var curM = $('cp-mcs').value;
+    fillSel($('cp-mcs'), ms, (curM!=='' && parseInt(curM,10)<=S.maxMcs) ? curM : 7);
+    fillSel($('cp-gi'), S.gis.map(function(g){ return {v:g, t:g+' µs'}; }), S.gis.indexOf(parseFloat($('cp-gi').value))>=0 ? $('cp-gi').value : S.gis[S.gis.length>1?1:0]);
+    $('cp-len-lbl').textContent = (std==='11ac'||std==='11ax'||std==='11be') ? 'APEP (바이트)' : '페이로드 (바이트)';
+  }
+  if(isDsss){ fillSel($('cp-rate'), DSSS_RATES.map(function(r){return {v:r.v,t:r.t};}), 11); $('cp-len-lbl').textContent='페이로드 (바이트)'; }
+  if(isBt)  { fillSel($('cp-rate'), BT_TYPES.map(function(r){return {v:r.v,t:r.t};}), 'DH5'); }
+  if(isBle) { fillSel($('cp-rate'), BLE_PHY.map(function(r){return {v:r.v,t:r.t};}), '1M'); $('cp-len-lbl').textContent='페이로드 (바이트)'; }
+  if(isZb)  { $('cp-len-lbl').textContent='PSDU (바이트, 최대 127)'; }
+  calcCap();
+}
+
+function calcCap(){
+  var std=$('cp-std').value, L=Math.max(1, parseInt($('cp-len').value,10)||1);
+  var margin=Math.max(1, parseFloat($('cp-margin').value)||2.5);
+  var steps=[], pre=0, data=0, occ=20, extra='', recFs=0;
+
+  if(STD[std]){
+    var S=STD[std], bw=parseInt($('cp-bw').value,10)||20, nsd=S.nsd[bw];
+    var mcs=MCS[parseInt($('cp-mcs').value,10)||0];
+    var nss=(std==='11ag')?1:(parseInt($('cp-nss').value,10)||1);
+    var gi=parseFloat($('cp-gi').value)||0.8;
+    var tsym=S.dft+gi;
+    var ndbps=Math.round(nsd*mcs.b*mcs.r*nss);
+    var bits=8*L+16+6;
+    var nsym=Math.ceil(bits/ndbps);
+    data=nsym*tsym;
+    if(S.ltf===0) pre=S.preBase;
+    else if(S.ltf>0) pre=S.preBase + 4*nLtf(nss);
+    else {
+      var lx=parseInt($('cp-ltf').value,10)||1;
+      var tltf=(lx===1?3.2:lx===2?6.4:12.8)+0.8;
+      pre=S.preBase + tltf*nLtf(nss);
+    }
+    occ=bw;
+    steps.push(['N_SD', nsd + '  (' + S.label + ' ' + bw + 'MHz)']);
+    steps.push(['N_DBPS', nsd + ' × ' + mcs.b + ' × ' + (mcs.r===1/2?'1/2':mcs.r===3/4?'3/4':mcs.r===2/3?'2/3':'5/6') + ' × ' + nss + ' = ' + ndbps + ' bit']);
+    steps.push(['비트수', '8 × ' + L + ' + 16 + 6 = ' + bits]);
+    steps.push(['N_SYM', 'ceil(' + bits + ' / ' + ndbps + ') = ' + nsym]);
+    steps.push(['T_SYM', S.dft + ' + ' + gi + ' = ' + f1(tsym) + ' µs']);
+    steps.push(['T_DATA', nsym + ' × ' + f1(tsym) + ' = ' + f1(data) + ' µs']);
+    steps.push(['프리앰블', f1(pre) + ' µs  (N_LTF ' + nLtf(nss) + ')']);
+    extra = (ndbps/8).toFixed(0) + ' 바이트/심볼';
+  } else if(std==='11b'){
+    var rate=parseFloat($('cp-rate').value)||11;
+    pre=(rate===1)?192:192;
+    data=8*L/rate;
+    occ=22;
+    steps.push(['프리앰블', 'Long 192 µs  (Short 96 µs 선택 시 −96)']);
+    steps.push(['T_DATA', '8 × ' + L + ' / ' + rate + ' Mbps = ' + f1(data) + ' µs']);
+    extra = rate + ' Mbps';
+  } else if(std==='bt'){
+    var bt=BT_TYPES.filter(function(x){return x.v===$('cp-rate').value;})[0]||BT_TYPES[2];
+    pre=0; data=bt.us; occ=1;
+    steps.push(['패킷 형식', bt.v + '  (' + bt.slot + ' 슬롯, 슬롯 = 625 µs)']);
+    steps.push(['최대 점유', bt.us + ' µs']);
+    extra = bt.slot + ' 슬롯';
+  } else if(std==='ble'){
+    var ph=BLE_PHY.filter(function(x){return x.v===$('cp-rate').value;})[0]||BLE_PHY[0];
+    var bytes=ph.hdr+L;
+    pre=0; data=bytes*8*ph.usPerBit; occ=2;
+    steps.push(['총 바이트', ph.hdr + ' (헤더/CRC) + ' + L + ' = ' + bytes + ' B']);
+    steps.push(['T_PKT', bytes + ' × 8 × ' + ph.usPerBit + ' = ' + f1(data) + ' µs']);
+    extra = ph.t;
+  } else if(std==='uwb'){
+    /* SHR : 프리앰블 심볼 하나 = 코드길이 × Δ 칩 */
+    var code=parseInt($('cp-uwb-code').value,10);
+    var tps=uwbTpsym(code);                       /* µs */
+    var nSync=parseInt($('cp-uwb-sync').value,10), nSfd=parseInt($('cp-uwb-sfd').value,10);
+    var R=uwbAllRows()[parseInt($('cp-uwb-rate').value,10)]||uwbAllRows()[0];
+    var phrRate=($('cp-uwb-phr').value==='1')?R.bitRate:0.85;
+    var sp=parseInt($('cp-uwb-sp').value,10), stsUs=parseFloat($('cp-uwb-sts').value)||0;
+    var tSync=nSync*tps, tSfd=nSfd*tps;
+    var tSts=(sp===0)?0:stsUs;
+    var tPhr=(sp===3)?0:19/phrRate;               /* PHR 19 bit */
+    var tPsdu=(sp===3)?0:(8*L+48)/R.bitRate;      /* PSDU + RS 패리티 48 bit */
+    pre=tSync+tSfd; data=tSts+tPhr+tPsdu;
+    occ=499.2; recFs=2400;                        /* IQxel UWB 모듈 실측 샘플링 */
+    steps.push(['Tc', '1 / 499.2 MHz = ' + UWB_TC.toFixed(4) + ' ns']);
+    steps.push(['T_psym', code + ' × ' + UWB_CODE[code].delta + ' = ' + (code*UWB_CODE[code].delta) +
+                          ' 칩 = ' + f2(tps*1000) + ' ns']);
+    steps.push(['SYNC', nSync + ' × ' + f2(tps) + ' = ' + f1(tSync) + ' µs']);
+    steps.push(['SFD', nSfd + ' × ' + f2(tps) + ' = ' + f1(tSfd) + ' µs']);
+    steps.push(['SHR 합계', f1(tSync+tSfd) + ' µs']);
+    steps.push(['T_dsym', R.nburst + ' × ' + R.ncpb + ' = ' + R.nc + ' 칩 = ' + f2(R.tdsym) + ' ns']);
+    steps.push(['비트레이트', '2 × ' + f2(R.fec) + ' / ' + f2(R.tdsym) + 'ns = ' + f2(R.bitRate) + ' Mb/s']);
+    steps.push(['STS', sp===0 ? '없음 (SP0)' : (f1(tSts) + ' µs = ' + Math.round(tSts*499.2) + ' 칩')]);
+    steps.push(['PHR', sp===3 ? '없음 (SP3)' : ('19 bit / ' + f2(phrRate) + ' = ' + f2(tPhr) + ' µs')]);
+    steps.push(['PSDU', sp===3 ? '없음 (SP3)' : ('(8 × ' + L + ' + 48) / ' + f2(R.bitRate) + ' = ' + f1(tPsdu) + ' µs')]);
+    extra = 'SP' + sp + ' · 코드 ' + code + ' · Mean PRF ' + f2(R.meanPrf) + ' MHz';
+  } else {
+    var zbB=6+Math.min(L,127);
+    pre=0; data=zbB*8*4; occ=2;
+    steps.push(['총 바이트', '6 (프리앰블/SFD/PHR) + ' + Math.min(L,127) + ' = ' + zbB + ' B']);
+    steps.push(['T_PKT', zbB + ' × 8 bit × 4 µs = ' + f1(data) + ' µs  (250 kbps)']);
+    extra = '250 kbps O-QPSK';
+  }
+
+  var ppdu=pre+data, rec=Math.ceil(ppdu*margin/10)*10;
+  $('cp-steps').innerHTML = steps.map(function(s){
+    return '<span class="lbl">' + (s[0]+'          ').slice(0,10) + '</span>' + s[1];
+  }).join('\n');
+  $('cp-big').innerHTML =
+    '<div><span class="k">PPDU 길이</span><span class="v">' + f1(ppdu) + '<span class="u"> µs</span></span></div>' +
+    '<div><span class="k">권장 캡처 (×' + margin + ')</span><span class="v acc">' + rec + '<span class="u"> µs</span></span></div>' +
+    '<div><span class="k">참고</span><span class="v" style="font-size:14px">' + extra + '</span></div>';
+
+  /* 샘플링 */
+  var minFs=occ*2, cand=[40,80,160,320,640,1280,2400];
+  var fs=recFs||(cand.filter(function(c){return c>=minFs;})[0]||minFs);
+  var samples=Math.round(fs*1e6*rec*1e-6);
+  var mem=samples*8/1048576;
+  $('cp-smp').tBodies[0].innerHTML =
+    '<tr><td>신호 점유 대역폭</td><td class="n">' + occ + ' MHz</td></tr>' +
+    '<tr><td>최소 샘플링 (2 × BW)</td><td class="n">' + minFs + ' MHz</td></tr>' +
+    '<tr><td><b>권장 샘플링</b></td><td class="n"><b>' + fs + ' MHz</b>' +
+       (recFs ? ' <span class="pill p-acc">장비 실측값</span>' : '') + '</td></tr>' +
+    '<tr><td>캡처 샘플 수</td><td class="n">' + samples.toLocaleString() + '</td></tr>' +
+    '<tr><td>IQ 메모리 (complex float32)</td><td class="n">' + f1(mem) + ' MB</td></tr>';
+
+  if(std==='uwb'){
+    $('cp-note').innerHTML =
+      '<b>UWB 는 근사치다</b> — SYNC/SFD 심볼 길이는 Ipatov 코드의 0 밀도에 따라 달라져서 ' +
+      '공칭 <code>코드길이 × Δ ÷ 499.2</code> 와 실제 파형이 몇 % 차이 날 수 있다. ' +
+      '<b>정확한 값은 웨이브폼 파일 탭에서 SampleCount 를 직접 읽어라.</b>' +
+      '<br>기본값은 라이브러리의 <code>FiRA_SP1_BPRF_SET3.iqvsg</code> 설정과 같다 ' +
+      '(BPRF 62.4 MHz · SYNC 64 · SFD 8 · STS 64 µs · 6.81 Mbps · PSDU 20 B).';
+    return;
+  }
+  $('cp-note').innerHTML = '<b>캡처가 짧으면</b> 패킷이 잘려 분석 실패 또는 파워 오측. <b>길면</b> 시간만 조금 손해 — 트리거 사용 시 Capture Delay 가 압도하므로 <b>2~3배로 넉넉하게</b> 잡는 편이 안전하다.';
+}
+['cp-std','cp-bw','cp-mcs','cp-nss','cp-gi','cp-ltf','cp-rate','cp-len','cp-margin',
+ 'cp-uwb-code','cp-uwb-sync','cp-uwb-sfd','cp-uwb-rate','cp-uwb-phr',
+ 'cp-uwb-sp','cp-uwb-sts'].forEach(function(id){
+  $(id).addEventListener('change', function(){
+    if(id==='cp-std' || id==='cp-uwb-sp') syncCapInputs(); else calcCap(); });
+  $(id).addEventListener('input', function(){ if(id!=='cp-std') calcCap(); });
+});
+
+/* ================= PAR ================= */
+var PARTBL = [
+  ['DSSS / CCK (11b)',            '3 – 5',   '거의 일정 포락선'],
+  ['Legacy OFDM (11a/g)',         '10 – 12', '48 부반송파 합성'],
+  ['HT / VHT (11n/ac)',           '10 – 12', '52 – 468 부반송파'],
+  ['HE / EHT (11ax/be)',          '11 – 13', '부반송파 4배, 피크 확률 증가'],
+  ['BT BR (GFSK)',                '0 – 1',   '정포락선 변조'],
+  ['BT EDR (π/4-DQPSK, 8DPSK)',   '3 – 4',   ''],
+  ['BLE 1M / 2M (GFSK)',          '0 – 1',   '정포락선'],
+  ['Zigbee (O-QPSK half-sine)',   '0.3 – 1', '거의 정포락선'],
+  ['UWB HRP (BPM-BPSK 펄스)',     '10 – 15', '듀티가 매우 낮은 임펄스 - 피크가 평균보다 훨씬 높다'],
+  ['UWB SP3 (STS 만)',            '9 – 12',  'PHR/PSDU 가 없어 SP1 보다 조금 낮다']
+];
+function calcPar(){
+  var t=parseFloat($('pr-target').value)||0, l=parseFloat($('pr-loss').value)||0;
+  var p=parseFloat($('pr-par').value)||0, g=parseFloat($('pr-gain').value)||0;
+  var ref=t-l+p+g;
+  var pk=parseFloat($('pr-peak').value)||0, av=parseFloat($('pr-avg').value)||0;
+  var meas=pk-av, diff=meas-p;
+  $('pr-steps').innerHTML =
+    '<span class="lbl">공식      </span>Ref = Target − CableLoss + PAR + ChainGain\n' +
+    '<span class="lbl">대입      </span>' + f2(t) + ' − ' + f2(l) + ' + ' + f2(p) + ' + ' + f2(g) + '\n' +
+    '<span class="lbl">테스터 평균</span>' + f2(t-l) + ' dBm  <span class="lbl">(Target − CableLoss)</span>';
+  var pill = Math.abs(diff)<=1 ? '<span class="pill p-ok">적정</span>'
+           : diff>0 ? '<span class="pill p-warn">설정보다 ' + f1(diff) + ' dB 큼 — 클리핑 위험</span>'
+                    : '<span class="pill p-acc">설정보다 ' + f1(-diff) + ' dB 작음</span>';
+  $('pr-big').innerHTML =
+    '<div><span class="k">VSA Reference Level</span><span class="v acc">' + f2(ref) + '<span class="u"> dBm</span></span></div>' +
+    '<div><span class="k">실측 PAR (Peak − Power)</span><span class="v">' + f2(meas) + '<span class="u"> dB</span></span></div>' +
+    '<div><span class="k">설정 대비</span><span class="v" style="font-size:13px">' + pill + '</span></div>';
+}
+['pr-target','pr-loss','pr-par','pr-gain','pr-peak','pr-avg'].forEach(function(id){
+  $(id).addEventListener('input', calcPar);
+});
+$('pr-tbl').tHead.innerHTML = '<tr><th>변조</th><th>전형 PAR (dB)</th><th>비고</th></tr>';
+$('pr-tbl').tBodies[0].innerHTML = PARTBL.map(function(r){
+  return '<tr><td>'+r[0]+'</td><td class="n">'+r[1]+'</td><td>'+r[2]+'</td></tr>';
+}).join('');
+
+
+/* ================= 웨이브폼 파일 (.iqvsg) =================
+   파일 앞부분만 slice 로 읽어 <LPHeader> XML 을 파싱한다.
+   IQ 데이터는 읽지 않으므로 수백 MB 파일도 즉시 처리된다.           */
+var WF = [], WFsel = 0, HDR_END = '</LPHeader>';
+var WFmode = 'one', WFa = 0, WFb = 1;   /* 'one' = 한 파일, 'cmp' = 두 파일 비교 */
+var W = 'CONFigure:WAVE:';
+
+/* 표시할 전체 필드 스키마. 파일에 없으면 N/A 로 나온다.
+   fmt: ''=첫 원소 | 'all'=배열 전체 | 'MHz'=Hz→MHz | 'us'=s→µs | 'ns'=s→ns */
+var WF_SCHEMA = [
+['파일', [
+  ['파일명',        '@name'],
+  ['크기',          '@size'],
+  ['헤더 / 데이터', '@split'],
+  ['세그먼트(포트) 수', '@seg'],
+  ['바이트/샘플',   '@bps'],
+  ['데이터 크기 검증', '@chk'],
+  ['Module',        '@mod'],
+  ['FileType',      '@FileType'],
+  ['Source',        '@Source'],
+  ['Encoding',      '@Encoding'],
+  ['생성 일시',     '@DateTime'],
+  ['장비 IDN',      '@IDN'],
+  ['Description',   '@Description']
+]],
+['신호', [
+  ['SamplingRate',  '@SamplingRate'],
+  ['SampleCount',   '@SampleCount'],
+  ['파형 길이',     '@dur'],
+  ['Wave Gap',      W+'GAP', 'us'],
+  ['Clock (CLOCk)', W+'CLOCk'],
+  ['NETX (여분 Tx 포트)', W+'NETX'],
+  ['Packet Type',   W+'PTYPe'],
+  ['Frame Type',    W+'FTYPe']
+]],
+['WLAN 공통', [
+  ['Standard',      W+'STANdard'],
+  ['Channel BW',    W+'OFDM:CBW', 'MHz'],
+  ['MCS',           W+'OFDM:MCS'],
+  ['Spatial Streams', W+'OFDM:NSSTreams'],
+  ['Space-Time Str', W+'OFDM:SSSTreams'],
+  ['Extension SS',  W+'OFDM:NESStreams'],
+  ['Coding',        W+'OFDM:CODing'],
+  ['Short GI',      W+'OFDM:SGI'],
+  ['GI + LTF (HE)', W+'OFDM:GILTf'],
+  ['Preamble',      W+'OFDM:PREamble'],
+  ['Preamble State',W+'PREamble:STATe'],
+  ['STBC',          W+'OFDM:STBC'],
+  ['Greenfield',    W+'OFDM:GREenfield'],
+  ['Sounding',      W+'OFDM:SOUNding'],
+  ['Aggregation',   W+'OFDM:AGGRegation'],
+  ['DCM',           W+'OFDM:DCM'],
+  ['Smoothing',     W+'OFDM:SMOothing'],
+  ['Interleave',    W+'OFDM:INTerleave'],
+  ['Uplink',        W+'OFDM:UPLink'],
+  ['Partial AID',   W+'OFDM:PAID'],
+  ['Group ID',      W+'OFDM:GID'],
+  ['CFO',           W+'OFDM:COFFset'],
+  ['Spatial Map',   W+'OFDM:SMAPping:TYPE'],
+  ['MCS Table',     W+'MCSTable']
+]],
+['HE / EHT 전용', [
+  ['PPDU Format',   W+'OFDM:PFORmat'],
+  ['BSS Color',     W+'OFDM:BSSColor'],
+  ['L-SIG Length',  W+'OFDM:LSIG:LENGth'],
+  ['L-SIG Max',     W+'OFDM:LSIG:LENGth:MAXimum'],
+  ['MU State',      W+'OFDM:MU:STATe'],
+  ['MU Users',      W+'OFDM:MU:NUSers'],
+  ['RU Allocation', W+'OFDM:RUALlocation', 'all'],
+  ['RU Index',      W+'OFDM:RUINdex'],
+  ['RU Freq Seg',   W+'OFDM:RUINdex:FSEGment'],
+  ['STA ID',        W+'OFDM:STAid'],
+  ['SIG-B MCS',     W+'OFDM:SIGB:MCS'],
+  ['SIG-B 압축',    W+'OFDM:SIGB:COMPression'],
+  ['SIG-B DCM',     W+'OFDM:SIGB:DCM'],
+  ['A-Factor',      W+'OFDM:AFACtor'],
+  ['PE Disambig.',  W+'OFDM:PEDisambiguity'],
+  ['Extra LDPC Sym',W+'OFDM:ESLDpc'],
+  ['HE-LTF 개수',   W+'OFDM:ELTF'],
+  ['Contiguous',    W+'OFDM:CONTiguous'],
+  ['Primary 20 Seg',W+'OFDM:P20Msegment'],
+  ['Preamble Punct',W+'OFDM:PPUNcture:MODE'],
+  ['MPDU Duration', W+'OFDM:MPEDuration', 'us'],
+  ['Trigger Frame', W+'PSDU:TFRame:TYPE']
+]],
+['DSSS / CCK', [
+  ['Data Rate',     W+'DSSS:DRATe'],
+  ['Preamble',      W+'DSSS:PREamble'],
+  ['Lock Clocks',   W+'DSSS:LCLocks'],
+  ['Ramp Type',     W+'DSSS:RAMP:TYPE'],
+  ['Ramp Time',     W+'DSSS:RAMP:TIME', 'us'],
+  ['Filter Type',   W+'DSSS:FILTer:TYPE'],
+  ['Filter BT',     W+'DSSS:FILTer:BT'],
+  ['Filter Length', W+'DSSS:FILTer:LENGth'],
+  ['Filter Rolloff',W+'DSSS:FILTer:ROLLoff']
+]],
+['필터 · 윈도우', [
+  ['OFDM Filter',   W+'OFDM:FILTer'],
+  ['Filter Alpha',  W+'OFDM:FILTer:ALPHa'],
+  ['Filter Delay',  W+'OFDM:FILTer:DELay'],
+  ['Filter Length', W+'OFDM:FILTer:LENGth', 'ns'],
+  ['Window',        W+'OFDM:WINDow'],
+  ['Window Length', W+'OFDM:WINDow:LENGth', 'ns'],
+  ['Oversampling',  W+'OFDM:OSR'],
+  ['OSR User',      W+'OFDM:OSR:USER'],
+  ['CDD',           W+'CDD', 'ns'],
+  ['CFR',           W+'CFR'],
+  ['CFR Crest',     W+'CFR:CFACtor']
+]],
+['패킷 (PSDU)', [
+  ['MPDU1 길이',    W+'PSDU:MPDU1:NBYTes'],
+  ['MPDU 개수',     W+'PSDU:NMPDus'],
+  ['PSDU 길이 (비-WLAN)', W+'PSDU:NBYTes'],
+  ['Data Type',     W+'PSDU:DATA:TYPE'],
+  ['PN Seed',       W+'PSDU:DATA:PN:SEED'],
+  ['Data Bits',     W+'PSDU:DATA:BITS:ASCii'],
+  ['CRC',           W+'PSDU:CRC'],
+  ['Scrambler',     W+'SCRambler'],
+  ['Length Ext.',   W+'PSDU:LEXTension']
+]],
+['MAC 헤더', [
+  ['Address 1',     W+'PSDU:MACHeader:ADDRess1'],
+  ['Address 2',     W+'PSDU:MACHeader:ADDRess2'],
+  ['Address 3',     W+'PSDU:MACHeader:ADDRess3'],
+  ['Address 4',     W+'PSDU:MACHeader:ADDRess4'],
+  ['Frame Ctrl 모드',W+'PSDU:MACHeader:FCONtrol:MODE'],
+  ['Frame Ctrl 타입',W+'PSDU:MACHeader:FCONtrol:TYPE'],
+  ['Frame Ctrl 값', W+'PSDU:MACHeader:FCONtrol:USER'],
+  ['Duration',      W+'PSDU:MACHeader:DURation'],
+  ['Sequence',      W+'PSDU:MACHeader:SEQuence'],
+  ['QoS',           W+'PSDU:MACHeader:QOS'],
+  ['HT Control',    W+'PSDU:MACHeader:HTControl:TYPE']
+]],
+['Degradation (WaveGen 순서)', [
+  ['Clock Error (ppm)',      W+'DEGRadation:SCLock'],
+  ['Freq. Error (Hz)',       W+'DEGRadation:FREQuency'],
+  ['Phase Noise (dBc/Hz)',   W+'DEGRadation:PNOise'],
+  ['Phase Noise PLL BW (kHz)',W+'DEGRadation:PNOise:PLL:BW'],
+  ['Signal Bandwidth (MHz)', W+'DEGRadation:BWIDth'],
+  ['AWGN SNR (dB)',          W+'DEGRadation:AWGN:SNR'],
+  ['Filter Normalization',   W+'DEGRadation:FILTer:NORMalize'],
+  ['IQ Gain (dB)',           W+'DEGRadation:IQIMbalance:GAIN'],
+  ['IQ Phase (deg)',         W+'DEGRadation:IQIMbalance:PHASe'],
+  ['IQ Delay (ps)',          W+'DEGRadation:IQIMbalance:DELay'],
+  ['DCI (%)',                W+'DEGRadation:DCOFfset:I'],
+  ['DCQ (%)',                W+'DEGRadation:DCOFfset:Q'],
+  ['Backoff (dB)',           W+'DEGRadation:BACKoff'],
+  ['SFactor',                W+'DEGRadation:SFACtor'],
+  ['Channel Gain (dB)',      W+'DEGRadation:CHANnel:GAIN'],
+  ['Channel Phase',          W+'DEGRadation:CHANnel:PHASe'],
+  ['Delay (s)',              W+'DEGRadation:DELay'],
+  ['Power Backoff (dB)',     W+'DEGRadation:POWer'],
+  ['LO Leakage Power (dBc)', W+'DEGRadation:LOLeakage:POWer'],
+  ['LO Leakage CF Offset',   W+'DEGRadation:LOLeakage:CFOFfset']
+]],
+['Bluetooth', [
+  ['Payload Type',  W+'PDTYpe'],
+  ['Payload Length',W+'PLENgth'],
+  ['Payload Bits',  W+'PDUBits:ASCii'],
+  ['UDH CRC',       W+'PDUBits:UDHCrc:STATe'],
+  ['Start Bit',     W+'SBIT'],
+  ['Symbol Rate',   W+'SRATe'],
+  ['Symbol Offset', W+'SROFfset'],
+  ['Mod Index',     W+'MINDex'],
+  ['BT Product',    W+'BTPRoduct'],
+  ['EDR Rolloff',   W+'EROFf'],
+  ['Freq Offset',   W+'FOFFset'],
+  ['Guard Time',    W+'GTIMe', 'us'],
+  ['Ramp Time',     W+'RAMP:TIME', 'us'],
+  ['Repeat Time',   W+'RTIMe'],
+  ['BD Addr LAP',   W+'BDADdress:LAP'],
+  ['BD Addr UAP',   W+'BDADdress:UAP'],
+  ['LT Address',    W+'PHEader:LTADdress'],
+  ['Pkt Header',    W+'PHEader:STATe'],
+  ['Pkt Hdr FLOW',  W+'PHEader:FLOW:STATe'],
+  ['Pkt Hdr ARQN',  W+'PHEader:ARQN:STATe'],
+  ['Pkt Hdr SEQN',  W+'PHEader:SEQN:STATe'],
+  ['PDU Hdr FLOW',  W+'PDHeader:FLOW:STATe'],
+  ['PDU LLID',      W+'PDHeader:LLID'],
+  ['LE Packet Type',W+'LENergy:PTYPe'],
+  ['LE Sync Word',  W+'LENergy:SWORd'],
+  ['All Ones',      W+'BEONes:STATe'],
+  ['Front-End Zero',W+'FEZeros:STATe'],
+  ['Dirty Tx 주파수', W+'FDFRequency'],
+  ['Dirty Tx 시간',  W+'FDTime']
+]],
+['UWB · 기타', [
+  ['Bandwidth',     W+'BW'],
+  ['Mean PRF',      W+'MPRF'],
+  ['Data Rate',     W+'DRATe'],
+  ['Encoding',      W+'ENCoding'],
+  ['Encoder',       W+'ENCoder:TYPE'],
+  ['Constraint',    W+'CTYPe'],
+  ['Preamble',      W+'PREamble'],
+  ['Preamble Index',W+'PREamble:INDex'],
+  ['Preamble Type', W+'PREamble:TYPE'],
+  ['SYNC Duration', W+'SYNC:DURation'],
+  ['SFD Duration',  W+'SFD:DURation'],
+  ['SFD Duration(HPRF)', W+'HPRF:SFD:DURation'],
+  ['SFD Type',      W+'SFD:TYPE'],
+  ['PHR',           W+'PHR'],
+  ['PHR Rate',      W+'PHR:DRATe'],
+  ['PHR Rate Type', W+'PHR:DRATe:TYPE'],
+  ['PHR R-bit',     W+'PHR:RBIT'],
+  ['STS 구성 (SPx)', W+'STS:PCONfiguration'],
+  ['STS Duration',  W+'STS:DURation', 'us'],
+  ['STS Generation',W+'STS:GENeration'],
+  ['STS Key',       W+'STS:KEY'],
+  ['STS Counter',   W+'STS:COUNter'],
+  ['STS Gap 길이',  W+'STS:AGAP:LENGth'],
+  ['NSTS',          W+'NSTS'],
+  ['Multipath',     W+'MPATh:STATe'],
+  ['Multipath Taps',W+'MPATh:NTAPs'],
+  ['Multipath 지연',W+'MPATh:DELay', 'us'],
+  ['Multipath 전력',W+'MPATh:POWer']
+]]
+];
+
+/* ---- 헤더 파싱 ---- */
+function wfTag(xml, n){
+  var m = xml.match(new RegExp('<' + n + '>([\\s\\S]*?)<\\/' + n + '>'));
+  return m ? m[1].trim() : null;
+}
+function wfCmds(xml){
+  var map = {}, order = [], mods = [];
+  var re = /<ModuleConfiguration module="([^"]*)">([\s\S]*?)<\/ModuleConfiguration>/g, m;
+  while((m = re.exec(xml))){
+    mods.push(m[1]);
+    m[2].split(';').forEach(function(c){
+      c = c.trim(); if(!c) return;
+      var sp = c.indexOf(' '), k = sp < 0 ? c : c.slice(0, sp), v = sp < 0 ? '' : c.slice(sp+1).trim();
+      if(!(k in map)){ map[k] = v; order.push(k); }
+    });
+  }
+  return {map:map, order:order, mods:mods};
+}
+/* 키 그대로 → :AUSers → :USER1 순으로 찾는다 */
+function wfGet(M, k){
+  if(M[k] !== undefined) return M[k];
+  if(M[k+':AUSers'] !== undefined) return M[k+':AUSers'];
+  if(M[k+':USER1'] !== undefined) return M[k+':USER1'];
+  return null;
+}
+/* "(AUTO{74})" "(0,2,2,...)" 같은 배열 인자에서 첫 원소만 */
+function wfFirst(v){
+  if(v === null || v === undefined || v === '') return null;
+  v = String(v).trim();
+  if(v.charAt(0) === '('){
+    var e = v.lastIndexOf(')');
+    v = v.slice(1, e < 0 ? v.length : e);
+    v = v.split(',')[0];
+  }
+  return v.replace(/\{\d+\}$/, '').trim() || null;
+}
+/* 배열 전체를 짧게 (앞 8개까지) */
+function wfAll(v){
+  if(v === null || v === undefined || v === '') return null;
+  v = String(v).trim();
+  if(v.charAt(0) !== '(') return v;
+  var e = v.lastIndexOf(')');
+  var it = v.slice(1, e < 0 ? v.length : e).split(',');
+  return it.slice(0, 8).map(function(x){ return wfNum(x.trim()); }).join(', ') +
+         (it.length > 8 ? ' ... (총 ' + it.length + ')' : '');
+}
+/* "5.000000e-01" 같은 지수 표기를 보기 좋은 숫자로 (그 외 문자열은 그대로) */
+function wfNum(s){
+  if(typeof s !== 'string' || !/^[+-]?\d+(\.\d+)?[eE][+-]?\d+$/.test(s)) return s;
+  var n = parseFloat(s);
+  return isFinite(n) ? String(Math.round(n * 1e9) / 1e9) : s;
+}
+var WF_SI = {us:[1e6, ' µs'], ns:[1e9, ' ns'], MHz:[1e-6, ' MHz']};
+function wfFmt(raw, fmt){
+  if(fmt === 'all') return wfAll(raw);
+  var s = wfFirst(raw);
+  if(s === null) return null;
+  if(WF_SI[fmt]){
+    var n = parseFloat(s);
+    if(isNaN(n)) return s;
+    return (Math.round(n * WF_SI[fmt][0] * 1000) / 1000) + WF_SI[fmt][1];
+  }
+  return wfNum(s);
+}
+
+function wfParse(file){
+  var tries = [262144, 4194304, 16777216];
+  function step(i){
+    var n = Math.min(tries[i], file.size);
+    return file.slice(0, n).arrayBuffer().then(function(buf){
+      var txt = new TextDecoder('latin1').decode(new Uint8Array(buf));
+      var k = txt.indexOf(HDR_END);
+      if(k < 0){
+        if(n >= file.size || i >= tries.length - 1) return {name:file.name, size:file.size, bad:true};
+        return step(i + 1);
+      }
+      var end = k + HDR_END.length;
+      while(end < txt.length && (txt.charCodeAt(end) === 10 || txt.charCodeAt(end) === 13)) end++;
+      var xml = txt.slice(0, k + HDR_END.length), C = wfCmds(xml);
+      var sc = parseInt(wfTag(xml, 'SampleCount') || '0', 10);
+      var sr = parseInt(wfTag(xml, 'SamplingRate') || '0', 10);
+      /* <DataInfo> 블록 하나가 VSG 포트 하나다. 4포트 파일은 데이터가 4배가 된다. */
+      var segs = (xml.match(/<DataInfo>/g) || []).length || 1;
+      return {
+        name:file.name, size:file.size, hdrEnd:end, cmds:C.map, order:C.order,
+        mods:C.mods, sc:sc, sr:sr, segs:segs,
+        dur:(sc && sr) ? sc / sr * 1e6 : 0,
+        bps:sc ? (file.size - end) / (sc * segs) : 0,
+        tags:{
+          FileType:wfTag(xml, 'FileType'), Source:wfTag(xml, 'Source'),
+          Encoding:wfTag(xml, 'Encoding'), DateTime:wfTag(xml, 'DateTime'),
+          IDN:wfTag(xml, 'IDN'),
+          Description:(wfTag(xml, 'Description') || '').split('\n')
+                        .map(function(x){ return x.trim(); }).filter(Boolean).join(' / ')
+        }
+      };
+    });
+  }
+  return step(0);
+}
+
+/* ---- 값 얻기: @xxx 는 파생값, 나머지는 SCPI 키 ---- */
+function wfValue(w, key, fmt){
+  if(key.charAt(0) !== '@') return wfFmt(wfGet(w.cmds || {}, key), fmt);
+  switch(key){
+    case '@name':  return w.name;
+    case '@size':  return w.size.toLocaleString() + ' B';
+    case '@split': return w.hdrEnd.toLocaleString() + ' B  /  ' + (w.size - w.hdrEnd).toLocaleString() + ' B';
+    case '@seg':   return (w.segs || 1) + '개' + ((w.segs || 1) > 1
+                     ? '   (세그먼트당 ' + ((w.size - w.hdrEnd) / w.segs).toLocaleString() + ' B)' : '');
+    case '@bps':   if(!w.sc) return null;
+                   /* Encoding=True 면 IQ 가 LitePoint 인코딩 상태라 float32 로 바로 못 읽는다 */
+                   return f2(w.bps) + ' B' + (Math.abs(w.bps - 8) < 0.01
+                     ? ((w.tags && w.tags.Encoding === 'True') ? '  (인코딩됨)' : '  (complex float32)')
+                     : '  (비표준)');
+    case '@chk':   if(!w.sc) return null;
+                   /* 데이터는 예외 없이 세그먼트 × SampleCount × 8 이어야 한다 */
+                   var exp = (w.segs || 1) * w.sc * 8, act = w.size - w.hdrEnd, d = act - exp;
+                   var al = (w.sc % 8 === 0) ? 'SampleCount 8의 배수' : 'SampleCount 가 8의 배수가 아님';
+                   return (d === 0 ? '정합 (' + exp.toLocaleString() + ' B) · ' + al
+                                   : (d < 0 ? '부족 ' : '여분 ') + Math.abs(d) +
+                                     ' B — 기대 ' + exp.toLocaleString() + ' B · 잘렸거나 덧붙은 파일');
+    case '@mod':   return (w.mods && w.mods.length) ? w.mods.join(', ') : null;
+    case '@SamplingRate': return w.sr ? w.sr.toLocaleString() + ' Hz  (' + (w.sr / 1e6) + ' MHz)' : null;
+    case '@SampleCount':  return w.sc ? w.sc.toLocaleString() : null;
+    case '@dur':   return w.dur ? f1(w.dur) + ' µs' : null;
+    default:       return (w.tags && w.tags[key.slice(1)]) || null;
+  }
+}
+
+/* ---- 목록 ---- */
+function wfStd(w){ return (w.cmds && wfFirst(wfGet(w.cmds, W + 'STANdard'))) || ''; }
+function wfBw(w){
+  var v = w.cmds && wfFirst(wfGet(w.cmds, W + 'OFDM:CBW'));
+  if(!v) return '';
+  var n = parseInt(v, 10);
+  return n > 1000 ? n / 1e6 : n;
+}
+function wfCol(w, k){ return (w.cmds && wfFirst(wfGet(w.cmds, W + k))) || 'N/A'; }
+
+
+/* ================= 규격 적용 여부 =================
+   값이 없을 때 N/A(규격엔 있는데 기록이 없음) 와 XXX(규격에 해당 없음) 를 가른다.
+   토큰 의미
+     any     : 모든 파일                 wifi : WIFI 모듈
+     ofdm    : WLAN OFDM (A/G/N/AC/AX/BE, 11b 제외)
+     ht      : 11n            htvht : 11n/11ac       vht : 11ac
+     vhthe   : 11ac/ax/be     he    : 11ax/11be      mimo: 11n 이상
+     dsss    : 11b            pkt   : WLAN+UWB+Zigbee
+     bt / uwb / btuwb / nonwifi                                        */
+var WF_APPLY_GRP = {
+  '파일': 'any',
+  '신호': 'any',
+  'WLAN 공통': 'ofdm',
+  'HE / EHT 전용': 'he',
+  'DSSS / CCK': 'dsss',
+  '필터 · 윈도우': 'ofdm',
+  '패킷 (PSDU)': 'pkt',
+  'MAC 헤더': 'wifi',
+  'Degradation (WaveGen 순서)': 'any',
+  'Bluetooth': 'bt',
+  'UWB · 기타': 'uwb'
+};
+/* 그룹 기본값을 덮어쓰는 행 단위 예외 */
+var WF_APPLY_KEY = {};
+(function(){
+  var m = {
+    'STANdard':'any', 'GAP':'any',
+    'PTYPe':'btuwb', 'FTYPe':'btuwb', 'CLOCk':'wifi', 'NETX':'wifi',
+    'OFDM:GILTf':'he', 'OFDM:SGI':'htvht', 'OFDM:GREenfield':'ht',
+    'OFDM:NESStreams':'htvht', 'OFDM:SSSTreams':'he', 'MCSTable':'he',
+    'OFDM:PAID':'vht', 'OFDM:GID':'vhthe',
+    'OFDM:NSSTreams':'mimo', 'OFDM:STBC':'mimo', 'OFDM:SOUNding':'mimo',
+    'OFDM:AGGRegation':'mimo', 'OFDM:SMAPping:TYPE':'mimo', 'CDD':'mimo',
+    'OFDM:PREamble':'wifi', 'PREamble:STATe':'wifi', 'CFR':'wifi', 'CFR:CFACtor':'wifi',
+    'PSDU:MPDU1:NBYTes':'wifi', 'PSDU:NMPDus':'wifi', 'SCRambler':'wifi',
+    'PSDU:MACHeader:HTControl:TYPE':'mimo', 'PSDU:MACHeader:QOS':'mimo',
+    'PSDU:NBYTes':'nonwifi', 'PSDU:LEXTension':'nonwifi'
+  };
+  for(var k in m) WF_APPLY_KEY[W + k] = m[k];
+})();
+
+function wfCtx(w){
+  var mods = (w && w.mods) || [];
+  return {
+    mod: mods.length ? mods[0] : '',
+    std: w ? wfStd(w) : '',
+    unknown: !mods.length            /* ModuleConfiguration 자체가 없는 구형 .mod 변환 파일 */
+  };
+}
+function wfApplies(tok, c){
+  /* 파일이 무엇인지 알 수 없으면 '해당 없음' 이라고 단정하지 않는다 */
+  if(c.unknown) return true;
+  var wifi = (c.mod === 'WIFI'), s = c.std;
+  if(wifi && !s) return true;        /* WIFI 인데 Standard 가 없는 캡처 파일 */
+  var ofdm = wifi && (s === 'A' || s === 'G' || s === 'N' || s === 'AC' || s === 'AX' || s === 'BE');
+  switch(tok){
+    case 'any':     return true;
+    case 'wifi':    return wifi;
+    case 'ofdm':    return ofdm;
+    case 'ht':      return wifi && s === 'N';
+    case 'htvht':   return wifi && (s === 'N' || s === 'AC');
+    case 'vht':     return wifi && s === 'AC';
+    case 'vhthe':   return wifi && (s === 'AC' || s === 'AX' || s === 'BE');
+    case 'he':      return wifi && (s === 'AX' || s === 'BE');
+    case 'mimo':    return wifi && (s === 'N' || s === 'AC' || s === 'AX' || s === 'BE');
+    case 'dsss':    return wifi && s === 'B';
+    case 'pkt':     return wifi || c.mod === 'UWBP' || c.mod === 'ZIGBEE';
+    case 'nonwifi': return c.mod === 'UWBP' || c.mod === 'ZIGBEE' || c.mod === 'BT';
+    case 'bt':      return c.mod === 'BT';
+    case 'uwb':     return c.mod === 'UWBP';
+    case 'btuwb':   return c.mod === 'BT' || c.mod === 'UWBP';
+    default:        return true;
+  }
+}
+/* 셀 하나를 결정한다: 값이 있으면 값, 없으면 N/A 또는 XXX */
+function wfCell(w, grpName, row, ctx){
+  var v = wfValue(w, row[1], row[2]);
+  if(v !== null && v !== '') return {t:String(v), c:''};
+  var tok = WF_APPLY_KEY[row[1]] || WF_APPLY_GRP[grpName] || 'any';
+  return wfApplies(tok, ctx) ? {t:'N/A', c:' na'} : {t:'XXX', c:' xx'};
+}
+
+function wfRenderList(){
+  if(!WF.length){ $('wf-listwrap').hidden = true; return; }
+  $('wf-listwrap').hidden = false;
+  $('wf-listhead').textContent = '불러온 파일 — ' + WF.length + '개' +
+    (WFmode === 'cmp' ? '  (행을 누르면 A, Shift+누르면 B)' : '  (행을 누르면 상세)');
+  $('wf-list').tHead.innerHTML =
+    '<tr><th></th><th>파일</th><th>규격</th><th>MCS</th><th>BW</th><th>NSS</th><th>코딩</th><th>길이 µs</th><th>Fs MHz</th></tr>';
+  $('wf-list').tBodies[0].innerHTML = WF.map(function(w, i){
+    var tag = '', sel = '';
+    if(WFmode === 'cmp'){
+      if(i === WFa){ tag = '<span class="pill p-acc">A</span>'; sel = ' sel'; }
+      else if(i === WFb){ tag = '<span class="pill p-warn">B</span>'; sel = ' sel'; }
+    } else if(i === WFsel){ sel = ' sel'; }
+    if(w.bad) return '<tr class="clk' + sel + '" data-i="' + i + '"><td>' + tag + '</td><td>' + w.name +
+      '</td><td colspan="7"><span class="pill p-crit">LPHeader 없음</span></td></tr>';
+    var bw = wfBw(w);
+    return '<tr class="clk' + sel + '" data-i="' + i + '">' +
+      '<td>' + tag + '</td>' +
+      '<td>' + w.name + '</td>' +
+      '<td>' + (wfStd(w) || 'N/A') + '</td>' +
+      '<td class="n">' + wfCol(w, 'OFDM:MCS') + '</td>' +
+      '<td class="n">' + (bw === '' ? 'N/A' : bw) + '</td>' +
+      '<td class="n">' + wfCol(w, 'OFDM:NSSTreams') + '</td>' +
+      '<td>' + wfCol(w, 'OFDM:CODing') + '</td>' +
+      '<td class="n">' + (w.dur ? f1(w.dur) : 'N/A') + '</td>' +
+      '<td class="n">' + (w.sr ? w.sr / 1e6 : 'N/A') + '</td></tr>';
+  }).join('');
+  Array.prototype.forEach.call($('wf-list').tBodies[0].rows, function(tr){
+    tr.addEventListener('click', function(ev){
+      var i = parseInt(tr.getAttribute('data-i'), 10);
+      if(WFmode === 'cmp'){
+        if(ev.shiftKey) WFb = i; else WFa = i;
+        wfRender();
+      } else {
+        WFsel = i;
+        wfRender();
+      }
+    });
+  });
+}
+
+/* ---- 한 파일 상세: 스키마 전체를 돌면서 없는 값은 N/A ---- */
+function wfShowOne(){
+  var w = WF[WFsel];
+  $('wf-det').className = 'kv';
+  $('wf-dethead').textContent = w.name;
+
+  if(w.bad){
+    $('wf-det').innerHTML = '<div class="grp">파일</div>' +
+      '<div class="k">크기</div><div class="v">' + w.size.toLocaleString() + ' B</div>' +
+      '<div class="k">상태</div><div class="v">LPHeader 를 찾지 못했다 — iqvsg 가 아니거나 손상된 파일</div>';
+    $('wf-rawtxt').textContent = '';
+    $('wf-cnt').textContent = '';
+    return;
+  }
+
+  var hideNA = $('wf-hidena').checked, showKey = $('wf-showkey').checked;
+  var ctx = wfCtx(w);
+  var html = '', nHave = 0, nXX = 0, nAppl = 0;
+
+  WF_SCHEMA.forEach(function(grp){
+    var body = '', have = 0, xx = 0;
+    grp[1].forEach(function(row){
+      var c = wfCell(w, grp[0], row, ctx);
+      if(c.c === '') have++;
+      else if(c.c === ' xx') xx++;
+      if(hideNA && c.c !== '') return;
+      body += wfK(row, showKey) + '<div class="v' + c.c + '">' + c.t + '</div>';
+    });
+    nHave += have; nXX += xx; nAppl += (grp[1].length - xx);
+    if(body) html += wfGrp(grp[0], have + ' / ' + (grp[1].length - xx) +
+                                   (xx ? '   XXX ' + xx : '')) + body;
+  });
+
+  $('wf-det').innerHTML = html;
+  $('wf-cnt').textContent = '확인 ' + nHave + ' / 규격 해당 ' + nAppl +
+                            '  ·  규격 해당없음(XXX) ' + nXX +
+                            '  ·  SCPI 명령 ' + (w.order ? w.order.length : 0) + '개';
+
+  var M = w.cmds || {};
+  $('wf-rawtxt').textContent = (w.order || []).map(function(k){
+    return k + (M[k] ? '  ' + M[k] : '');
+  }).join('\n') || '(ModuleConfiguration 없음 — 구형 .mod 변환 파일)';
+}
+
+function wfK(row, showKey){
+  return '<div class="k">' + row[0] +
+         (showKey && row[1].charAt(0) !== '@' ? '<span class="sk">' + row[1] + '</span>' : '') + '</div>';
+}
+function wfGrp(name, badge){
+  return '<div class="grp">' + name + '<span class="gn">' + badge + '</span></div>';
+}
+
+/* ---- 두 파일 비교 ---- */
+function wfShowCmp(){
+  var A = WF[WFa], B = WF[WFb];
+  $('wf-det').className = 'kv cmp';
+  $('wf-dethead').textContent = A.name + '   ↔   ' + B.name;
+
+  var hideNA = $('wf-hidena').checked, showKey = $('wf-showkey').checked,
+      hideSame = $('wf-hidesame').checked;
+  var ctxA = wfCtx(A), ctxB = wfCtx(B);
+  var html = '<div class="hcell">항목</div><div class="hcell">A · ' + A.name +
+             '</div><div class="hcell">B · ' + B.name + '</div>';
+  var nDiff = 0, nTotal = 0;
+
+  WF_SCHEMA.forEach(function(grp){
+    var body = '', d = 0;
+    grp[1].forEach(function(row){
+      var ca = wfCell(A, grp[0], row, ctxA), cb = wfCell(B, grp[0], row, ctxB);
+      var same = (ca.t === cb.t);
+      nTotal++;
+      if(!same){ d++; nDiff++; }
+      if(hideNA && ca.c !== '' && cb.c !== '') return;   /* 양쪽 다 값 없음 */
+      if(hideSame && same) return;
+      var df = same ? '' : ' diff';
+      body += wfK(row, showKey) +
+              '<div class="v' + ca.c + df + '">' + ca.t + '</div>' +
+              '<div class="v' + cb.c + df + '">' + cb.t + '</div>';
+    });
+    if(body) html += wfGrp(grp[0], d ? '차이 ' + d : '동일') + body;
+  });
+
+  $('wf-det').innerHTML = html;
+  $('wf-cnt').textContent = '다른 항목 ' + nDiff + ' / ' + nTotal +
+                            '  ·  SCPI 명령 A ' + (A.order ? A.order.length : 0) +
+                            ' · B ' + (B.order ? B.order.length : 0);
+
+  /* 스키마에 없는 항목까지 포함한 원본 SCPI 차이 */
+  var MA = A.cmds || {}, MB = B.cmds || {}, keys = {};
+  (A.order || []).forEach(function(k){ keys[k] = 1; });
+  (B.order || []).forEach(function(k){ keys[k] = 1; });
+  var ks = Object.keys(keys).sort(), dv = [], oa = [], ob = [];
+  ks.forEach(function(k){
+    var a = MA[k], b = MB[k];
+    if(a === undefined){ ob.push('  ' + k + '  ' + wfCut(b)); }
+    else if(b === undefined){ oa.push('  ' + k + '  ' + wfCut(a)); }
+    else if(a !== b){ dv.push('  ' + k + '\n      A  ' + wfCut(a) + '\n      B  ' + wfCut(b)); }
+  });
+  var txt = '';
+  txt += '[값이 다른 명령]  ' + dv.length + '개\n' + (dv.join('\n') || '  (없음)') + '\n\n';
+  txt += '[A 에만 있는 명령]  ' + oa.length + '개\n' + (oa.join('\n') || '  (없음)') + '\n\n';
+  txt += '[B 에만 있는 명령]  ' + ob.length + '개\n' + (ob.join('\n') || '  (없음)');
+  $('wf-rawtxt').textContent = txt;
+}
+function wfCut(v){
+  v = String(v === undefined ? '' : v);
+  return v.length > 110 ? v.slice(0, 110) + ' ...' : v;
+}
+
+/* ---- 모드 전환 · 렌더 ---- */
+function wfRender(){
+  if(!WF.length) return;
+  var cmp = (WFmode === 'cmp');
+  $('wf-empty').hidden = true;
+  $('wf-detwrap').hidden = false;
+  $('wf-m1').setAttribute('aria-selected', cmp ? 'false' : 'true');
+  $('wf-m2').setAttribute('aria-selected', cmp ? 'true' : 'false');
+  $('wf-m2').disabled = (WF.length < 2);
+  $('wf-cmpsel').hidden = !cmp;
+  $('wf-lab-same').hidden = !cmp;
+  $('wf-raw').textContent = ($('wf-rawtxt').hidden ? '원본 SCPI ' : '원본 SCPI ') +
+                            (cmp ? '차이 ' : '전체 ') + ($('wf-rawtxt').hidden ? '보기' : '숨기기');
+  if(cmp){
+    if(WFa >= WF.length) WFa = 0;
+    if(WFb >= WF.length) WFb = Math.min(1, WF.length - 1);
+    if(WFa === WFb) WFb = (WFa + 1) % WF.length;
+    var opts = WF.map(function(w, i){ return '<option value="' + i + '">' + w.name + '</option>'; }).join('');
+    if($('wf-a').innerHTML !== opts){ $('wf-a').innerHTML = opts; $('wf-b').innerHTML = opts; }
+    $('wf-a').value = WFa;
+    $('wf-b').value = WFb;
+    wfShowCmp();
+  } else {
+    if(WFsel < 0 || WFsel >= WF.length) WFsel = 0;
+    wfShowOne();
+  }
+  wfRenderList();
+}
+
+$('wf-m1').addEventListener('click', function(){ WFmode = 'one'; wfRender(); });
+$('wf-m2').addEventListener('click', function(){ WFmode = 'cmp'; wfRender(); });
+$('wf-a').addEventListener('change', function(){ WFa = parseInt(this.value, 10); wfRender(); });
+$('wf-b').addEventListener('change', function(){ WFb = parseInt(this.value, 10); wfRender(); });
+$('wf-swap').addEventListener('click', function(){ var t = WFa; WFa = WFb; WFb = t; wfRender(); });
+['wf-hidena', 'wf-showkey', 'wf-hidesame'].forEach(function(id){
+  $(id).addEventListener('change', function(){ if(WF.length) wfRender(); });
+});
+
+/* ---- 캡처 탭으로 조건 넘기기 (비교 모드에서는 A 기준) ---- */
+function wfToCap(){
+  var w = WF[WFmode === 'cmp' ? WFa : WFsel];
+  if(!w || w.bad) return;
+  var M = w.cmds || {};
+  var map = {A:'11ag', G:'11ag', B:'11b', N:'11n', AC:'11ac', AX:'11ax', BE:'11be', OQPSK:'zb'};
+  $('cp-std').value = map[wfStd(w)] || '11ax';
+  syncCapInputs();
+  function set(id, val){
+    if(val === null || val === undefined || val === '') return;
+    if($(id).querySelector('option[value="' + val + '"]')) $(id).value = val;
+  }
+  set('cp-bw', wfBw(w));
+  set('cp-mcs', wfFirst(wfGet(M, W + 'OFDM:MCS')));
+  set('cp-nss', wfFirst(wfGet(M, W + 'OFDM:NSSTreams')));
+  var gi = wfFirst(wfGet(M, W + 'OFDM:GILTf')), sgi = wfFirst(wfGet(M, W + 'OFDM:SGI'));
+  var giv = ({GILTF1:'0.8', GILTF2:'1.6', GILTF3:'3.2'})[gi] ||
+            (sgi === 'ON' ? '0.4' : (sgi === 'OFF' ? '0.8' : null));
+  set('cp-gi', giv);
+  set('cp-ltf', ({GILTF1:'1', GILTF2:'2', GILTF3:'4'})[gi]);
+  var mp = parseInt(wfFirst(wfGet(M, W + 'PSDU:MPDU1:NBYTes')) || '0', 10);
+  if(mp > 0) $('cp-len').value = mp;
+  calcCap();
+  $('t-cap').click();
+}
+$('wf-tocap').addEventListener('click', wfToCap);
+$('wf-raw').addEventListener('click', function(){
+  var el = $('wf-rawtxt');
+  el.hidden = !el.hidden;
+  var cmp = (WFmode === 'cmp');
+  this.textContent = '원본 SCPI ' + (cmp ? '차이 ' : '전체 ') + (el.hidden ? '보기' : '숨기기');
+});
+
+/* ---- 파일 입력 · 드래그 ---- */
+function wfLoad(files){
+  var arr = Array.prototype.slice.call(files).filter(function(f){ return /\.iqvsg$/i.test(f.name); });
+  if(!arr.length) return;
+  Promise.all(arr.map(wfParse)).then(function(res){
+    WF = res;
+    WFsel = 0; WFa = 0; WFb = Math.min(1, WF.length - 1);
+    WFmode = (WF.length >= 2) ? 'cmp' : 'one';   // 2개 이상이면 바로 비교 화면
+    $('wf-empty').hidden = true;
+    wfRender();
+  });
+}
+$('wf-input').addEventListener('change', function(){ wfLoad(this.files); });
+['dragenter', 'dragover'].forEach(function(e){
+  $('wf-drop').addEventListener(e, function(ev){ ev.preventDefault(); this.classList.add('on'); });
+});
+['dragleave', 'drop'].forEach(function(e){
+  $('wf-drop').addEventListener(e, function(ev){ ev.preventDefault(); this.classList.remove('on'); });
+});
+$('wf-drop').addEventListener('drop', function(ev){
+  if(ev.dataTransfer && ev.dataTransfer.files) wfLoad(ev.dataTransfer.files);
+});
+
+/* init */
+/* UWB 데이터 레이트 선택지 — Table 16-4 행을 그대로 쓴다 */
+$('ph-rate').innerHTML = ['00','01','10','11'].map(function(k){
+  return '<option value="' + k + '"' + (k === '10' ? ' selected' : '') + '>' + k + ' — ' +
+         UWB_PHR_RATE[k][0] + ' / ' + UWB_PHR_RATE[k][1] + ' Mb/s</option>';
+}).join('');
+$('cp-uwb-rate').innerHTML = uwbAllRows().map(function(r, i){
+  return '<option value="' + i + '"' + (r.bitRate > 6.8 && r.bitRate < 6.9 && r.code === 127 ? ' selected' : '') + '>' +
+         f2(r.bitRate) + ' Mb/s — 코드 ' + r.code + ' · Mean PRF ' + f2(r.meanPrf) +
+         ' · N_cpb ' + r.ncpb + '</option>';
+}).join('');
+renderCh();
+renderMcs();
+syncCapInputs();
+calcPar();
+})();
+</script>
+
+</body></html>
