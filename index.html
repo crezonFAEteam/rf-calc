@@ -103,6 +103,7 @@ table.lp tr.lp-focus td{background:var(--accent-soft);font-weight:600}
 .lp-head{border-top:3px solid var(--g)}
 .g-wlan{--g:#3B6FB6}.g-cell{--g:#7B5BB5}.g-prod{--g:#B0702A}.g-mmw{--g:#2F8A7A}.g-sw{--g:#7A838C}
 #lp-view:not(.show-pn) table.lp .pn{display:none}
+#lp-view:not(.show-kd) table.lp .kd{display:none}
 .lp-chk{display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;align-self:end;padding-bottom:6px}
 table.lp td{vertical-align:top;white-space:normal;overflow-wrap:anywhere}
 table.lp .lp-sum{word-break:keep-all;font-size:12px;color:var(--ink-mid);margin-top:3px;line-height:1.45}
@@ -764,6 +765,7 @@ table#wf-list tbody tr.sel td{background:var(--accent-soft)}
               <label for="lp-port">RF 포트 수</label>
               <input type="number" id="lp-port" placeholder="예: 8" min="0">
             </div>
+            <label class="lp-chk"><input type="checkbox" id="lp-kd"> 구분 보기</label>
             <label class="lp-chk"><input type="checkbox" id="lp-pn"> Part No 보기</label>
             <button class="btn gh sm" id="lp-reset">조건 지우기</button>
           </div>
@@ -2428,7 +2430,7 @@ function lpRow(it, line, showLine, view){
          (view !== undefined ? '<td class="c"><input type="radio" name="lp-body" data-body="' + lpEsc(view) + '"' + (view === LP_BODY ? ' checked' : '') + ' aria-label="옵션 보기"></td>' : '') +
          '<td><a data-desc>' + lpEsc(it[1]) + '</a>' + (it[5] ? '<div class="lp-sum">' + lpEsc(it[5]) + '</div>' : '') + '</td>' +
          (showLine ? '<td class="k">' + lpEsc(lpName(line)) + '</td>' : '') +
-         '<td class="k">' + lpEsc(it[4]) + '</td>' +
+         '<td class="k kd">' + lpEsc(it[4]) + '</td>' +
          '<td class="pn">' + lpEsc(pn) + '</td></tr>' +
          '<tr class="lp-sub" hidden>' + (view !== undefined ? '<td></td>' : '') + '<td colspan="' + (showLine ? 4 : 3) + '">' + lpEsc(it[3] || '설명 없음') + '</td></tr>';
 }
@@ -2473,7 +2475,7 @@ function lpTable(title, rows, showLine, radio){
   var n = rows.filter(function(r){ return r.indexOf('lp-swg') < 0; }).length;
   return '<div class="out"><div class="out-head">' + lpEsc(title) + ' <span class="hint">' + n + '개</span></div>' +
          '<div class="scroll"><table class="lp"><thead><tr>' + (radio ? '<th>보기</th>' : '') + '<th>제품명 · 요약</th>' +
-         (showLine ? '<th>라인</th>' : '') + '<th>구분</th><th class="pn">Part No</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div></div>';
+         (showLine ? '<th>라인</th>' : '') + '<th class="kd">구분</th><th class="pn">Part No</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div></div>';
 }
 /* 고른 본체에 붙는 품목: 엑셀의 그 본체 옵션 블록 + Service 블록 + 라인 공통 품목(UG·액세서리·SW 등).
    본체 블록이 없으면 같은 라인 다른 본체 블록을 참고로 쓴다                                           */
@@ -2585,9 +2587,12 @@ $('lp-reset').addEventListener('click', function(){
   ['lp-f', 'lp-bw', 'lp-port', 'lp-std'].forEach(function(k){ $(k).value = ''; });
   LP_CUR = null; LP_BODY = null; lpRender();
 });
-try{ $('lp-pn').checked = localStorage.getItem('rf-lp-pn') === '1'; }catch(e){}
-function lpPnView(){ $('lp-view').classList.toggle('show-pn', $('lp-pn').checked); }
-$('lp-pn').addEventListener('change', function(){ lpPnView(); try{ localStorage.setItem('rf-lp-pn', this.checked ? '1' : '0'); }catch(e){} });
+/* 표 칸 보기 체크박스 (기본은 숨김, 이 브라우저에 기억) */
+function lpPnView(){ ['pn', 'kd'].forEach(function(k){ $('lp-view').classList.toggle('show-' + k, $('lp-' + k).checked); }); }
+['pn', 'kd'].forEach(function(k){
+  try{ $('lp-' + k).checked = localStorage.getItem('rf-lp-' + k) === '1'; }catch(e){}
+  $('lp-' + k).addEventListener('change', function(){ lpPnView(); try{ localStorage.setItem('rf-lp-' + k, this.checked ? '1' : '0'); }catch(e){} });
+});
 lpPnView(); lpFillCombos(); lpRender();
 if(location.hash === '#lp') $('t-lp').click();
 
