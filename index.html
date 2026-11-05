@@ -765,6 +765,7 @@ table#wf-list tbody tr.sel td{background:var(--accent-soft)}
               <label for="lp-port">RF 포트 수</label>
               <input type="number" id="lp-port" placeholder="예: 8" min="0">
             </div>
+            <label class="lp-chk"><input type="checkbox" id="lp-ds"> 설명 모두 보기</label>
             <label class="lp-chk"><input type="checkbox" id="lp-kd"> 구분 보기</label>
             <label class="lp-chk"><input type="checkbox" id="lp-pn"> Part No 보기</label>
             <button class="btn gh sm" id="lp-reset">조건 지우기</button>
@@ -2422,6 +2423,7 @@ function lpByKind(list){
   return list.map(function(it, i){ return [lpKindRank(it[4]), i, it]; })
              .sort(function(a, b){ return a[0] - b[0] || a[1] - b[1]; }).map(function(x){ return x[2]; });
 }
+function lpDescAll(){ var c = document.getElementById('lp-ds'); return !!(c && c.checked); }
 function lpIsBody(it){ return /^본체/.test(it[4]) && it[4] !== '본체(중복)'; }   /* 엑셀이 중복이라 표시한 행은 뺀다 */
 function lpRow(it, line, showLine, view){
   var pn = it[0], hit = lpItemStd(it, $('lp-std').value);
@@ -2432,7 +2434,7 @@ function lpRow(it, line, showLine, view){
          (showLine ? '<td class="k">' + lpEsc(lpName(line)) + '</td>' : '') +
          '<td class="k kd">' + lpEsc(it[4]) + '</td>' +
          '<td class="pn">' + lpEsc(pn) + '</td></tr>' +
-         '<tr class="lp-sub" hidden>' + (view !== undefined ? '<td></td>' : '') + '<td colspan="' + (showLine ? 4 : 3) + '">' + lpEsc(it[3] || '설명 없음') + '</td></tr>';
+         '<tr class="lp-sub"' + (it[3] ? '' : ' data-empty') + (lpDescAll() && it[3] ? '' : ' hidden') + '>' + (view !== undefined ? '<td></td>' : '') + '<td colspan="' + (showLine ? 4 : 3) + '">' + lpEsc(it[3] || '설명 없음') + '</td></tr>';
 }
 /* SW 라이선스는 묶음으로 나눠 보여준다. 배열 순서 = 보여주는 순서, pri = 겹칠 때 먼저 보는 순서
    (IQsniffer (BT) → 분석 도구, 802.15.4ab UWB → UWB, Wi-SUN → IoT 처럼 이름이 겹치는 것 때문) */
@@ -2587,9 +2589,13 @@ $('lp-reset').addEventListener('click', function(){
   ['lp-f', 'lp-bw', 'lp-port', 'lp-std'].forEach(function(k){ $(k).value = ''; });
   LP_CUR = null; LP_BODY = null; lpRender();
 });
-/* 표 칸 보기 체크박스 (기본은 숨김, 이 브라우저에 기억) */
-function lpPnView(){ ['pn', 'kd'].forEach(function(k){ $('lp-view').classList.toggle('show-' + k, $('lp-' + k).checked); }); }
-['pn', 'kd'].forEach(function(k){
+/* 표 칸 보기 체크박스 (기본은 숨김, 이 브라우저에 기억). ds = 설명 줄 모두 펼치기 */
+function lpPnView(){
+  ['pn', 'kd'].forEach(function(k){ $('lp-view').classList.toggle('show-' + k, $('lp-' + k).checked); });
+  var all = lpDescAll();
+  Array.prototype.forEach.call(document.querySelectorAll('#lp-view tr.lp-sub'), function(r){ r.hidden = !all || r.hasAttribute('data-empty'); });
+}
+['pn', 'kd', 'ds'].forEach(function(k){
   try{ $('lp-' + k).checked = localStorage.getItem('rf-lp-' + k) === '1'; }catch(e){}
   $('lp-' + k).addEventListener('change', function(){ lpPnView(); try{ localStorage.setItem('rf-lp-' + k, this.checked ? '1' : '0'); }catch(e){} });
 });
