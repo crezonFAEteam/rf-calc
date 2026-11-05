@@ -2617,6 +2617,57 @@ renderCh();
 renderMcs();
 syncCapInputs();
 calcPar();
+/* ---------------- 화면 상태 기억 ----------------
+   휴대폰은 다른 앱에 다녀오면 브라우저가 페이지를 다시 읽는 일이 많다.
+   열린 탭 · 입력칸 · 콤보 · LP 제품 위치 · 스크롤을 이 브라우저에 저장했다가 다시 열 때 되살린다.
+   (장비 연결 칸과 LP 체크박스는 각자 따로 저장하고 있어서 뺀다. 파일 선택 · 파일에 따라 바뀌는 콤보도 뺀다) */
+var UI_KEY = 'rf-ui', UI_SKIP = ['lp-line', 'lp-body', 'lp-ds', 'lp-kd', 'lp-pn', 'eq-host', 'eq-port', 'eq-to', 'eq-bridge', 'wf-a', 'wf-b'];
+var UI_READY = false;
+function uiCtrls(){
+  return Array.prototype.filter.call(document.querySelectorAll('input[id],select[id],textarea[id]'), function(c){
+    return c.type !== 'file' && c.type !== 'button' && UI_SKIP.indexOf(c.id) < 0;
+  });
+}
+function uiSave(){
+  if(!UI_READY) return;
+  var v = {}, tab = '';
+  uiCtrls().forEach(function(c){ v[c.id] = (c.type === 'checkbox' || c.type === 'radio') ? c.checked : c.value; });
+  tabs.forEach(function(q){ if($(q[0]).getAttribute('aria-selected') === 'true') tab = q[0]; });
+  try{ localStorage.setItem(UI_KEY, JSON.stringify({v:v, tab:tab, lp:[LP_CUR, LP_FOCUS ? '#' + LP_FOCUS : LP_BODY], y:window.scrollY})); }catch(e){}
+}
+function uiLoad(){
+  var st = null;
+  try{ st = JSON.parse(localStorage.getItem(UI_KEY) || 'null'); }catch(e){}
+  if(st && st.v){
+    /* 화면 순서대로 넣고 이벤트를 보낸다 → 규격을 바꾸면 대역폭 목록이 바뀌는 식의 연결도 그대로 따라온다 */
+    uiCtrls().forEach(function(c){
+      if(!(c.id in st.v)) return;
+      var x = st.v[c.id];
+      if(c.type === 'checkbox' || c.type === 'radio'){ if(c.checked === !!x) return; c.checked = !!x; }
+      else{
+        if(c.value === x) return;
+        if(c.tagName === 'SELECT' && !Array.prototype.some.call(c.options, function(o){ return o.value === x; })) return;
+        c.value = x;
+      }
+      c.dispatchEvent(new Event('input', {bubbles:true}));
+      c.dispatchEvent(new Event('change', {bubbles:true}));
+    });
+  }
+  var hashTab = {'#lp':'t-lp', '#eq':'t-eq'}[location.hash];
+  if(st && st.lp && st.lp[0] && LP_BY[st.lp[0]]){ LP_CUR = st.lp[0]; LP_FOCUS = st.lp[1] && st.lp[1].charAt(0) === '#' ? st.lp[1].slice(1) : null; LP_BODY = LP_FOCUS ? null : st.lp[1] || null; lpRender(); }
+  if(!hashTab && st && st.tab && $(st.tab)) $(st.tab).click();
+  UI_READY = true;
+  if(st && st.y) requestAnimationFrame(function(){ requestAnimationFrame(function(){ window.scrollTo(0, st.y); }); });
+}
+var uiT = null;
+function uiLater(){ clearTimeout(uiT); uiT = setTimeout(uiSave, 300); }
+document.addEventListener('input', uiLater, true);
+document.addEventListener('change', uiLater, true);
+document.addEventListener('click', uiLater, true);
+window.addEventListener('scroll', uiLater, {passive:true});
+document.addEventListener('visibilitychange', function(){ if(document.hidden) uiSave(); });
+window.addEventListener('pagehide', uiSave);
+uiLoad();
 })();
 </script>
 
