@@ -171,10 +171,13 @@ textarea{width:100%;background:var(--surface);border:1px solid var(--line);borde
 .drow .go[aria-pressed="true"]{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent);font-weight:600}
 #p-scale .head{align-items:center;margin-top:6px}
 .tab{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;overflow-x:auto;margin-top:14px}
-.tab pre{margin:0;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:var(--tabfs,13px);line-height:1.45}
+.tab pre{margin:0;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:var(--tabfs,13px);line-height:1.7;color:var(--muted)}
 #adTab{touch-action:pan-x pan-y}   /* 두 손가락 확대는 스크립트가 악보 글자만 키운다 */
-.tab .ly{display:inline-block;overflow:hidden;white-space:nowrap;vertical-align:bottom}
-.tab .ly i{font-style:normal;font-family:"IBM Plex Sans KR",system-ui,sans-serif;font-size:.95em;color:var(--ink)}
+/* 프렛 숫자: 줄(-)은 흐리게, 숫자는 굵고 크게. 칸 폭은 그대로 두고 그림만 키워 줄 맞춤이 안 깨지게 */
+.tab pre span[data-n]{display:inline-block;color:var(--ink);font-weight:800;transform:scale(1.25,1.4);background:var(--surface);border-radius:2px}
+.tab pre span[data-n].now{background:var(--accent-fill);color:var(--on-accent)}
+.tab .ly{display:inline-block;overflow:hidden;white-space:nowrap;vertical-align:bottom;line-height:1.5}
+.tab .ly i{font-style:normal;font-family:"IBM Plex Sans KR",system-ui,sans-serif;font-size:1.35em;font-weight:600;color:var(--ink)}   /* 칸에 넘치면 스크립트가 그 조각만 줄임 */
 .tab .ch{color:var(--accent);font-weight:600}
 .tab span.now{background:var(--accent-fill);color:var(--on-accent);border-radius:3px}
 .btns.left{justify-content:flex-start}
@@ -1277,13 +1280,13 @@ function tabPer(bar){
   if(!tabCw){const m=document.createElement('span');m.style.cssText='font:13px ui-monospace,"SF Mono",Menlo,Consolas,monospace;visibility:hidden;position:absolute;white-space:pre';m.textContent='-'.repeat(50);document.body.appendChild(m);tabCw=m.getBoundingClientRect().width/50;m.remove()}
   if(!(w>0)||!tabCw)return 4;
   const cw=tabCw*tabFsNow()/13;                        /* 악보 글자 크기에 맞춰 한 줄 마디 수 */
-  return Math.max(1,Math.min(8,Math.floor((w-2*cw)/(((bar||8)*3+1)*cw))));
+  return Math.max(1,Math.min(16,Math.floor((w-2*cw)/(((bar||8)*3+1)*cw))));
 }
 /* ---------- 악보(TAB) 글자 크기: 휴대폰 두 손가락 · PC [가−][가+] · Ctrl+휠 ---------- */
 let tabFs=+store.get('chordcalc-tabfs')||0;             /* 0 = 기본 (PC 13px, 휴대폰 12px) */
 const tabFsDef=()=>matchMedia('(max-width:640px)').matches?12:13;
 const tabFsNow=()=>tabFs||tabFsDef();
-function setTabFs(v){tabFs=Math.round(Math.max(8,Math.min(28,v))*2)/2;document.getElementById('adTab').style.setProperty('--tabfs',tabFs+'px')}
+function setTabFs(v){tabFs=Math.round(Math.max(4,Math.min(28,v))*2)/2;   /* 가장 작게: 4px (예전 최소 8px의 절반) */document.getElementById('adTab').style.setProperty('--tabfs',tabFs+'px')}
 function tabFsDone(){store.set('chordcalc-tabfs',String(tabFs));renderAdTab()}   /* 다 바꾼 뒤 한 줄 마디 수 다시 계산 */
 if(tabFs)setTabFs(tabFs);
 (function(){
@@ -1303,7 +1306,15 @@ function renderAdTab(){
   if(!ad.licks.length){el.innerHTML='<div class="empty">애드리브를 넣을 구간을 하나 이상 고르세요.</div>';return}
   const per=tabPer(ad.meter);
   el.innerHTML=ad.licks.map((lk,k)=>`<div class="tabsec"><div class="tabttl">${esc(lk.name)}${lk.pk?`<span class="fr" style="color:var(--muted);font-weight:400;margin-left:8px">${ARP[lk.pk].n}</span>`:''}</div><pre>${tabRender(lk,k,true,per)}</pre></div>`).join('');
-  markTab();
+  fitLyrics();markTab();
+}
+/* 가사: 기본은 크게(1.35em), 코드 칸에 다 안 들어가는 조각만 칸에 맞게 줄인다 (em 단위라 확대·축소해도 비율 유지) */
+function fitLyrics(){
+  document.querySelectorAll('#adTab .ly i').forEach(i=>{
+    i.style.fontSize='';if(!i.textContent)return;
+    const box=i.parentNode.clientWidth-2,w=i.getBoundingClientRect().width;
+    if(w>box&&box>0)i.style.fontSize=Math.max(0.75,1.35*box/w).toFixed(3)+'em';
+  });
 }
 function adRefresh(){renderAdTab();renderAdKey();renderAdControls()}
 function adGenerate(){
