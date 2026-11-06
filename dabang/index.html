@@ -603,7 +603,8 @@ const VB_B=[+(fx(SPLIT)-6).toFixed(1),0,+(1000-(fx(SPLIT)-6)).toFixed(1),226];
 const bs=document.getElementById('boardScroll'),b1=document.getElementById('board'),b2=document.getElementById('board2');
 let bview=store.get('chordcalc-view')||(window.innerWidth<640?'2':'1');
 if(bview!=='1'&&bview!=='2')bview='1';
-const bz={'1':+store.get('chordcalc-bz1')||1,'2':+store.get('chordcalc-bz2')||1};
+if(store.get('chordcalc-bzv')!=='2'){try{localStorage.removeItem('chordcalc-bz1')}catch(e){}store.set('chordcalc-bzv','2')}   /* 1줄 기본 50% 로 바꾸면서 한 번만 초기화 */
+const bz={'1':+store.get('chordcalc-bz1')||0.5,'2':+store.get('chordcalc-bz2')||1};   /* 1줄 기본 = 50% */
 function bzFit(){   /* 맞추기: 한 줄 = 화면 폭에 15프렛 전체, 두 줄 = 화면 폭 안 + 두 줄 높이가 화면의 42% 이하 (위에 고정되므로) */
   const cw=bs.clientWidth||360;
   if(bview==='1')return Math.min(1,cw/Math.max(cw,700));
