@@ -590,17 +590,11 @@ function strum(v){
     actx=actx||new (window.AudioContext||window.webkitAudioContext)();
     if(actx.state==='suspended')actx.resume();
     const t0=actx.currentTime+0.03,sr=actx.sampleRate;
-    const master=actx.createGain();master.gain.value=0.22;master.connect(actx.destination);
+    const master=actx.createGain();master.gain.value=0.24;master.connect(gOut());
     let k=0;
     v.forEach((f,i)=>{
       if(f<0)return;
-      const freq=440*Math.pow(2,(TUNE[i]+f-69)/12);
-      const N=Math.max(2,Math.round(sr/freq)),len=Math.floor(sr*2.4);
-      const buf=actx.createBuffer(1,len,sr),d=buf.getChannelData(0),ring=new Float32Array(N);
-      for(let j=0;j<N;j++)ring[j]=Math.random()*2-1;
-      let idx=0;
-      for(let j=0;j<len;j++){const nx=(idx+1)%N,val=ring[idx];d[j]=val;ring[idx]=0.996*0.5*(val+ring[nx]);idx=nx}
-      const src=actx.createBufferSource();src.buffer=buf;src.connect(master);src.start(t0+(k++)*0.04);
+      const src=actx.createBufferSource();src.buffer=makeBuf(TUNE[i]+f,2.6,0.996,0.85);src.connect(master);src.start(t0+(k++)*0.04);
     });
   }catch(e){}
 }
@@ -1002,15 +996,9 @@ function seq(ps){
     actx=actx||new (window.AudioContext||window.webkitAudioContext)();
     if(actx.state==='suspended')actx.resume();
     const t0=actx.currentTime+0.05,sr=actx.sampleRate;
-    const master=actx.createGain();master.gain.value=0.3;master.connect(actx.destination);
+    const master=actx.createGain();master.gain.value=0.32;master.connect(gOut());
     ps.forEach((midi,k)=>{
-      const freq=440*Math.pow(2,(midi-69)/12);
-      const N=Math.max(2,Math.round(sr/freq)),len=Math.floor(sr*1.1);
-      const buf=actx.createBuffer(1,len,sr),d=buf.getChannelData(0),ring=new Float32Array(N);
-      for(let j=0;j<N;j++)ring[j]=Math.random()*2-1;
-      let idx=0;
-      for(let j=0;j<len;j++){const nx=(idx+1)%N,val=ring[idx];d[j]=val;ring[idx]=0.994*0.5*(val+ring[nx]);idx=nx}
-      const src=actx.createBufferSource();src.buffer=buf;src.connect(master);src.start(t0+k*0.2);
+      const src=actx.createBufferSource();src.buffer=makeBuf(midi,1.2,0.996,0.9);src.connect(master);src.start(t0+k*0.2);
     });
   }catch(e){}
 }
@@ -1491,7 +1479,7 @@ function blPlay(){
   let a=BL.from*8;const z=(BL.to+1)*8;
   const inR=lk.notes.filter(n=>n.t>=a&&n.t<z);if(!inR.length)return;
   if(BL.from===0)a=Math.min(...inR.map(n=>n.t));                  /* 못갖춘마디: 첫 음부터 */
-  const out=actx.createGain();out.gain.value=0.32;out.connect(actx.destination);
+  const out=actx.createGain();out.gain.value=0.34;out.connect(gOut());
   const at=t=>(t-a)*e+(sw&&t%2?e/3:0);                            /* 셔플: 뒤 8분음표를 셋잇단 셋째 자리로 */
   const built=inR.map(n=>{const d=n.mute?0.06:Math.min(2.4,Math.min(n.dur,z-n.t)*e+0.15);
     return {tt:at(n.t)+(n.sd||0)*0.014,buf:makeBuf(n.p,d,n.mute?0.9:0.996,n.mute?0.8:(n.i<=1?1.05:0.8))}});
@@ -1753,14 +1741,48 @@ function hlTick(){
   if(last)last.fn();
   if(hlQ.length)hlRaf=requestAnimationFrame(hlTick);
 }
+/* ---------- 기타 소리 합성 (개선한 Karplus-Strong) ----------
+   · 음정: 지연선 길이를 소수점까지 맞춤(올패스 필터) → 높은 프렛도 음정이 정확
+   · 피크 위치: 줄의 13% 지점을 튕긴 것처럼 배음을 걸러 냄(빗살 필터)
+   · 세게 칠수록 밝게, 뮤트는 둔하고 짧게
+   · 울림 길이: 낮은 음은 길게(최대 5초), 높은 음은 짧게
+   · 소리 마지막 단계(gOut)에서 통기타 몸통 울림(저음 공명 · 중고음 대역)과 작은 방 울림을 더함 */
 function makeBuf(midi,dur,decay,amp){
-  const sr=actx.sampleRate,freq=440*Math.pow(2,(midi-69)/12);
-  const N=Math.max(2,Math.round(sr/freq)),len=Math.floor(sr*dur);
-  const buf=actx.createBuffer(1,len,sr),d=buf.getChannelData(0),ring=new Float32Array(N);
-  for(let j=0;j<N;j++)ring[j]=(Math.random()*2-1)*(amp||1);
-  let idx=0;for(let j=0;j<len;j++){const nx=(idx+1)%N,val=ring[idx];d[j]=val;ring[idx]=decay*0.5*(val+ring[nx]);idx=nx}
+  const sr=actx.sampleRate,mute=decay!=null&&decay<0.95,a=amp==null?1:amp;
+  const f0=440*Math.pow(2,(midi-69)/12)*(1+(Math.random()-0.5)*0.0016);   /* 아주 조금씩 다른 음정 → 기계음 느낌 줄임 */
+  const len=Math.max(256,Math.floor(sr*dur)),buf=actx.createBuffer(1,len,sr),d=buf.getChannelData(0);
+  let L=sr/f0-0.5,N=Math.floor(L),fr=L-N;if(fr<0.1){N-=1;fr+=1}if(N<2){N=2;fr=0.5}
+  const C=(1-fr)/(1+fr);
+  const T60=mute?0.07:Math.max(1.1,Math.min(5,5.6-(midi-40)*0.085));
+  const rho=Math.pow(0.001,1/(f0*T60));
+  /* 튕김: 잡음 → 밝기(한 극 저역 통과) → 피크 위치(빗살) */
+  const ex=new Float32Array(N),k=mute?0.22:Math.max(0.3,Math.min(0.92,0.42+0.38*a)),P=Math.max(1,Math.round(N*0.13));
+  let y=0;const nz=new Float32Array(N);for(let j=0;j<N;j++){y+=k*((Math.random()*2-1)-y);nz[j]=y}
+  for(let j=0;j<N;j++)ex[j]=(nz[j]-(j>=P?nz[j-P]:0))*a*0.7;
+  let pIn=0,pOut=0;
+  for(let n=0;n<len;n++){
+    const x0=n>=N?d[n-N]:0,x1=n>N?d[n-N-1]:0,lp=(x0+x1)*0.5;
+    const ap=C*lp+pIn-C*pOut;pIn=lp;pOut=ap;
+    d[n]=(n<N?ex[n]:0)+rho*ap;
+  }
   const fl=Math.min(len,Math.floor(sr*0.03));for(let j=0;j<fl;j++)d[len-1-j]*=j/fl;
   return buf;
+}
+/* 모든 기타 소리가 지나는 출력: 몸통 울림 EQ → 방 울림(조금) → 과부하 방지 */
+function gOut(){
+  if(gOut.n&&gOut.c===actx)return gOut.n;
+  const c=actx,inp=c.createGain(),bq=(type,f,q,g)=>{const b=c.createBiquadFilter();b.type=type;b.frequency.value=f;b.Q.value=q;if(g!=null)b.gain.value=g;return b};
+  const chain=[bq('highpass',75,0.7),bq('peaking',105,1.3,5),bq('peaking',210,1.5,3),bq('peaking',2500,0.9,2.5),bq('highshelf',6500,0.7,-7)];
+  let last=inp;chain.forEach(f=>{last.connect(f);last=f});
+  const comp=c.createDynamicsCompressor();comp.threshold.value=-12;comp.ratio.value=3;comp.attack.value=0.004;comp.release.value=0.2;
+  const dry=c.createGain();dry.gain.value=1;last.connect(dry);dry.connect(comp);
+  try{   /* 방 울림: 0.7초 동안 줄어드는 잡음을 임펄스로 */
+    const sr=c.sampleRate,n=Math.floor(sr*0.7),ir=c.createBuffer(2,n,sr);
+    for(let ch=0;ch<2;ch++){const x=ir.getChannelData(ch);for(let i=0;i<n;i++)x[i]=(Math.random()*2-1)*Math.pow(1-i/n,3)}
+    const cv=c.createConvolver();cv.buffer=ir;const wet=c.createGain();wet.gain.value=0.14;last.connect(cv);cv.connect(wet);wet.connect(comp);
+  }catch(e){}
+  comp.connect(c.destination);
+  gOut.n=inp;gOut.c=c;return inp;
 }
 function adStop(){
   adTimers.forEach(clearTimeout);adTimers=[];hlClear('ad');
@@ -1776,8 +1798,8 @@ function adPlay(){
   const oi=onlyIdx();
   try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume()}catch(e){return}
   const e=60/ad.bpm/2,ev=[];
-  const lead=actx.createGain();lead.gain.value=0.34;lead.connect(actx.destination);
-  const back=actx.createGain();back.gain.value=ad.backStyle==='arp'?0.17:0.11;back.connect(actx.destination);
+  const lead=actx.createGain();lead.gain.value=0.36;lead.connect(gOut());
+  const back=actx.createGain();back.gain.value=ad.backStyle==='arp'?0.18:0.12;back.connect(gOut());
   let off=0;
   ad.licks.forEach((lk,k)=>{
     if(oi>=0&&k!==oi)return;
