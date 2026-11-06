@@ -335,9 +335,9 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
           <button id="songDel" class="ghost sm" title="고른 곡 삭제">삭제</button>
           <button id="songExp" class="ghost sm" title="저장한 곡 전체를 파일로 (다른 기기로 옮길 때)">내보내기</button>
           <button id="songImp" class="ghost sm" title="내보낸 파일에서 곡 가져오기">가져오기</button>
-          <button id="songSync" class="ghost sm" title="GitHub(비밀 Gist)에 곡 목록을 저장해 PC · 휴대폰이 같은 목록을 쓰기">☁ 동기화</button>
+          <button id="songSync" class="ghost sm" title="GitHub(비밀 Gist)에 곡 목록을 저장해 PC · 휴대폰이 같은 목록을 쓰기" hidden>☁ 동기화</button><!-- 동기화: 토큰 입력이 어려워 당분간 숨김 (hidden 지우면 다시 켜짐) -->
           <input type="file" id="songFile" accept=".json,application/json" hidden>
-          <span id="syncStat" class="syncst" role="status"></span>
+          <span id="syncStat" class="syncst" role="status" hidden></span>
         </div>
         <label class="flabel" for="adSrc">곡의 코드 진행</label>
         <textarea id="adSrc" rows="9" spellcheck="false"></textarea>
