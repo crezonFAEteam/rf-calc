@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#E3E8E0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111915" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="통기타 코드">
 <title>통기타 코드 계산기</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -169,6 +174,40 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .acced button[aria-pressed="true"]{background:var(--accent-fill);color:var(--on-accent);border-color:var(--accent-fill);font-weight:700}
 .acced button:disabled{opacity:.35;cursor:default}
 .acced .reset{font-family:inherit;padding:0 10px;margin-left:6px}
+/* ---- 스마트폰 ---- */
+button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+@media (max-width:640px){
+  .wrap{padding:12px 12px 40px}
+  .top{margin-bottom:10px;align-items:center}
+  .top h1{font-size:1.35rem}
+  .top p{font-size:.82rem}
+  .acc button{padding:8px 16px}
+  #board{min-width:700px}
+  .board-bar .board-cap{flex-basis:100%;font-size:.82rem}
+  .lbl-tg button{padding:8px 14px}
+  .legend{font-size:.76rem;gap:2px 10px}
+  /* 탭: 화면 위에 붙어 있게 (스크롤해도 바로 바꿀 수 있게) */
+  .tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);margin:14px -12px 14px;padding:0 12px;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tabs button{padding:12px 11px;font-size:.93rem}
+  .grid{gap:20px}
+  .field{margin-bottom:14px}
+  .chip{min-height:44px;padding:8px 10px}
+  .roots{gap:5px}
+  .roots .chip{padding:8px 0}
+  .quals{gap:5px}
+  .cname{font-size:2.4rem}
+  .play,.ghost{min-height:44px}
+  .voicings{grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px}
+  .tones li{grid-template-columns:3.6em 1fr;padding:9px 10px}
+  .stepper button{width:44px;height:44px}
+  .acced button{min-width:42px;height:42px}
+  .drow{grid-template-columns:4.4em 1fr auto}
+  .drow .go{min-height:36px}
+  textarea,select,input{font-size:16px}   /* 16px 미만이면 아이폰이 입력할 때 확대한다 */
+  select{width:100%}
+  .tab pre{font-size:12px}
+}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -517,6 +556,18 @@ function drawBoard(){
     cap.textContent=`${cname(st.root,st.qi,st.bass)}의 구성음 위치입니다. 진한 점이 선택한 운지, 금색이 루트음입니다.`;
   }
   document.getElementById('board').innerHTML=s;
+  boardFollow();
+}
+/* 휴대폰처럼 지판이 화면보다 넓을 때: 운지가 바뀌면 그 프렛 쪽으로 지판을 밀어 준다 (직접 민 위치는 건드리지 않음) */
+let boardKey='';
+function boardFollow(){
+  const sc=document.querySelector('.board-scroll'),svg=document.getElementById('board');
+  if(!sc||sc.scrollWidth<=sc.clientWidth+4||st.tab!=='find')return;
+  const v=st.voicings[st.vi];if(!v)return;
+  const key=st.root+'|'+st.qi+'|'+st.bass+'|'+st.vi;if(key===boardKey)return;boardKey=key;
+  const fr=v.filter(f=>f>0),f=fr.length?Math.min(...fr):0;
+  const k=svg.clientWidth/1000;
+  sc.scrollTo({left:f<=3?0:Math.max(0,(cx(f)-110)*k),behavior:'smooth'});
 }
 document.getElementById('board').addEventListener('click',e=>{
   if(st.tab!=='name')return;
@@ -1212,13 +1263,61 @@ document.querySelectorAll('[data-acc]').forEach(b=>b.addEventListener('click',()
 function setLbl(l){st.lbl=l;store.set('chordcalc-lbl',l);document.querySelectorAll('[data-lbl]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.lbl===l));drawBoard()}
 document.querySelectorAll('[data-lbl]').forEach(b=>b.addEventListener('click',()=>setLbl(b.dataset.lbl)));
 
+/* ---------- 화면 상태 기억 ----------
+   휴대폰은 다른 앱 · 다른 페이지에 다녀오면 페이지를 다시 읽는 일이 많다.
+   열린 탭과 각 탭의 선택(루트 · 코드 종류 · 운지 · 스케일 · 카포 · 애드리브 설정)과 스크롤 위치를 저장했다가 되살린다. */
+const UI_KEY='chordcalc-ui';
+const ST_KEYS=['tab','root','qi','bass','vi','nv','sk','smode','stype','box','blue','s7','schSel','semi','capo'];
+const AD_KEYS=['mode','meter','bend','vib','harm','accOv','arp','backStyle','key','box','style','bpm','back','arpBy','combo','sig'];
+let uiReady=false,uiT=null;
+function uiSave(){
+  if(!uiReady)return;
+  const o={st:{},ad:{},y:Math.round(window.scrollY)};
+  ST_KEYS.forEach(k=>o.st[k]=st[k]);
+  AD_KEYS.forEach(k=>o.ad[k]=ad[k]);
+  o.ad.sel=ad.sel?[...ad.sel]:null;o.ad.selArp=ad.selArp?[...ad.selArp]:null;
+  store.set(UI_KEY,JSON.stringify(o));
+}
+function uiLater(){clearTimeout(uiT);uiT=setTimeout(uiSave,250)}
+let uiSaved=null;
+try{uiSaved=JSON.parse(store.get(UI_KEY)||'null')}catch(e){}
+if(uiSaved){
+  const s=uiSaved.st||{},a=uiSaved.ad||{};
+  ST_KEYS.forEach(k=>{if(k in s&&k!=='vi')st[k]=s[k]});
+  AD_KEYS.forEach(k=>{if(k in a)ad[k]=a[k]});
+  if(Array.isArray(a.sel))ad.sel=new Set(a.sel);
+  if(Array.isArray(a.selArp))ad.selArp=new Set(a.selArp);
+  /* 이상한 값이 들어 있으면 기본값으로 */
+  const inr=(x,lo,hi)=>Number.isInteger(x)&&x>=lo&&x<=hi;
+  if(!inr(st.root,0,11))st.root=0;
+  if(!inr(st.qi,0,Q.length-1))st.qi=0;
+  if(st.bass!=null&&!inr(st.bass,0,11))st.bass=null;
+  if(!Array.isArray(st.nv)||st.nv.length!==6)st.nv=[-1,3,2,0,1,0];
+  if(!['find','name','scale','adlib','shift'].includes(st.tab))st.tab='find';
+  if(!inr(st.semi,-11,11))st.semi=0;
+  if(!inr(st.capo,0,12))st.capo=0;
+  if(!ARP[ad.arp])ad.arp='slow';
+  if(!(ad.bpm>=50&&ad.bpm<=160))ad.bpm=84;
+}
+document.addEventListener('click',uiLater,true);
+document.addEventListener('input',uiLater,true);
+document.addEventListener('change',uiLater,true);
+window.addEventListener('scroll',uiLater,{passive:true});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)uiSave()});
+window.addEventListener('pagehide',uiSave);
+
 /* ---------- 시작 ---------- */
 st.lbl=store.get('chordcalc-lbl')==='deg'?'deg':'note';
 document.querySelectorAll('[data-lbl]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.lbl===st.lbl));
 useFlat=store.get('chordcalc-acc')==='flat';
 document.querySelectorAll('[data-acc]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.acc===(useFlat?'flat':'sharp')));
 document.getElementById('src').value=store.get('chordcalc-src')||'G  D  Em  C\nAm7  D7  G  G7\nC  D/F#  Em  Bm\nC  Am7  Dsus4  D';
-computeFind();adInit();renderFindControls();renderFind();drawBoard();renderName();renderScale();renderShift();
+computeFind();
+if(uiSaved&&uiSaved.st&&Number.isInteger(uiSaved.st.vi)&&uiSaved.st.vi<st.voicings.length)st.vi=uiSaved.st.vi;
+adInit();renderFindControls();renderFind();drawBoard();renderName();renderScale();renderShift();
+if(st.tab!=='find')setTab(st.tab);
+uiReady=true;
+if(uiSaved&&uiSaved.y)requestAnimationFrame(()=>requestAnimationFrame(()=>window.scrollTo(0,uiSaved.y)));
 })();
 </script>
 </body>
