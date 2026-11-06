@@ -1480,7 +1480,7 @@ function blMark(){
   if(BL.cur&&BL.lk)BL.lk.notes.forEach((n,ni)=>{if(n.t===BL.cur.t){const s=document.querySelector('#blTab [data-n="b-'+ni+'"]');if(s)s.classList.add('now')}});
 }
 function blStop(){
-  BL.timers.forEach(clearTimeout);BL.timers=[];BL.srcs.forEach(s=>{try{s.stop()}catch(e){}});BL.srcs=[];
+  BL.timers.forEach(clearTimeout);BL.timers=[];hlClear('bl');BL.srcs.forEach(s=>{try{s.stop()}catch(e){}});BL.srcs=[];
   const was=BL.playing;BL.playing=false;BL.cur=null;
   if(was){document.getElementById('blPlay').textContent='재생';blMark();drawBoard()}
 }
@@ -1500,12 +1500,12 @@ function blPlay(){
     if(BL.srcs.length>3*built.length)BL.srcs=BL.srcs.slice(-built.length);
     if(BL.timers.length>600)BL.timers=BL.timers.slice(-300);
     built.forEach(x=>{const s=actx.createBufferSource();s.buffer=x.buf;s.connect(out);s.start(t0+x.tt);BL.srcs.push(s)});
-    times.forEach(t=>BL.timers.push(setTimeout(()=>{BL.cur={t};blMark();drawBoard()},Math.max(0,(t0+at(t)-actx.currentTime)*1000))));
+    times.forEach(t=>hlAdd('bl',t0+at(t),()=>{BL.cur={t};blMark();drawBoard()}));
     const end=t0+len;
     BL.timers.push(setTimeout(()=>{
       if(!BL.playing)return;
       if(BL.loop)sched(end);
-      else BL.timers.push(setTimeout(()=>{BL.playing=false;BL.cur=null;document.getElementById('blPlay').textContent='재생';blMark();drawBoard()},Math.max(0,(end-actx.currentTime)*1000)+300));
+      else hlAdd('bl',end+0.2,()=>{BL.playing=false;BL.cur=null;document.getElementById('blPlay').textContent='재생';blMark();drawBoard()});
     },Math.max(0,(end-actx.currentTime-0.4)*1000)));
   }
   BL.playing=true;document.getElementById('blPlay').textContent='정지';sched(actx.currentTime+0.12);
@@ -1734,6 +1734,25 @@ function markTab(){
   document.querySelectorAll('#adTab span.now').forEach(x=>x.classList.remove('now'));
   if(ad.cur){const s=document.querySelector(`#adTab [data-n="${ad.cur.k}-${ad.cur.n}"]`);if(s){s.classList.add('now');}}
 }
+/* ---------- 재생 표시를 '실제로 들리는 시각'에 맞추기 ----------
+   소리는 예약한 시각보다 출력 지연(휴대폰 · 블루투스 이어폰은 0.1~0.3초)만큼 늦게 나온다.
+   getOutputTimestamp 가 알려 주는 '지금 스피커에서 나오는 시각'을 기준으로 화면 표시를 바꾼다 */
+function heardTime(){
+  try{const ts=actx.getOutputTimestamp&&actx.getOutputTimestamp();
+    if(ts&&ts.contextTime>0&&ts.performanceTime>0)return ts.contextTime+(performance.now()-ts.performanceTime)/1000}catch(e){}
+  return actx.currentTime-((actx.outputLatency||0)+(actx.baseLatency||0));
+}
+let hlQ=[],hlRaf=0,hlSorted=true;
+function hlAdd(owner,at,fn){hlQ.push({owner,at,fn});hlSorted=false;if(!hlRaf)hlRaf=requestAnimationFrame(hlTick)}
+function hlClear(owner){hlQ=hlQ.filter(x=>x.owner!==owner)}
+function hlTick(){
+  hlRaf=0;if(!hlQ.length||!actx)return;
+  if(!hlSorted){hlQ.sort((a,b)=>a.at-b.at);hlSorted=true}
+  const now=heardTime();let last=null;
+  while(hlQ.length&&hlQ[0].at<=now)last=hlQ.shift();
+  if(last)last.fn();
+  if(hlQ.length)hlRaf=requestAnimationFrame(hlTick);
+}
 function makeBuf(midi,dur,decay,amp){
   const sr=actx.sampleRate,freq=440*Math.pow(2,(midi-69)/12);
   const N=Math.max(2,Math.round(sr/freq)),len=Math.floor(sr*dur);
@@ -1744,7 +1763,7 @@ function makeBuf(midi,dur,decay,amp){
   return buf;
 }
 function adStop(){
-  adTimers.forEach(clearTimeout);adTimers=[];
+  adTimers.forEach(clearTimeout);adTimers=[];hlClear('ad');
   adSrcs.forEach(s=>{try{s.stop()}catch(e){}});adSrcs=[];
   const was=ad.playing;ad.playing=false;ad.cur=null;
   if(was){renderAdControls();drawBoard();markTab()}
@@ -1779,14 +1798,14 @@ function adPlay(){
       const s=actx.createBufferSource();s.buffer=buf;s.connect(x.g);s.start(t0+x.t);adSrcs.push(s);
       if(x.bend&&s.detune){s.detune.setValueAtTime(-200,t0+x.t);s.detune.linearRampToValueAtTime(0,t0+x.t+0.14)}
       if(x.vib&&s.detune){const lfo=actx.createOscillator(),lg=actx.createGain();lfo.frequency.value=5.5;lg.gain.setValueAtTime(0,t0+x.t);lg.gain.linearRampToValueAtTime(28,t0+x.t+0.3);lfo.connect(lg).connect(s.detune);lfo.start(t0+x.t);lfo.stop(t0+x.t+x.d);adSrcs.push(lfo)}
-      if(x.ni!=null)adTimers.push(setTimeout(()=>{ad.cur={k:x.k,n:x.ni};drawBoard();markTab()},Math.max(0,(t0+x.t-actx.currentTime)*1000)));
+      if(x.ni!=null)hlAdd('ad',t0+x.t,()=>{ad.cur={k:x.k,n:x.ni};drawBoard();markTab()});
     });
     const end=t0+(ad.loop?loopLen:len);
     /* 반복: 끝나기 0.4초 전에 다음 바퀴를 미리 걸어 둠 (틈 없이). 반복 끄면 이번 바퀴에서 멈춤 */
     adTimers.push(setTimeout(()=>{
       if(!ad.playing)return;
       if(ad.loop)sched(end);
-      else adTimers.push(setTimeout(()=>{ad.playing=false;ad.cur=null;renderAdControls();drawBoard();markTab()},Math.max(0,(end-actx.currentTime)*1000)+200));
+      else hlAdd('ad',end+0.15,()=>{ad.playing=false;ad.cur=null;renderAdControls();drawBoard();markTab()});   /* 마지막 음이 실제로 들린 뒤 끝 */
     },Math.max(0,(end-actx.currentTime-0.4)*1000)));
   }
   ad.playing=true;sched(actx.currentTime+0.12);renderAdControls();
