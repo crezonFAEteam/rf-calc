@@ -1370,24 +1370,26 @@ function blTok(tok){
   return o;
 }
 /* 코드 진행만 있는 예제: 1·3박 베이스, 2·4박 코드 (예제 11과 같은 패턴) */
-function blProgBars(prog){
+function blProgBars(prog,style){
   return prog.split('|').map(b=>{
     const cs=b.split(',').map(x=>x.trim()).filter(Boolean),per=8/cs.length,toks=[];
     cs.forEach(c=>{
       const bc=blChord(c),v=BLV[c]||(bc&&getV(bc))||[0,2,2,1,0,0];
       const bi=v.findIndex(f=>f>=0),up=[];for(let i=bi+1;i<6&&up.length<4;i++)if(v[i]>=0)up.push(i);
       const bass='EADGBe'[bi]+v[bi],chd=up.map(i=>'EADGBe'[i]+v[i]).join('');
-      for(let k=0;k<per;k++)toks.push((k===0?'['+c+']':'')+(k%4===0?bass:k%4===2?chd:'-'));
+      const all=v.map((f,i)=>f>=0?'EADGBe'[i]+f:'').join('');
+      for(let k=0;k<per;k++)toks.push((k===0?'['+c+']':'')+(style==='strum'?(k%2===0?'d'+all:'-'):(k%4===0?bass:k%4===2?chd:'-')));   /* strum: 한 박에 한 번 다운 */
     });
     return toks.join(' ');
   });
 }
 /* 예제 → TAB 렌더러(tabRender)가 쓰는 모양 {name,segs,notes,total,bar} */
 function blBuild(ex){
-  const raw=ex.prog?blProgBars(ex.prog):(ex.bars||[]);
-  const notes=[],marks=[],segs=[];let t=0,pick=0;
+  const raw=ex.prog?blProgBars(ex.prog,ex.progStyle):(ex.bars||[]);
+  const notes=[],marks=[],segs=[],lys=[];let t=0,pick=0;
   raw.forEach((line,bi)=>{
-    let s=String(line).trim();const bm=s.match(/^([A-G][^\s:]*):\s*/);if(bm){marks.push([t,bm[1]]);s=s.slice(bm[0].length)}
+    let s=String(line).trim();const ai=s.indexOf('@');if(ai>=0){lys.push([t,s.slice(ai+1).trim()]);s=s.slice(0,ai).trim()}   /* '@ 글' = TAB 아래 줄 (손가락 번호 등) */
+    const bm=s.match(/^([A-G][^\s:]*):\s*/);if(bm){marks.push([t,bm[1]]);s=s.slice(bm[0].length)}
     let toks=s.split(/\s+/).filter(Boolean);
     if(bi===0&&toks.length<8){pick=8-toks.length;toks=Array(pick).fill('.').concat(toks)}   /* 못갖춘마디: 앞을 쉼으로 채움 */
     while(toks.length<8)toks.push('.');toks=toks.slice(0,8);
@@ -1397,6 +1399,7 @@ function blBuild(ex){
   });
   marks.sort((a,b)=>a[0]-b[0]).forEach(([at,nm])=>{const c=blChord(nm);if(!c)return;if(segs.length&&segs[segs.length-1].start===at)segs.pop();segs.push({c,start:at,len:0})});
   segs.forEach((sg,k)=>sg.len=(k+1<segs.length?segs[k+1].start:t)-sg.start);
+  lys.forEach(([at,tx])=>{const sg=segs.find(x=>x.start===at);if(sg)sg.ly=tx});
   /* 음 길이: 같은 줄의 다음 음까지 (최대 1마디) */
   notes.forEach(n=>{const nx=notes.find(m=>m.i===n.i&&m.t>n.t);n.dur=Math.max(1,Math.min(8,(nx?nx.t:t)-n.t))});
   return {name:ex.title||('예제 '+ex.id),segs,notes,total:t,bar:8,pick:pick?1:0,bars:t/8};
@@ -1420,7 +1423,7 @@ function blRender(){
   const lk=BL.lk=blBuild(ex),nb=lk.bars;
   if(BL.to<0||BL.to>=nb)BL.to=nb-1;if(BL.from>BL.to)BL.from=0;
   const chs=[...new Set(lk.segs.map(s=>s.c.name))];
-  g('blInfo').innerHTML=`<div class="blttl">${esc(ex.title||'')}</div><p class="blmeta">${esc(ex.ch||'')} · ${esc(ex.key||'')} 키 · 코드 ${chs.map(esc).join(' · ')}${ex.prog?' · 코드 진행 (베이스-코드 패턴으로 생성)':''}</p>${ex.note?`<p class="sdesc" style="margin:0">${esc(ex.note)}</p>`:''}`;
+  g('blInfo').innerHTML=`<div class="blttl">${esc(ex.title||'')}</div><p class="blmeta">${esc(ex.ch||'')} · ${esc(ex.key||'')} 키 · 코드 ${chs.map(esc).join(' · ')}${ex.prog?(ex.progStyle==='strum'?' · 코드표 (한 박에 한 번 다운으로 생성)':' · 코드 진행 (베이스-코드 패턴으로 생성)'):''}</p>${ex.note?`<p class="sdesc" style="margin:0">${esc(ex.note)}</p>`:''}`;
   const opt=sel=>Array.from({length:nb},(_,b)=>`<option value="${b}"${b===sel?' selected':''}>${blBarLabel(lk,b)}</option>`).join('');
   g('blFrom').innerHTML=opt(BL.from);g('blTo').innerHTML=opt(BL.to);
   g('blShuf').setAttribute('aria-pressed',blShuf(ex));
