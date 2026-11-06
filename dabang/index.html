@@ -192,6 +192,8 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .songbar select{flex:1 1 150px;min-width:0;width:auto!important;padding:6px 8px}
 .ghost.sm{padding:4px 12px;font-size:.85rem;min-height:0}
 .ghost.sm:disabled{opacity:.4;cursor:default}
+.syncst{flex-basis:100%;font-size:.74rem;color:var(--muted);line-height:1.4}
+.syncst a{color:inherit;text-decoration:underline dotted;cursor:pointer}
 /* ---- 스마트폰 ---- */
 button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 @media (max-width:640px){
@@ -333,7 +335,9 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
           <button id="songDel" class="ghost sm" title="고른 곡 삭제">삭제</button>
           <button id="songExp" class="ghost sm" title="저장한 곡 전체를 파일로 (다른 기기로 옮길 때)">내보내기</button>
           <button id="songImp" class="ghost sm" title="내보낸 파일에서 곡 가져오기">가져오기</button>
+          <button id="songSync" class="ghost sm" title="GitHub(비밀 Gist)에 곡 목록을 저장해 PC · 휴대폰이 같은 목록을 쓰기">☁ 동기화</button>
           <input type="file" id="songFile" accept=".json,application/json" hidden>
+          <span id="syncStat" class="syncst" role="status"></span>
         </div>
         <label class="flabel" for="adSrc">곡의 코드 진행</label>
         <textarea id="adSrc" rows="9" spellcheck="false"></textarea>
@@ -1392,7 +1396,7 @@ function songPack(name){
   const set={};SONG_SET.forEach(k=>set[k]=ad[k]);
   const d=new Date(),p=n=>('0'+n).slice(-2);
   return {name,src:document.getElementById('adSrc').value,set,sel:ad.sel?[...ad.sel]:null,selArp:ad.selArp?[...ad.selArp]:null,licks:ad.licks,
-          at:`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`};
+          at:`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`,ts:Date.now()};
 }
 function renderSongs(){
   const a=songs(),el=document.getElementById('songSel');
@@ -1430,31 +1434,132 @@ document.getElementById('songSave').addEventListener('click',e=>{
   const i=a.findIndex(s=>s.name===name);
   if(i>=0&&name!==curSong&&!confirm(`"${name}" 곡이 이미 있습니다. 덮어쓸까요?`))return;
   const p=songPack(name);if(i>=0)a[i]=p;else a.push(p);
-  songsPut(a);curSong=name;store.set('chordcalc-cursong',name);renderSongs();songFlash(e.currentTarget,'저장됨');
+  songsPut(a);curSong=name;store.set('chordcalc-cursong',name);renderSongs();songFlash(e.currentTarget,'저장됨');ghSync(true);
 });
 document.getElementById('songDel').addEventListener('click',()=>{
   if(!curSong||!confirm(`"${curSong}" 곡을 삭제할까요?`))return;
-  songsPut(songs().filter(s=>s.name!==curSong));curSong='';store.set('chordcalc-cursong','');renderSongs();
+  tombsPut(tombs().filter(t=>t.name!==curSong).concat([{name:curSong,ts:Date.now()}]));   /* 다른 기기에서도 지워지도록 기록 */
+  songsPut(songs().filter(s=>s.name!==curSong));curSong='';store.set('chordcalc-cursong','');renderSongs();ghSync(true);
 });
-document.getElementById('songExp').addEventListener('click',()=>{
+
+/* ---------- GitHub Gist 동기화 ----------
+   곡 목록을 비밀 Gist(saygita-songs.json) 하나에 둔다. 토큰은 기기마다 한 번 입력 → 그 기기 브라우저에만 저장 (페이지 코드에는 없음).
+   합치기: 같은 이름이면 나중에 저장(ts)한 쪽, 지운 기록(deleted)이 더 나중이면 지움. */
+const GH={tok:()=>store.get('saygita-gh-token')||'',gid:()=>store.get('saygita-gist-id')||'',FILE:'saygita-songs.json'};
+function tombs(){try{const t=JSON.parse(store.get('chordcalc-songs-del')||'[]');return Array.isArray(t)?t:[]}catch(e){return[]}}
+function tombsPut(t){store.set('chordcalc-songs-del',JSON.stringify(t.slice(-300)))}
+async function gh(path,opt){
+  opt=opt||{};
+  const r=await fetch('https://api.github.com'+path,Object.assign({},opt,{cache:'no-store',headers:Object.assign({'Accept':'application/vnd.github+json','Authorization':'Bearer '+GH.tok()},opt.body?{'Content-Type':'application/json'}:{})}));
+  if(!r.ok){
+    const t=await r.text().catch(()=>'');
+    const e=new Error(r.status===401?'토큰이 맞지 않거나 만료되었습니다':r.status===403?'토큰에 gist 권한이 없거나 요청이 너무 많습니다':r.status===404?'Gist를 찾지 못했습니다':'GitHub 오류 '+r.status+' '+t.slice(0,80));
+    e.status=r.status;throw e;
+  }
+  return r.status===204?null:r.json();
+}
+function mergeSongs(remote){
+  const rs=(remote&&Array.isArray(remote.songs))?remote.songs:[],rt=(remote&&Array.isArray(remote.deleted))?remote.deleted:[];
+  const tomb={};tombs().concat(rt).forEach(t=>{if(t&&t.name&&(!tomb[t.name]||tomb[t.name]<t.ts))tomb[t.name]=t.ts});
+  const by={};rs.concat(songs()).forEach(s=>{if(!s||typeof s.name!=='string')return;if(!by[s.name]||(by[s.name].ts||0)<(s.ts||0))by[s.name]=s});
+  return {songs:Object.values(by).filter(s=>!(tomb[s.name]&&tomb[s.name]>=(s.ts||0))),deleted:Object.entries(tomb).map(([name,ts])=>({name,ts}))};
+}
+async function ghGist(){
+  let id=GH.gid();
+  if(id){try{return await gh('/gists/'+id)}catch(e){if(e.status!==404)throw e}}
+  const list=await gh('/gists?per_page=100');                        /* 다른 기기에서 이미 만든 Gist 가 있으면 그걸 쓴다 */
+  const f=list.find(x=>x.files&&x.files[GH.FILE]);
+  const g=f?await gh('/gists/'+f.id):await gh('/gists',{method:'POST',body:JSON.stringify({description:'쎄이기타 곡 목록 (자동 동기화)',public:false,
+    files:{[GH.FILE]:{content:JSON.stringify({app:'쎄이기타',ver:2,songs:[],deleted:[]})}}})});
+  store.set('saygita-gist-id',g.id);return g;
+}
+let syncing=false,syncAgain=false;
+function syncStat(msg){
+  const el=document.getElementById('syncStat');
+  if(!GH.tok()){el.innerHTML='☁ GitHub 연결 안 됨 — [☁ 동기화]를 누르면 PC · 휴대폰이 같은 곡 목록을 씁니다.';return}
+  if(msg){el.textContent=msg;return}
+  const t=+store.get('saygita-gh-last')||0,m=t?Math.round((Date.now()-t)/60000):null;
+  el.innerHTML=`☁ GitHub 동기화됨${t?` · ${m<1?'방금':m<60?m+'분 전':Math.round(m/60)+'시간 전'}`:''} · <a id="ghOff">연결 해제</a>`;
+}
+async function ghSync(quiet){
+  if(!GH.tok())return;
+  if(syncing){syncAgain=true;return}
+  syncing=true;syncStat('☁ 동기화 중…');
+  try{
+    const g=await ghGist(),f=g.files&&g.files[GH.FILE];
+    let remote={songs:[],deleted:[]},txt='';
+    if(f){txt=f.content||'';if(f.truncated&&f.raw_url)txt=await (await fetch(f.raw_url,{cache:'no-store'})).text();try{remote=JSON.parse(txt)||remote}catch(e){}}
+    const m=mergeSongs(remote);
+    songsPut(m.songs);tombsPut(m.deleted);renderSongs();
+    const body=JSON.stringify({app:'쎄이기타',ver:2,songs:m.songs,deleted:m.deleted});
+    if(body!==txt)await gh('/gists/'+g.id,{method:'PATCH',body:JSON.stringify({files:{[GH.FILE]:{content:body}}})});
+    store.set('saygita-gh-last',String(Date.now()));syncStat();
+  }catch(e){syncStat('☁ 동기화 실패: '+e.message);if(!quiet)alert('GitHub 동기화 실패\n'+e.message)}
+  finally{syncing=false;if(syncAgain){syncAgain=false;ghSync(true)}}
+}
+document.getElementById('songSync').addEventListener('click',()=>{
+  if(!GH.tok()){
+    if(confirm('GitHub 토큰이 필요합니다 (처음 한 번, 이 기기에서만).\n\n토큰 만드는 페이지를 열까요?\n→ "gist" 한 칸만 체크 → Generate token → 나온 값을 복사해서 여기 붙여 넣기'))
+      window.open('https://github.com/settings/tokens/new?scopes=gist&description=saygita','_blank','noopener');
+    const t=prompt('GitHub 토큰을 붙여 넣으세요 (gist 권한만 있는 토큰).\n이 기기 브라우저에만 저장되고 페이지 코드나 GitHub 저장소에는 들어가지 않습니다.');
+    if(!t||!t.trim())return;
+    store.set('saygita-gh-token',t.trim());
+  }
+  ghSync(false);
+});
+document.getElementById('syncStat').addEventListener('click',e=>{
+  if(e.target.id!=='ghOff')return;
+  if(!confirm('이 기기의 GitHub 연결을 해제할까요?\n(이 기기에 저장된 토큰만 지웁니다. Gist의 곡과 이 기기의 곡은 그대로)'))return;
+  ['saygita-gh-token','saygita-gist-id','saygita-gh-last'].forEach(k=>{try{localStorage.removeItem(k)}catch(err){}});syncStat();
+});
+/* 내보낸 파일 위치 기억: PC 크롬 · 엣지는 파일 선택 창(File System Access)으로 저장하고, 그 파일 핸들을 IndexedDB 에 둔다.
+   가져오기 창은 그 파일이 있는 폴더에서 열린다 (처음엔 다운로드 폴더). 지원 안 하는 브라우저는 예전 방식. */
+const FSA=!!(window.showSaveFilePicker&&window.showOpenFilePicker);
+const JSONTYPE=[{description:'쎄이기타 곡 파일',accept:{'application/json':['.json']}}];
+function idb(mode,fn){return new Promise((res,rej)=>{let q;try{q=indexedDB.open('saygita',1)}catch(e){rej(e);return}
+  q.onupgradeneeded=()=>q.result.createObjectStore('kv');q.onerror=()=>rej(q.error);
+  q.onsuccess=()=>{try{const tx=q.result.transaction('kv',mode),r=fn(tx.objectStore('kv'));tx.oncomplete=()=>res(r&&r.result);tx.onerror=()=>rej(tx.error)}catch(e){rej(e)}}})}
+const lastFile={get:()=>idb('readonly',s=>s.get('songFile')).catch(()=>null),set:h=>idb('readwrite',s=>s.put(h,'songFile')).catch(()=>{})};
+function songImport(t){
+  let inc;try{const j=JSON.parse(t);inc=Array.isArray(j)?j:j.songs}catch(err){}
+  inc=(inc||[]).filter(s=>s&&typeof s.name==='string'&&typeof s.src==='string');
+  if(!inc.length){alert('곡을 찾지 못했습니다. [내보내기]로 만든 파일인지 확인해 주세요.');return}
+  const a=songs(),dup=inc.filter(s=>a.some(x=>x.name===s.name)).length;
+  if(dup&&!confirm(`${inc.length}곡 중 ${dup}곡은 같은 이름이 있습니다. 가져온 것으로 덮어쓸까요?\n(취소하면 같은 이름은 건너뜁니다)`))inc=inc.filter(s=>!a.some(x=>x.name===s.name));
+  inc.forEach(s=>{const i=a.findIndex(x=>x.name===s.name);if(i>=0)a[i]=s;else a.push(s)});
+  inc.forEach(s=>{if(!s.ts)s.ts=Date.now()});
+  songsPut(a);renderSongs();alert(`${inc.length}곡을 가져왔습니다.`);ghSync(true);
+}
+document.getElementById('songExp').addEventListener('click',async()=>{
   const a=songs();if(!a.length)return;
-  const d=new Date(),p=n=>('0'+n).slice(-2);
-  const blob=new Blob([JSON.stringify({app:'쎄이기타',ver:1,songs:a},null,1)],{type:'application/json'});
-  const l=document.createElement('a');l.href=URL.createObjectURL(blob);l.download=`쎄이기타_곡_${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}.json`;
+  const d=new Date(),p=n=>('0'+n).slice(-2),name=`쎄이기타_곡_${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}.json`;
+  const text=JSON.stringify({app:'쎄이기타',ver:1,songs:a},null,1);
+  if(FSA){
+    try{
+      const prev=await lastFile.get();
+      const h=await window.showSaveFilePicker({suggestedName:name,types:JSONTYPE,startIn:prev||'downloads',id:'saygita-songs'});
+      const w=await h.createWritable();await w.write(text);await w.close();
+      await lastFile.set(h);songFlash(document.getElementById('songExp'),'저장됨');
+    }catch(e){if(e&&e.name!=='AbortError')alert('저장하지 못했습니다: '+e.message)}
+    return;
+  }
+  const l=document.createElement('a');l.href=URL.createObjectURL(new Blob([text],{type:'application/json'}));l.download=name;
   document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(l.href),2000);
 });
-document.getElementById('songImp').addEventListener('click',()=>document.getElementById('songFile').click());
+document.getElementById('songImp').addEventListener('click',async()=>{
+  if(FSA){
+    try{
+      const prev=await lastFile.get();
+      const [h]=await window.showOpenFilePicker({types:JSONTYPE,multiple:false,startIn:prev||'downloads',id:'saygita-songs'});
+      songImport(await (await h.getFile()).text());
+    }catch(e){if(e&&e.name!=='AbortError')alert('불러오지 못했습니다: '+e.message)}
+    return;
+  }
+  document.getElementById('songFile').click();
+});
 document.getElementById('songFile').addEventListener('change',e=>{
   const f=e.target.files&&e.target.files[0];if(!f)return;
-  f.text().then(t=>{
-    let inc;try{const j=JSON.parse(t);inc=Array.isArray(j)?j:j.songs}catch(err){}
-    inc=(inc||[]).filter(s=>s&&typeof s.name==='string'&&typeof s.src==='string');
-    if(!inc.length){alert('곡을 찾지 못했습니다. [내보내기]로 만든 파일인지 확인해 주세요.');return}
-    const a=songs(),dup=inc.filter(s=>a.some(x=>x.name===s.name)).length;
-    if(dup&&!confirm(`${inc.length}곡 중 ${dup}곡은 같은 이름이 있습니다. 가져온 것으로 덮어쓸까요?\n(취소하면 같은 이름은 건너뜁니다)`))inc=inc.filter(s=>!a.some(x=>x.name===s.name));
-    inc.forEach(s=>{const i=a.findIndex(x=>x.name===s.name);if(i>=0)a[i]=s;else a.push(s)});
-    songsPut(a);renderSongs();alert(`${inc.length}곡을 가져왔습니다.`);
-  }).finally(()=>{e.target.value=''});
+  f.text().then(songImport).finally(()=>{e.target.value=''});
 });
 function adInit(){
   document.getElementById('adSrc').value=store.get('chordcalc-adsrc')||'(전주)\nDmadd9  Gdim  A  Dm  Dmadd9\n8 8 8 8 8\n\n(간주)\nDmadd9  Gdim  A  Dm  Gdim  Dm  Gdim  A\n8 8 8 16 8 8 8 8';
@@ -1538,7 +1643,7 @@ adInit();
 if(uiSaved&&Array.isArray(uiSaved.licks)&&uiSaved.licks.length&&uiSaved.adsrc===document.getElementById('adSrc').value&&uiSaved.ad&&uiSaved.ad.sig===ad.sig){
   ad.licks=uiSaved.licks;renderAdTab();renderAdControls();
 }
-renderSongs();
+renderSongs();syncStat();ghSync(true);   /* 연결돼 있으면 열 때마다 최신 목록 받기 */
 renderFindControls();renderFind();drawBoard();renderName();renderScale();renderShift();
 if(st.tab!=='find')setTab(st.tab);
 uiReady=true;
