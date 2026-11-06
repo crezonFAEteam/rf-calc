@@ -56,6 +56,9 @@ html{scroll-padding-top:var(--pinH,0px)}
 #board,#board2{display:block;width:100%;height:auto;user-select:none;-webkit-user-select:none;max-width:none}
 #board2{margin-top:6px}
 .lbl-tg.zm button{min-width:2.4em;font-variant-numeric:tabular-nums}
+/* 크기 버튼: 마우스가 있는 화면(PC)에서만. 휴대폰은 두 손가락으로 */
+.pc-only{display:none!important}
+@media (hover:hover) and (pointer:fine){.pc-only{display:inline-flex!important}}
 .board-cap{margin:8px 2px 0;color:var(--muted);font-size:.88rem}
 .wood{fill:#3A2317}
 .inlay{fill:#EDE4D3;opacity:.5}
@@ -233,6 +236,11 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
     <div class="lbl-tg" role="group" aria-label="지판 점에 표시할 내용">
       <button data-lbl="note" aria-pressed="true">음이름</button>
       <button data-lbl="deg" aria-pressed="false">도수</button>
+    </div>
+    <div class="lbl-tg zm pc-only" role="group" aria-label="지판 크기">
+      <button data-zoom="-1" aria-label="지판 작게" title="작게 (Ctrl+휠)">－</button>
+      <button data-zoom="0" id="zoomVal" title="화면에 맞추기">100%</button>
+      <button data-zoom="1" aria-label="지판 크게" title="크게 (Ctrl+휠)">＋</button>
     </div>
     <div class="acc" role="group" aria-label="샵·플랫 표기">
       <button data-acc="sharp" aria-pressed="true" aria-label="샵으로 표기">♯</button>
@@ -625,6 +633,7 @@ function boardLayout(){
     const W=cw*z,k=W/VB_A[2];
     b1.style.width=Math.round(W)+'px';b2.style.width=Math.round(VB_B[2]*k)+'px';
   }
+  const zv=document.getElementById('zoomVal');if(zv)zv.textContent=Math.round(z*100)+'%';
   document.querySelectorAll('[data-view]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.view===bview));
 }
 function bzSave(){store.set('chordcalc-bz'+bview,bz[bview].toFixed(3))}
