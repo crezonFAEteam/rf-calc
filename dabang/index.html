@@ -396,7 +396,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
           <button id="blPrev" class="ghost sm" aria-label="이전 예제">◀</button>
           <button id="blNext" class="ghost sm" aria-label="다음 예제">▶</button>
           <button id="blSrv" class="ghost sm" title="서버의 예제 전체를 받아 암호로 열기 (이 기기의 예제는 새것으로 통째로 바뀜)">서버에서 받기</button>
-          <button id="blImp" class="ghost sm" title="예제 파일(.json) 가져오기 — 여러 개를 한꺼번에 골라도 되고, 장(章) 파일을 하나씩 더해도 됨">예제 파일</button>
+          <button id="blImp" class="ghost sm" title="예제 파일(.json) 가져오기 — 이전 예제는 지우고 고른 파일로 바뀜. 여러 장을 쓰려면 파일을 한꺼번에 여러 개 고르기">예제 파일</button>
           <button id="blClr" class="ghost sm" title="이 기기에 저장된 블루스 예제를 모두 지우기">지우기</button>
           <input type="file" id="blFile" accept=".json,application/json" multiple hidden>
         </div>
@@ -1421,7 +1421,7 @@ function blRender(){
   const g=id=>document.getElementById(id),ex=blEx(),tab=g('blTab');
   if(!BL.data){
     g('blSel').innerHTML='<option>예제 파일을 먼저 가져오세요</option>';
-    g('blInfo').innerHTML='<p class="sdesc" style="margin:0">[서버에서 받기]를 누르고 암호를 넣거나, [예제 파일]로 예제 파일(.json)을 가져오면 목록이 나타납니다. 잠긴 파일은 암호를 물어봅니다. 장(章)별 파일을 여러 개 한꺼번에 고르거나 하나씩 더해도 됩니다. 가져온 내용은 이 기기에만 저장됩니다.</p>';
+    g('blInfo').innerHTML='<p class="sdesc" style="margin:0">[서버에서 받기]를 누르고 암호를 넣거나, [예제 파일]로 예제 파일(.json)을 가져오면 목록이 나타납니다. 잠긴 파일은 암호를 물어봅니다. 가져올 때마다 이전 예제는 지우고 고른 파일로 바뀝니다. 여러 장을 쓰려면 파일을 한꺼번에 여러 개 고르세요. 가져온 내용은 이 기기에만 저장됩니다.</p>';
     tab.innerHTML='<div class="empty">예제 파일을 가져오면 TAB이 여기에 나옵니다.</div>';
     ['blPlay','blFrom','blTo','blPrev','blNext','blSel'].forEach(id=>g(id).disabled=true);BL.lk=null;blBoxRender();drawBoard();return;
   }
@@ -1535,7 +1535,7 @@ async function blImport(){
     if(window.showOpenFilePicker){const hs=await window.showOpenFilePicker({multiple:true,types:[{description:'예제 파일',accept:{'application/json':['.json']}}]});for(const h of hs)txts.push(await (await h.getFile()).text())}
     else{document.getElementById('blFile').click();return}
   }catch(e){if(e&&e.name==='AbortError')return;document.getElementById('blFile').click();return}
-  blLoadText(txts);
+  blLoadText(txts,true);   /* 고른 파일 내용으로 통째로 바꿈 */
 }
 /* 장 순서: 기초 → 1장 → 2장 … */
 const blChOrd=ch=>/^기초/.test(ch||'')?0:((String(ch||'').match(/^(\d+)장/)||[])[1]|0)||99;
@@ -1574,9 +1574,9 @@ function blLoadText(txts,replace){
   const all=base.concat(add).map((e,i)=>[e,i]).sort((a,b)=>blChOrd(a[0].ch)-blChOrd(b[0].ch)||a[1]-b[1]).map(x=>x[0]);
   blStop();BL.data={kind:'saygita-blues',version:1,examples:all};store.set(BL_KEY,JSON.stringify(BL.data));
   const ni=curId?all.findIndex(e=>e.id===curId):-1;BL.idx=ni>=0?ni:0;BL.from=0;BL.to=-1;BL.lk=null;blSaveUI();blRender();
-  alert((replace?`예제 ${add.length}개를 받았습니다. (이전 예제는 지우고 새로 바꿈)`:`예제 ${add.length}개를 가져왔습니다. (이 기기에 모두 ${all.length}개)`)+(bad?`\n읽지 못한 파일 ${bad}개`:''));
+  alert((replace?`예제 ${add.length}개를 가져왔습니다. (이전 예제는 지우고 새로 바꿈)`:`예제 ${add.length}개를 가져왔습니다. (이 기기에 모두 ${all.length}개)`)+(bad?`\n읽지 못한 파일 ${bad}개`:''));
 }
-document.getElementById('blFile').addEventListener('change',async e=>{const fs=[...e.target.files];if(fs.length)blLoadText(await Promise.all(fs.map(f=>f.text())));e.target.value=''});
+document.getElementById('blFile').addEventListener('change',async e=>{const fs=[...e.target.files];if(fs.length)blLoadText(await Promise.all(fs.map(f=>f.text())),true);e.target.value=''});
 /* 서버에서 받기: 서버의 잠긴 파일(blues.enc.json)을 받아 → 같은 암호 칸으로 열기 */
 document.getElementById('blSrv').addEventListener('click',async e=>{
   const b=e.currentTarget;b.disabled=true;
