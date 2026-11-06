@@ -197,6 +197,8 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .blmeta{color:var(--muted);font-size:.82rem;margin:0 0 6px}
 #blTab{touch-action:pan-x pan-y}
 #blTab .bar-off{opacity:.35}
+.blpw{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 10px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.blpw input{flex:1 1 140px;min-width:0;padding:6px 8px}
 .blbox{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:6px}
 .blbox .vcard{padding:4px 2px 2px;color:var(--ink);font:inherit}
 .blbox .vname{display:block;text-align:center;font-weight:700;font-size:.9rem;color:var(--accent)}
@@ -396,6 +398,11 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
           <button id="blImp" class="ghost sm" title="예제 파일(.json) 가져오기 — 여러 개를 한꺼번에 골라도 되고, 장(章) 파일을 하나씩 더해도 됨">예제 파일</button>
           <button id="blClr" class="ghost sm" title="이 기기에 저장된 블루스 예제를 모두 지우기">지우기</button>
           <input type="file" id="blFile" accept=".json,application/json" multiple hidden>
+        </div>
+        <div id="blPwRow" class="blpw" hidden>
+          <span id="blPwMsg" class="sdesc" style="margin:0;flex-basis:100%">잠긴 예제 파일입니다. 암호를 넣으세요.</span>
+          <input type="password" id="blPw" placeholder="암호" autocomplete="off" aria-label="예제 파일 암호">
+          <button id="blPwOk" class="ghost sm">열기</button><button id="blPwNo" class="ghost sm">취소</button>
         </div>
         <div id="blInfo"></div>
         <div class="field" id="blBoxField" style="margin-top:14px" hidden><span class="flabel" id="blBoxLbl">운지표</span><div id="blBox" class="blbox"></div></div>
@@ -1413,7 +1420,7 @@ function blRender(){
   const g=id=>document.getElementById(id),ex=blEx(),tab=g('blTab');
   if(!BL.data){
     g('blSel').innerHTML='<option>예제 파일을 먼저 가져오세요</option>';
-    g('blInfo').innerHTML='<p class="sdesc" style="margin:0">[예제 파일]을 눌러 예제 파일(.json)을 가져오면 목록이 나타납니다. 장(章)별 파일을 여러 개 한꺼번에 고르거나 하나씩 더해도 됩니다. 가져온 내용은 이 기기에만 저장됩니다.</p>';
+    g('blInfo').innerHTML='<p class="sdesc" style="margin:0">[예제 파일]을 눌러 예제 파일(.json)을 가져오면 목록이 나타납니다. 잠긴 파일은 암호를 물어봅니다. 장(章)별 파일을 여러 개 한꺼번에 고르거나 하나씩 더해도 됩니다. 가져온 내용은 이 기기에만 저장됩니다.</p>';
     tab.innerHTML='<div class="empty">예제 파일을 가져오면 TAB이 여기에 나옵니다.</div>';
     ['blPlay','blFrom','blTo','blPrev','blNext','blSel'].forEach(id=>g(id).disabled=true);BL.lk=null;blBoxRender();drawBoard();return;
   }
@@ -1531,11 +1538,34 @@ async function blImport(){
 }
 /* 장 순서: 기초 → 1장 → 2장 … */
 const blChOrd=ch=>/^기초/.test(ch||'')?0:((String(ch||'').match(/^(\d+)장/)||[])[1]|0)||99;
+/* ---------- 잠긴 예제 파일: AES-256-GCM, 키 = 암호 → PBKDF2-SHA256(31만 번). 암호는 저장하지 않음 ---------- */
+const b64d=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function blDecrypt(o,pw){
+  const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
+  const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:b64d(o.salt),iterations:o.iter||310000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['decrypt']);
+  return new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:b64d(o.iv)},key,b64d(o.ct)));
+}
+let blPending=null;   /* 암호를 기다리는 파일들 {plain:[글], enc:[객체]} */
+function blPwAsk(n){const r=document.getElementById('blPwRow');document.getElementById('blPwMsg').textContent=`잠긴 예제 파일 ${n}개입니다. 암호를 넣으세요.`;r.hidden=false;const i=document.getElementById('blPw');i.value='';i.focus()}
+async function blPwGo(){
+  if(!blPending)return;const pw=document.getElementById('blPw').value,ok=document.getElementById('blPwOk');if(!pw)return;
+  ok.disabled=true;ok.textContent='여는 중…';
+  try{
+    const out=[];for(const o of blPending.enc)out.push(await blDecrypt(o,pw));
+    const plain=blPending.plain.concat(out);blPending=null;document.getElementById('blPwRow').hidden=true;blLoadText(plain);
+  }catch(e){alert('암호가 맞지 않습니다.');document.getElementById('blPw').select()}
+  finally{ok.disabled=false;ok.textContent='열기'}
+}
+document.getElementById('blPwOk').addEventListener('click',blPwGo);
+document.getElementById('blPw').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();blPwGo()}});
+document.getElementById('blPwNo').addEventListener('click',()=>{blPending=null;document.getElementById('blPwRow').hidden=true});
 function blLoadText(txts){
   if(!Array.isArray(txts))txts=[txts];
-  const add=[];let bad=0;
+  const add=[],enc=[],plainTx=[];let bad=0;
   txts.forEach(txt=>{let d;try{d=JSON.parse(txt)}catch(e){bad++;return}
-    if(!d||d.kind!=='saygita-blues'||!Array.isArray(d.examples)){bad++;return}add.push(...d.examples)});
+    if(d&&d.kind==='saygita-blues-enc'&&d.ct){enc.push(d);return}
+    if(!d||d.kind!=='saygita-blues'||!Array.isArray(d.examples)){bad++;return}plainTx.push(txt);add.push(...d.examples)});
+  if(enc.length){blPending={plain:plainTx,enc};blPwAsk(enc.length);return}   /* 잠긴 파일이 섞여 있으면 암호부터 */
   if(!add.length){alert('블루스 예제 파일이 아닙니다.');return}
   const curId=blEx()&&blEx().id;
   const base=BL.data?BL.data.examples.filter(e=>!add.some(a=>a.id===e.id)):[];   /* 같은 번호는 새 파일 것으로 */
