@@ -189,10 +189,15 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .tabttl .only{font-size:.72rem;font-weight:500;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:1px 8px}
 .tabttl[aria-pressed="true"] .only{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent);font-weight:600}
 .tabsec.off{opacity:.45}
+.tabhd{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin:0 0 6px}
+.tabhd .tabttl{margin:0}
+.secpat{width:auto!important;font:inherit;font-size:.78rem!important;padding:2px 6px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--muted);max-width:60vw}
+.secbadge{font-size:.72rem;color:var(--ink);border:1px solid var(--accent-fill);border-radius:999px;padding:1px 8px}
+.secpat.set{border-color:var(--accent-fill);color:var(--ink);font-weight:600}
 #adLoop[aria-pressed="true"]{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent);font-weight:600}
 .pgrp{display:flex;flex-wrap:wrap;gap:6px;align-items:center;width:100%}
 .pgl{font-size:.8rem;color:var(--muted);min-width:4.6em}
-.tab .acc{color:var(--accent);font-weight:700}
+.tab .acc{color:var(--accent);font-weight:700;display:inline;border:0;border-radius:0;overflow:visible}   /* 머리글 버튼 묶음(.acc) 테두리가 붙지 않게 */
 .acced{display:flex;gap:4px;flex-wrap:wrap}
 .acced button{min-width:38px;height:36px;border:1px solid var(--line);border-radius:6px;background:var(--surface);cursor:pointer;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.85rem}
 .acced button[aria-pressed="true"]{background:var(--accent-fill);color:var(--on-accent);border-color:var(--accent-fill);font-weight:700}
@@ -991,7 +996,7 @@ document.getElementById('p-scale').addEventListener('click',e=>{
 });
 
 /* ---------- 애드리브 ---------- */
-const ad={meter:8,bend:true,vib:true,harm:true,accOv:{},mode:'adlib',arp:'slow',backStyle:'strum',selArp:null,key:'auto',box:0,style:'calm',bpm:84,back:true,blocks:[],sel:null,sig:'',licks:[],pool:null,cur:null,playing:false,mk:0,minor:true,det:null};
+const ad={meter:8,bend:true,vib:true,harm:true,accOv:{},secPat:{},mode:'adlib',arp:'slow',backStyle:'strum',selArp:null,key:'auto',box:0,style:'calm',bpm:84,back:true,blocks:[],sel:null,sig:'',licks:[],pool:null,cur:null,playing:false,mk:0,minor:true,det:null};
 const RHY={calm:[[0,4],[0,2,4],[0,3,4],[0,2,4,6],[0,3,6],[0,4,6]],rhythmic:[[0,1,2,3,4,6],[0,2,3,4,5,6],[0,1,2,3,4,6,7],[0,1,2,4,5,6,7],[0,2,3,4,6,7],[0,1,2,3,4,5,6,7]]};
 const LEADIN=/전주|간주|후주|인트로|아웃트로|솔로|intro|outro|solo|inter/i;
 let adTimers=[],adSrcs=[],adDeb;const vcache={};
@@ -1307,13 +1312,31 @@ if(tabFs)setTabFs(tabFs);
   document.getElementById('tabZi').addEventListener('click',()=>{setTabFs(tabFsNow()*1.15);tabFsDone()});
 })();
 window.addEventListener('resize',()=>{clearTimeout(tabRz);tabRz=setTimeout(()=>{if(st.tab==='adlib'&&ad.licks.length)renderAdTab()},150)});
+/* ---------- 고른 구간(▶ 이 구간만)만 반주 패턴을 기본값에서 바꾸기 (구간 이름으로 기억). 선택 칸은 고른 구간에만 나옴 ---------- */
+function secPk(name){const k=ad.secPat&&ad.secPat[name];return k&&ARP[k]&&(ARP[k].m||8)===ad.meter?k:null}
+function secPatSel(lk,k){
+  const cur=secPk(lk.name),isA=ad.mode==='arp';
+  const def=isA?((ad.arpBy&&lk.pk&&!cur)?ARP[lk.pk].n:ARP[ad.arp].n):(ad.backStyle==='arp'?ARP[ad.arp].n:ad.backStyle==='strum'?'기본 스트럼':'반주 없음');
+  const GRP=[['arp','아르페지오'],['stroke','스트로크'],['country','컨트리'],['waltz','3/4박자']].filter(([gk])=>(gk==='waltz')===(ad.meter===6));
+  return `<select class="secpat${cur?' set':''}" data-secpat="${k}" title="이 구간의 반주 리듬만 바꾸기" aria-label="${esc(lk.name)} 반주 패턴"><option value="">반주: 기본 (${esc(def)})</option>`+
+    GRP.map(([gk,gl])=>`<optgroup label="${gl}">${Object.entries(ARP).filter(([pk,a])=>(a.g||'arp')===gk).map(([pk,a])=>`<option value="${pk}"${cur===pk?' selected':''}>반주: ${esc(a.n)}</option>`).join('')}</optgroup>`).join('')+'</select>';
+}
+document.getElementById('adTab').addEventListener('change',e=>{
+  const el=e.target.closest('select[data-secpat]');if(!el)return;
+  const lk=ad.licks[+el.dataset.secpat];if(!lk)return;
+  if(!ad.secPat||typeof ad.secPat!=='object')ad.secPat={};
+  if(el.value)ad.secPat[lk.name]=el.value;else delete ad.secPat[lk.name];
+  const was=ad.playing;adStop();
+  if(ad.mode==='arp')adGenerate();else renderAdTab();   /* 애드리브 멜로디는 그대로 두고 반주만 바뀜 */
+  if(was)adPlay();uiLater();
+});
 function renderAdTab(){
   const el=document.getElementById('adTab');
   if(!ad.blocks.length){el.innerHTML='<div class="empty">왼쪽에 코드 진행을 입력하면 애드리브가 만들어집니다.</div>';return}
   if(!ad.licks.length){el.innerHTML='<div class="empty">애드리브를 넣을 구간을 하나 이상 고르세요.</div>';return}
   const per=tabPer(ad.meter);
   const oi=onlyIdx();
-  el.innerHTML=ad.licks.map((lk,k)=>`<div class="tabsec${oi>=0&&oi!==k?' off':''}"><button class="tabttl" data-only="${k}" aria-pressed="${oi===k}" title="누르면 이 구간만 재생 (다시 누르면 전체)">${esc(lk.name)}${lk.pk?`<span class="fr" style="color:var(--muted);font-weight:400;margin-left:8px">${ARP[lk.pk].n}</span>`:''}<span class="only">${oi===k?'이 구간만 재생':'▶ 이 구간만'}</span></button><pre>${tabRender(lk,k,true,per)}</pre></div>`).join('');
+  el.innerHTML=ad.licks.map((lk,k)=>`<div class="tabsec${oi>=0&&oi!==k?' off':''}"><div class="tabhd"><button class="tabttl" data-only="${k}" aria-pressed="${oi===k}" title="누르면 이 구간만 재생 (다시 누르면 전체)">${esc(lk.name)}${lk.pk?`<span class="fr" style="color:var(--muted);font-weight:400;margin-left:8px">${ARP[lk.pk].n}</span>`:''}<span class="only">${oi===k?'이 구간만 재생':'▶ 이 구간만'}</span></button>${oi===k?secPatSel(lk,k):secPk(lk.name)?`<span class="secbadge" title="이 구간만 기본값과 다른 반주">반주: ${esc(ARP[secPk(lk.name)].n)}</span>`:''}</div><pre>${tabRender(lk,k,true,per)}</pre></div>`).join('');
   fitLyrics();markTab();
 }
 /* 가사: 기본은 크게(1.35em), 코드 칸에 다 안 들어가는 조각만 칸에 맞게 줄인다 (em 단위라 확대·축소해도 비율 유지) */
@@ -1338,7 +1361,7 @@ function adGenerate(){
   ad.minor=all[0].r===mod(ad.mk+9);
   ad.pool=adPool(ad.mk,ad.box);
   const S=ad.mode==='arp'?ad.selArp:ad.sel;
-  ad.licks=ad.blocks.map((b,i)=>[b,i]).filter(([b,i])=>S.has(i)).map(([b,i])=>ad.mode==='arp'?genArp(b,(ad.arpBy&&ad.arpBy[i])||ad.arp):genBlock(b,ad.pool,ad.style));
+  ad.licks=ad.blocks.map((b,i)=>[b,i]).filter(([b,i])=>S.has(i)).map(([b,i])=>ad.mode==='arp'?genArp(b,secPk(b.name)||(ad.arpBy&&ad.arpBy[i])||ad.arp):genBlock(b,ad.pool,ad.style));
   renderAdTab();renderAdKey();drawBoard();
 }
 function adDots(){
@@ -1412,8 +1435,9 @@ function adPlay(){
   let off=0;
   ad.licks.forEach((lk,k)=>{
     if(oi>=0&&k!==oi)return;
-    if(!lk.arp&&ad.backStyle==='arp')genArp({segs:lk.segs.map(s=>({c:s.c,len:s.len}))},ad.arp).notes.forEach(n=>ev.push({m:n.p,t:(off+n.t)*e+(n.sd||0)*0.012+(n.sw&&n.t%2?e*0.33:0),d:n.mute?0.07:Math.min(2,n.ring*e+0.3),g:back,kd:n.mute?0.9:0.996,a:n.amp||1}));
-    if(!lk.arp&&ad.backStyle==='strum')lk.segs.forEach(sg=>{const v=getV(sg.c);if(!v)return;for(let o=0;o<sg.len;o+=(lk.bar===6?2:4))v.forEach((f,i)=>{if(f>=0)ev.push({m:TUNE[i]+f,t:(off+sg.start+o)*e+i*0.018,d:Math.min(2.2,Math.min(4,sg.len-o)*e+0.3),g:back,kd:0.996})})});
+    const spk=lk.arp?null:secPk(lk.name);   /* 구간마다 정한 반주 패턴이 있으면 그 구간은 그 패턴으로 */
+    if(!lk.arp&&(spk||ad.backStyle==='arp'))genArp({segs:lk.segs.map(s=>({c:s.c,len:s.len}))},spk||ad.arp).notes.forEach(n=>ev.push({m:n.p,t:(off+n.t)*e+(n.sd||0)*0.012+(n.sw&&n.t%2?e*0.33:0),d:n.mute?0.07:Math.min(2,n.ring*e+0.3),g:back,kd:n.mute?0.9:0.996,a:n.amp||1}));
+    if(!lk.arp&&!spk&&ad.backStyle==='strum')lk.segs.forEach(sg=>{const v=getV(sg.c);if(!v)return;for(let o=0;o<sg.len;o+=(lk.bar===6?2:4))v.forEach((f,i)=>{if(f>=0)ev.push({m:TUNE[i]+f,t:(off+sg.start+o)*e+i*0.018,d:Math.min(2.2,Math.min(4,sg.len-o)*e+0.3),g:back,kd:0.996})})});
     lk.notes.forEach((n,ni)=>ev.push({m:n.p,t:(off+n.t)*e+(n.sd||0)*0.012+(n.sw&&n.t%2?e*0.33:0),d:n.mute?0.07:(lk.arp?Math.min(2.2,n.ring*e+0.4):Math.min(1.8,n.dur*e+0.35)),g:lead,kd:n.mute?0.9:(lk.arp?0.996:0.995),a:n.amp||1,bend:n.bend!=null,vib:!!n.vib,k,ni}));
     off+=lk.total+4;
   });
@@ -1459,7 +1483,7 @@ document.getElementById('p-adlib').addEventListener('click',e=>{
   if(ds.accslot!=null){const i=+ds.accslot,cur=[...(ad.accOv[ad.arp]||ARP[ad.arp].acc||[0])],j=cur.indexOf(i);j>=0?cur.splice(j,1):cur.push(i);ad.accOv[ad.arp]=cur.sort((a,c)=>a-c);if(ad.mode!=='arp'){adStop();renderAdControls();return}}
   else if(ds.accreset){delete ad.accOv[ad.arp];if(ad.mode!=='arp'){adStop();renderAdControls();return}}
   else if(ds.tech){ad[ds.tech]=!ad[ds.tech]}
-  else if(ds.meter){ad.meter=+ds.meter;if((ARP[ad.arp].m||8)!==ad.meter)ad.arp=ad.meter===6?'w_slow':'slow';ad.arpBy=null;ad.combo=null}
+  else if(ds.meter){ad.meter=+ds.meter;ad.secPat={};if((ARP[ad.arp].m||8)!==ad.meter)ad.arp=ad.meter===6?'w_slow':'slow';ad.arpBy=null;ad.combo=null}
   else if(b.id==='adGen'){}
   else if(ds.adsec!=null){const S=ad.mode==='arp'?ad.selArp:ad.sel,i=+ds.adsec;S.has(i)?S.delete(i):S.add(i)}
   else if(ds.admode)ad.mode=ds.admode;
@@ -1478,7 +1502,7 @@ document.getElementById('adSrc').addEventListener('input',e=>{store.set('chordca
    코드 진행 + 애드리브 설정 + 지금 만들어진 프레이즈(TAB)까지 저장. 이 브라우저에 저장되고,
    다른 기기로 옮길 때는 [내보내기] 파일을 [가져오기]. */
 const SONG_KEY='chordcalc-songs';
-const SONG_SET=['mode','meter','bend','vib','harm','accOv','arp','backStyle','key','box','style','bpm','back','arpBy','combo'];
+const SONG_SET=['mode','meter','bend','vib','harm','accOv','secPat','arp','backStyle','key','box','style','bpm','back','arpBy','combo'];
 let curSong=store.get('chordcalc-cursong')||'';
 function songs(){try{const a=JSON.parse(store.get(SONG_KEY)||'[]');return Array.isArray(a)?a.filter(s=>s&&typeof s.name==='string'):[]}catch(e){return[]}}
 function songsPut(a){a.sort((x,y)=>x.name.localeCompare(y.name,'ko'));store.set(SONG_KEY,JSON.stringify(a))}
@@ -1500,6 +1524,7 @@ function songLoad(s){
   adStop();
   const src=String(s.src||'');document.getElementById('adSrc').value=src;store.set('chordcalc-adsrc',src);
   SONG_SET.forEach(k=>{if(s.set&&k in s.set)ad[k]=s.set[k]});
+  if(!ad.secPat||typeof ad.secPat!=='object'||!(s.set&&'secPat' in s.set))ad.secPat={};
   if(!ARP[ad.arp])ad.arp='slow';if(!(ad.bpm>=50&&ad.bpm<=160))ad.bpm=84;
   ad.sel=Array.isArray(s.sel)?new Set(s.sel):null;ad.selArp=Array.isArray(s.selArp)?new Set(s.selArp):null;
   ad.sig=adParse().map(b=>b.name).join('|');          /* 같은 곡이면 고른 구간 · 추천 조합을 그대로 둔다 */
@@ -1608,7 +1633,7 @@ document.querySelectorAll('[data-lbl]').forEach(b=>b.addEventListener('click',()
    열린 탭과 각 탭의 선택(루트 · 코드 종류 · 운지 · 스케일 · 카포 · 애드리브 설정)과 스크롤 위치를 저장했다가 되살린다. */
 const UI_KEY='chordcalc-ui';
 const ST_KEYS=['tab','root','qi','bass','vi','nv','sk','smode','stype','box','blue','s7','schSel','schShape','semi','capo'];
-const AD_KEYS=['mode','meter','bend','vib','harm','accOv','arp','backStyle','key','box','style','bpm','back','arpBy','combo','sig'];
+const AD_KEYS=['mode','meter','bend','vib','harm','accOv','secPat','arp','backStyle','key','box','style','bpm','back','arpBy','combo','sig'];
 let uiReady=false,uiT=null;
 function uiSave(){
   if(!uiReady)return;
