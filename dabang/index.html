@@ -189,12 +189,20 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .tabttl .only{font-size:.72rem;font-weight:500;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:1px 8px}
 .tabttl[aria-pressed="true"] .only{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent);font-weight:600}
 .tabsec.off{opacity:.45}
+/* 블루스 탭 */
+#blSel{flex:1 1 200px;min-width:0;width:auto!important;padding:6px 8px}
+.blrange{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.blrange select{width:auto!important;min-width:0;padding:6px 8px}
+.blttl{font-weight:700;font-size:1.05rem;margin:4px 0 2px}
+.blmeta{color:var(--muted);font-size:.82rem;margin:0 0 6px}
+#blTab{touch-action:pan-x pan-y}
+#blTab .bar-off{opacity:.35}
 .tabhd{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin:0 0 6px}
 .tabhd .tabttl{margin:0}
 .secpat{width:auto!important;font:inherit;font-size:.78rem!important;padding:2px 6px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--muted);max-width:60vw}
 .secbadge{font-size:.72rem;color:var(--ink);border:1px solid var(--accent-fill);border-radius:999px;padding:1px 8px}
 .secpat.set{border-color:var(--accent-fill);color:var(--ink);font-weight:600}
-#adLoop[aria-pressed="true"]{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent);font-weight:600}
+#blLoop[aria-pressed="true"],#adLoop[aria-pressed="true"]{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent);font-weight:600}
 .pgrp{display:flex;flex-wrap:wrap;gap:6px;align-items:center;width:100%}
 .pgl{font-size:.8rem;color:var(--muted);min-width:4.6em}
 .tab .acc{color:var(--accent);font-weight:700;display:inline;border:0;border-radius:0;overflow:visible}   /* 머리글 버튼 묶음(.acc) 테두리가 붙지 않게 */
@@ -286,6 +294,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
     <button role="tab" data-tab="name" aria-selected="false">운지 → 코드 이름</button>
     <button role="tab" data-tab="scale" aria-selected="false">펜타토닉 · 다이아토닉</button>
     <button role="tab" data-tab="adlib" aria-selected="false">애드리브 · 반주</button>
+    <button role="tab" data-tab="blues" aria-selected="false">블루스</button>
     <button role="tab" data-tab="shift" aria-selected="false">조옮김 · 카포</button>
   </nav>
 
@@ -370,6 +379,30 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
         <div class="btns left"><button id="adPlayBtn" class="play">재생</button><button id="adLoop" class="ghost" aria-pressed="false" title="켜면 끝까지 재생한 뒤 처음부터 계속 반복">⟳ 반복</button><button id="adGen" class="ghost">새로 만들기</button><button id="adCopy" class="ghost">TAB 복사</button><button id="tabZo" class="ghost pc-only" title="악보 글자 작게 (Ctrl+휠)">가−</button><button id="tabZi" class="ghost pc-only" title="악보 글자 크게 (Ctrl+휠)">가+</button></div>
         <div class="tab" id="adTab"></div>
         <p class="sdesc" id="adNote">각 마디의 첫째 박과 셋째 박, 마지막 음은 그 마디 코드의 코드톤에 떨어지도록 만들고, 마지막 마디는 코드의 루트에서 끝납니다. 마음에 드는 프레이즈가 나올 때까지 새로 만들기를 눌러 보고, 좋은 건 TAB을 복사해 두세요. TAB의 칸 하나는 8분음표이고, h는 해머링, p는 풀링, /와 \는 슬라이드입니다.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="p-blues" role="tabpanel" hidden>
+    <div class="grid">
+      <div>
+        <div class="songbar">
+          <select id="blSel" aria-label="블루스 예제 고르기"></select>
+          <button id="blPrev" class="ghost sm" aria-label="이전 예제">◀</button>
+          <button id="blNext" class="ghost sm" aria-label="다음 예제">▶</button>
+          <button id="blImp" class="ghost sm" title="예제 파일(blues_examples.json) 가져오기">예제 파일</button>
+          <input type="file" id="blFile" accept=".json,application/json" hidden>
+        </div>
+        <div id="blInfo"></div>
+        <div class="field" style="margin-top:14px"><span class="flabel">반복할 마디</span>
+          <div class="blrange"><select id="blFrom" aria-label="시작 마디"></select><span>~</span><select id="blTo" aria-label="끝 마디"></select><button id="blAll" class="ghost sm">전체</button></div></div>
+        <div class="field"><span class="flabel">리듬</span><div class="chips"><button class="chip" id="blShuf" aria-pressed="true">셔플 (셋잇단 느낌)</button></div></div>
+        <div class="field"><label class="flabel" for="blBpm">템포 <output id="blBpmOut"></output> BPM</label><input type="range" id="blBpm" min="40" max="160" step="2"></div>
+      </div>
+      <div>
+        <div class="btns left"><button id="blPlay" class="play">재생</button><button id="blLoop" class="ghost" aria-pressed="false" title="켜면 끝까지 재생한 뒤 처음부터 계속 반복">⟳ 반복</button><button id="blZo" class="ghost pc-only" title="악보 글자 작게 (Ctrl+휠)">가−</button><button id="blZi" class="ghost pc-only" title="악보 글자 크게 (Ctrl+휠)">가+</button></div>
+        <div class="tab" id="blTab"></div>
+        <p class="sdesc">칸 하나는 8분음표이고, 셔플을 켜면 둘째 8분음표를 늦게(셋잇단의 셋째) 칩니다. D는 다운, U는 업 스트로크, x는 뮤트입니다. 재생하면 지금 치는 음이 TAB과 지판에 표시되고, 지판의 흐린 점은 그 마디에서 잡는 모양입니다.</p>
       </div>
     </div>
   </section>
@@ -590,6 +623,9 @@ function drawBoard(){
   }else if(st.tab==='adlib'){
     s+=adDots();
     cap.textContent=adCap();
+  }else if(st.tab==='blues'){
+    s+=blDots();
+    cap.textContent=blCap();
   }else if(st.tab==='scale'){
     s+=scaleDots();
     cap.textContent=scaleCap();
@@ -1287,8 +1323,8 @@ function renderAdControls(){
   document.getElementById('adLoop').setAttribute('aria-pressed',!!ad.loop);
 }
 let tabCw=0,tabRz;
-function tabPer(bar){
-  const el=document.getElementById('adTab'),w=el.clientWidth-26;
+function tabPer(bar,id){
+  const el=document.getElementById(id||'adTab'),w=el.clientWidth-26;
   if(!tabCw){const m=document.createElement('span');m.style.cssText='font:13px ui-monospace,"SF Mono",Menlo,Consolas,monospace;visibility:hidden;position:absolute;white-space:pre';m.textContent='-'.repeat(50);document.body.appendChild(m);tabCw=m.getBoundingClientRect().width/50;m.remove()}
   if(!(w>0)||!tabCw)return 4;
   const cw=tabCw*tabFsNow()/13;                        /* 악보 글자 크기에 맞춰 한 줄 마디 수 */
@@ -1298,8 +1334,8 @@ function tabPer(bar){
 let tabFs=+store.get('chordcalc-tabfs')||0;             /* 0 = 기본 (PC 13px, 휴대폰 12px) */
 const tabFsDef=()=>matchMedia('(max-width:640px)').matches?12:13;
 const tabFsNow=()=>tabFs||tabFsDef();
-function setTabFs(v){tabFs=Math.round(Math.max(4,Math.min(28,v))*2)/2;   /* 가장 작게: 4px (예전 최소 8px의 절반) */document.getElementById('adTab').style.setProperty('--tabfs',tabFs+'px')}
-function tabFsDone(){store.set('chordcalc-tabfs',String(tabFs));renderAdTab()}   /* 다 바꾼 뒤 한 줄 마디 수 다시 계산 */
+function setTabFs(v){tabFs=Math.round(Math.max(4,Math.min(28,v))*2)/2;   /* 가장 작게: 4px (예전 최소 8px의 절반) */['adTab','blTab'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.setProperty('--tabfs',tabFs+'px')})}
+function tabFsDone(){store.set('chordcalc-tabfs',String(tabFs));renderAdTab();if(st.tab==='blues')blRender()}   /* 다 바꾼 뒤 한 줄 마디 수 다시 계산 */
 if(tabFs)setTabFs(tabFs);
 (function(){
   const el=document.getElementById('adTab');let pz=null;
@@ -1312,6 +1348,190 @@ if(tabFs)setTabFs(tabFs);
   document.getElementById('tabZi').addEventListener('click',()=>{setTabFs(tabFsNow()*1.15);tabFsDone()});
 })();
 window.addEventListener('resize',()=>{clearTimeout(tabRz);tabRz=setTimeout(()=>{if(st.tab==='adlib'&&ad.licks.length)renderAdTab()},150)});
+/* ====================================================================
+   블루스 탭: 예제 파일(blues_examples.json)을 가져와 TAB · 코드 · 재생 · 반복.
+   예제 내용은 이 기기(localStorage)에만 저장하고 페이지에는 넣지 않는다 (책 저작권).
+   ==================================================================== */
+const BL_KEY='chordcalc-blues',BL_UI='chordcalc-bl';
+/* 코드 진행만 있는 예제를 베이스-코드 패턴으로 만들 때 쓰는 기본 모양 (6번 줄 → 1번 줄, -1 = 안 침) */
+const BLV={E7:[0,2,2,1,3,0],A7:[-1,0,2,2,2,3],B7:[-1,2,1,2,0,2],D7:[-1,-1,0,2,1,2],C7:[-1,3,2,3,1,0],F7:[-1,-1,3,2,4,1],G7:[3,2,0,0,0,1],E:[0,2,2,1,0,0],A:[-1,0,2,2,2,0],D:[-1,-1,0,2,3,2],C:[-1,3,2,0,1,0],G:[3,2,0,0,0,3],B:[-1,2,4,4,4,2]};
+const BL_STR={E:0,A:1,D:2,G:3,B:4,e:5};
+const BL={data:null,idx:0,loop:false,from:0,to:-1,playing:false,cur:null,lk:null,timers:[],srcs:[],tempo:{},shufOv:{}};
+(function(){try{const u=JSON.parse(store.get(BL_UI)||'{}');if(u.idx>=0)BL.idx=u.idx;if(u.loop!=null)BL.loop=!!u.loop;if(u.tempo)BL.tempo=u.tempo;if(u.shufOv)BL.shufOv=u.shufOv}catch(e){}
+  try{const d=JSON.parse(store.get(BL_KEY)||'null');if(d&&Array.isArray(d.examples))BL.data=d}catch(e){}})();
+function blSaveUI(){store.set(BL_UI,JSON.stringify({idx:BL.idx,loop:BL.loop,tempo:BL.tempo,shufOv:BL.shufOv}))}
+function blChord(name){const m=String(name).match(CH);if(!m)return null;const s=m[3];return {r:mod(BASEPC[m[1]]+accv(m[2])),s,b:m[4]?mod(BASEPC[m[4]]+accv(m[5])):null,qi:toQ(s),name}}
+/* 칸 하나 → {dir, ch(코드 바뀜), notes:[{i,f,mute}]} */
+function blTok(tok){
+  const o={notes:[],dir:null,ch:null};if(tok==='.'||tok==='-')return o;
+  let t=tok;const cm=t.match(/^\[([^\]]+)\]/);if(cm){o.ch=cm[1];t=t.slice(cm[0].length)}
+  if(/^[du]/.test(t)){o.dir=t[0]==='d'?'D':'U';t=t.slice(1)}
+  const re=/([eBGDAE])(x|\d{1,2})/g;let m;while((m=re.exec(t)))o.notes.push({i:BL_STR[m[1]],f:m[2]==='x'?0:+m[2],mute:m[2]==='x'});
+  return o;
+}
+/* 코드 진행만 있는 예제: 1·3박 베이스, 2·4박 코드 (예제 11과 같은 패턴) */
+function blProgBars(prog){
+  return prog.split('|').map(b=>{
+    const cs=b.split(',').map(x=>x.trim()).filter(Boolean),per=8/cs.length,toks=[];
+    cs.forEach(c=>{
+      const bc=blChord(c),v=BLV[c]||(bc&&getV(bc))||[0,2,2,1,0,0];
+      const bi=v.findIndex(f=>f>=0),up=[];for(let i=bi+1;i<6&&up.length<4;i++)if(v[i]>=0)up.push(i);
+      const bass='EADGBe'[bi]+v[bi],chd=up.map(i=>'EADGBe'[i]+v[i]).join('');
+      for(let k=0;k<per;k++)toks.push((k===0?'['+c+']':'')+(k%4===0?bass:k%4===2?chd:'-'));
+    });
+    return toks.join(' ');
+  });
+}
+/* 예제 → TAB 렌더러(tabRender)가 쓰는 모양 {name,segs,notes,total,bar} */
+function blBuild(ex){
+  const raw=ex.prog?blProgBars(ex.prog):(ex.bars||[]);
+  const notes=[],marks=[],segs=[];let t=0,pick=0;
+  raw.forEach((line,bi)=>{
+    let s=String(line).trim();const bm=s.match(/^([A-G][^\s:]*):\s*/);if(bm){marks.push([t,bm[1]]);s=s.slice(bm[0].length)}
+    let toks=s.split(/\s+/).filter(Boolean);
+    if(bi===0&&toks.length<8){pick=8-toks.length;toks=Array(pick).fill('.').concat(toks)}   /* 못갖춘마디: 앞을 쉼으로 채움 */
+    while(toks.length<8)toks.push('.');toks=toks.slice(0,8);
+    toks.forEach((tk,k)=>{const o=blTok(tk);if(o.ch)marks.push([t+k,o.ch]);
+      o.notes.forEach((n,q)=>notes.push({t:t+k,dur:1,i:n.i,f:n.f,p:TUNE[n.i]+n.f,mute:n.mute,dir:q===0?o.dir:null,sd:o.dir==='U'?o.notes.length-1-q:q}))});
+    t+=8;
+  });
+  marks.sort((a,b)=>a[0]-b[0]).forEach(([at,nm])=>{const c=blChord(nm);if(!c)return;if(segs.length&&segs[segs.length-1].start===at)segs.pop();segs.push({c,start:at,len:0})});
+  segs.forEach((sg,k)=>sg.len=(k+1<segs.length?segs[k+1].start:t)-sg.start);
+  /* 음 길이: 같은 줄의 다음 음까지 (최대 1마디) */
+  notes.forEach(n=>{const nx=notes.find(m=>m.i===n.i&&m.t>n.t);n.dur=Math.max(1,Math.min(8,(nx?nx.t:t)-n.t))});
+  return {name:ex.title||('예제 '+ex.id),segs,notes,total:t,bar:8,pick:pick?1:0,bars:t/8};
+}
+function blEx(){const d=BL.data;return d&&d.examples[BL.idx]?d.examples[BL.idx]:null}
+function blBpm(ex){return BL.tempo[ex.id]||ex.bpm||80}
+function blShuf(ex){return ex.id in BL.shufOv?BL.shufOv[ex.id]:ex.shuffle!==false}
+function blBarLabel(lk,b){return lk.pick&&b===0?'못갖춘마디':(lk.pick?b:b+1)+'마디'}
+function blRender(){
+  const g=id=>document.getElementById(id),ex=blEx(),tab=g('blTab');
+  if(!BL.data){
+    g('blSel').innerHTML='<option>예제 파일을 먼저 가져오세요</option>';
+    g('blInfo').innerHTML='<p class="sdesc" style="margin:0">[예제 파일]을 눌러 <b>blues_examples.json</b>을 가져오면 예제 목록이 나타납니다. 파일 내용은 이 기기에만 저장됩니다.</p>';
+    tab.innerHTML='<div class="empty">예제 파일을 가져오면 TAB이 여기에 나옵니다.</div>';
+    ['blPlay','blFrom','blTo','blPrev','blNext','blSel'].forEach(id=>g(id).disabled=true);BL.lk=null;drawBoard();return;
+  }
+  ['blPlay','blFrom','blTo','blPrev','blNext','blSel'].forEach(id=>g(id).disabled=false);
+  const groups=[];BL.data.examples.forEach((e,i)=>{let gr=groups.find(x=>x.ch===e.ch);if(!gr)groups.push(gr={ch:e.ch,items:[]});gr.items.push([e,i])});
+  g('blSel').innerHTML=groups.map(gr=>`<optgroup label="${esc(gr.ch||'')}">${gr.items.map(([e,i])=>`<option value="${i}"${i===BL.idx?' selected':''}>${esc(e.title||e.id)}</option>`).join('')}</optgroup>`).join('');
+  if(!ex)return;
+  const lk=BL.lk=blBuild(ex),nb=lk.bars;
+  if(BL.to<0||BL.to>=nb)BL.to=nb-1;if(BL.from>BL.to)BL.from=0;
+  const chs=[...new Set(lk.segs.map(s=>s.c.name))];
+  g('blInfo').innerHTML=`<div class="blttl">${esc(ex.title||'')}</div><p class="blmeta">${esc(ex.ch||'')} · ${esc(ex.key||'')} 키 · 코드 ${chs.map(esc).join(' · ')}${ex.prog?' · 코드 진행 (베이스-코드 패턴으로 생성)':''}</p>${ex.note?`<p class="sdesc" style="margin:0">${esc(ex.note)}</p>`:''}`;
+  const opt=sel=>Array.from({length:nb},(_,b)=>`<option value="${b}"${b===sel?' selected':''}>${blBarLabel(lk,b)}</option>`).join('');
+  g('blFrom').innerHTML=opt(BL.from);g('blTo').innerHTML=opt(BL.to);
+  g('blShuf').setAttribute('aria-pressed',blShuf(ex));
+  g('blBpm').value=blBpm(ex);g('blBpmOut').textContent=blBpm(ex);
+  g('blPlay').textContent=BL.playing?'정지':'재생';g('blLoop').setAttribute('aria-pressed',BL.loop);
+  tab.innerHTML=`<div class="tabsec"><pre>${tabRender(lk,'b',true,tabPer(8,'blTab'))}</pre></div>`;
+  blMark();drawBoard();
+}
+function blMark(){
+  document.querySelectorAll('#blTab span.now').forEach(x=>x.classList.remove('now'));
+  if(BL.cur&&BL.lk)BL.lk.notes.forEach((n,ni)=>{if(n.t===BL.cur.t){const s=document.querySelector('#blTab [data-n="b-'+ni+'"]');if(s)s.classList.add('now')}});
+}
+function blStop(){
+  BL.timers.forEach(clearTimeout);BL.timers=[];BL.srcs.forEach(s=>{try{s.stop()}catch(e){}});BL.srcs=[];
+  const was=BL.playing;BL.playing=false;BL.cur=null;
+  if(was){document.getElementById('blPlay').textContent='재생';blMark();drawBoard()}
+}
+function blPlay(){
+  const ex=blEx();if(!ex)return;blStop();
+  try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume()}catch(e){return}
+  const lk=BL.lk||blBuild(ex),e=60/blBpm(ex)/2,sw=blShuf(ex);
+  let a=BL.from*8;const z=(BL.to+1)*8;
+  const inR=lk.notes.filter(n=>n.t>=a&&n.t<z);if(!inR.length)return;
+  if(BL.from===0)a=Math.min(...inR.map(n=>n.t));                  /* 못갖춘마디: 첫 음부터 */
+  const out=actx.createGain();out.gain.value=0.32;out.connect(actx.destination);
+  const at=t=>(t-a)*e+(sw&&t%2?e/3:0);                            /* 셔플: 뒤 8분음표를 셋잇단 셋째 자리로 */
+  const built=inR.map(n=>{const d=n.mute?0.06:Math.min(2.4,Math.min(n.dur,z-n.t)*e+0.15);
+    return {tt:at(n.t)+(n.sd||0)*0.014,buf:makeBuf(n.p,d,n.mute?0.9:0.996,n.mute?0.8:(n.i<=1?1.05:0.8))}});
+  const times=[...new Set(inR.map(n=>n.t))],len=(z-a)*e;
+  function sched(t0){
+    if(BL.srcs.length>3*built.length)BL.srcs=BL.srcs.slice(-built.length);
+    if(BL.timers.length>600)BL.timers=BL.timers.slice(-300);
+    built.forEach(x=>{const s=actx.createBufferSource();s.buffer=x.buf;s.connect(out);s.start(t0+x.tt);BL.srcs.push(s)});
+    times.forEach(t=>BL.timers.push(setTimeout(()=>{BL.cur={t};blMark();drawBoard()},Math.max(0,(t0+at(t)-actx.currentTime)*1000))));
+    const end=t0+len;
+    BL.timers.push(setTimeout(()=>{
+      if(!BL.playing)return;
+      if(BL.loop)sched(end);
+      else BL.timers.push(setTimeout(()=>{BL.playing=false;BL.cur=null;document.getElementById('blPlay').textContent='재생';blMark();drawBoard()},Math.max(0,(end-actx.currentTime)*1000)+300));
+    },Math.max(0,(end-actx.currentTime-0.4)*1000)));
+  }
+  BL.playing=true;document.getElementById('blPlay').textContent='정지';sched(actx.currentTime+0.12);
+}
+/* 지판: 지금 마디에서 쓰는 음(흐리게) + 지금 치는 음(진하게), 색은 그 순간 코드 기준 */
+function blDots(){
+  const lk=BL.lk;if(!lk)return'';
+  const t=BL.cur?BL.cur.t:blRestT(lk),b=Math.floor(t/8);
+  const sg=lk.segs.find(x=>t>=x.start&&t<x.start+x.len)||lk.segs[0];
+  const seen=new Set();let s='';
+  lk.notes.filter(n=>Math.floor(n.t/8)===b&&!n.mute).sort((x,y)=>(y.t===t)-(x.t===t)).forEach(n=>{   /* 지금 치는 음을 먼저 → 같은 자리는 한 번만 */
+    const k=n.i+'-'+n.f,on=!BL.cur||n.t===t;if(seen.has(k))return;seen.add(k);
+    let cls='tone',lab=nn(TUNE[n.i]+n.f);
+    if(sg){const x=mod(TUNE[n.i]+n.f-sg.c.r),q=Q[sg.c.qi];if(q.iv.some(y=>mod(y)===x)){cls=role(x,q);if(st.lbl==='deg')lab=degree(x,q)}else if(st.lbl==='deg')lab=GEN[x]}
+    s+=dot(n.i,n.f,cls+(on?' on':' dim'),lab);
+  });
+  return s;
+}
+function blRestT(lk){const b=BL.from===0&&lk.pick&&lk.bars>1?1:BL.from;return b*8}   /* 멈춰 있을 때 보여 줄 마디 */
+function blCap(){
+  const ex=blEx(),lk=BL.lk;if(!ex||!lk)return'블루스 예제 파일을 가져오면 지판에 운지가 표시됩니다.';
+  const t=BL.cur?BL.cur.t:blRestT(lk),sg=lk.segs.find(x=>t>=x.start&&t<x.start+x.len)||lk.segs[0];
+  return ex.title+' · '+blBarLabel(lk,Math.floor(t/8))+(sg?' · '+sg.c.name:'')+'. 진한 점이 지금 치는 음입니다.';
+}
+async function blImport(){
+  let txt='';
+  try{
+    if(window.showOpenFilePicker){const [h]=await window.showOpenFilePicker({types:[{description:'예제 파일',accept:{'application/json':['.json']}}]});txt=await (await h.getFile()).text()}
+    else{document.getElementById('blFile').click();return}
+  }catch(e){if(e&&e.name==='AbortError')return;document.getElementById('blFile').click();return}
+  blLoadText(txt);
+}
+function blLoadText(txt){
+  let d;try{d=JSON.parse(txt)}catch(e){alert('예제 파일을 읽지 못했습니다.');return}
+  if(!d||d.kind!=='saygita-blues'||!Array.isArray(d.examples)){alert('블루스 예제 파일(blues_examples.json)이 아닙니다.');return}
+  blStop();BL.data=d;store.set(BL_KEY,JSON.stringify(d));if(BL.idx>=d.examples.length)BL.idx=0;BL.from=0;BL.to=-1;BL.lk=null;blSaveUI();blRender();
+  alert('예제 '+d.examples.length+'개를 가져왔습니다.');
+}
+document.getElementById('blFile').addEventListener('change',async e=>{const f=e.target.files[0];if(f)blLoadText(await f.text());e.target.value=''});
+function blGo(i){const n=BL.data?BL.data.examples.length:0;if(!n)return;const was=BL.playing;blStop();BL.idx=(i+n)%n;BL.from=0;BL.to=-1;BL.lk=null;blSaveUI();blRender();if(was)blPlay()}
+document.getElementById('p-blues').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;const ex=blEx();
+  if(b.id==='blImp')return blImport();
+  if(b.id==='blPlay')return BL.playing?blStop():blPlay();
+  if(b.id==='blLoop'){BL.loop=!BL.loop;b.setAttribute('aria-pressed',BL.loop);blSaveUI();return}   /* 재생 중이어도 다음 바퀴부터 */
+  if(b.id==='blPrev')return blGo(BL.idx-1);
+  if(b.id==='blNext')return blGo(BL.idx+1);
+  if(b.id==='blZo'){setTabFs(tabFsNow()/1.15);return tabFsDone()}
+  if(b.id==='blZi'){setTabFs(tabFsNow()*1.15);return tabFsDone()}
+  if(!ex)return;
+  if(b.id==='blAll'){BL.from=0;BL.to=-1}
+  else if(b.id==='blShuf'){BL.shufOv[ex.id]=!blShuf(ex);blSaveUI()}
+  else return;
+  const was=BL.playing;blStop();blRender();if(was)blPlay();
+});
+document.getElementById('p-blues').addEventListener('change',e=>{
+  const id=e.target.id,was=BL.playing;
+  if(id==='blSel')return blGo(+e.target.value);
+  if(id==='blFrom'||id==='blTo'){BL[id==='blFrom'?'from':'to']=+e.target.value;if(BL.from>BL.to){if(id==='blFrom')BL.to=BL.from;else BL.from=BL.to}blStop();blRender();if(was)blPlay();return}
+  if(id==='blBpm'){const ex=blEx();if(ex){BL.tempo[ex.id]=+e.target.value;blSaveUI()}blStop();blRender();if(was)blPlay()}
+});
+document.getElementById('blBpm').addEventListener('input',e=>{document.getElementById('blBpmOut').textContent=e.target.value});
+/* 악보 두 손가락 확대 · Ctrl+휠: 블루스 TAB 에도 */
+(function(){
+  const el=document.getElementById('blTab');let pz=null;
+  const dist=t=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);
+  el.addEventListener('touchstart',e=>{if(e.touches.length===2)pz={d:dist(e.touches),f:tabFsNow()}},{passive:true});
+  el.addEventListener('touchmove',e=>{if(!pz||e.touches.length!==2)return;e.preventDefault();setTabFs(pz.f*dist(e.touches)/pz.d)},{passive:false});
+  el.addEventListener('touchend',e=>{if(pz&&e.touches.length<2){pz=null;tabFsDone()}});
+  el.addEventListener('wheel',e=>{if(!e.ctrlKey)return;e.preventDefault();setTabFs(tabFsNow()*Math.exp(-e.deltaY*0.01));clearTimeout(setTabFs.t);setTabFs.t=setTimeout(tabFsDone,250)},{passive:false});
+})();
+window.addEventListener('resize',()=>{clearTimeout(blRender.t);blRender.t=setTimeout(()=>{if(st.tab==='blues')blRender()},150)});
 /* ---------- 고른 구간(▶ 이 구간만)만 반주 패턴을 기본값에서 바꾸기 (구간 이름으로 기억). 선택 칸은 고른 구간에만 나옴 ---------- */
 function secPk(name){const k=ad.secPat&&ad.secPat[name];return k&&ARP[k]&&(ARP[k].m||8)===ad.meter?k:null}
 function secPatSel(lk,k){
@@ -1615,8 +1835,9 @@ function setTab(t){
   st.tab=t;
   document.querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t));
   if(t!=='adlib'&&ad.playing)adStop();
-  ['find','name','scale','adlib','shift'].forEach(p=>document.getElementById('p-'+p).hidden=p!==t);
-  drawBoard();if(t==='name')renderName();if(t==='scale')renderScale();if(t==='shift')renderShift();if(t==='adlib')renderAdTab();
+  if(t!=='blues'&&BL.playing)blStop();
+  ['find','name','scale','adlib','blues','shift'].forEach(p=>document.getElementById('p-'+p).hidden=p!==t);
+  drawBoard();if(t==='name')renderName();if(t==='scale')renderScale();if(t==='shift')renderShift();if(t==='adlib')renderAdTab();if(t==='blues')blRender();
 }
 document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
 document.querySelectorAll('[data-acc]').forEach(b=>b.addEventListener('click',()=>{
@@ -1659,7 +1880,7 @@ if(uiSaved){
   if(!inr(st.qi,0,Q.length-1))st.qi=0;
   if(st.bass!=null&&!inr(st.bass,0,11))st.bass=null;
   if(!Array.isArray(st.nv)||st.nv.length!==6)st.nv=[-1,3,2,0,1,0];
-  if(!['find','name','scale','adlib','shift'].includes(st.tab))st.tab='find';
+  if(!['find','name','scale','adlib','blues','shift'].includes(st.tab))st.tab='find';
   if(st.schShape&&!(inr(st.schShape.r,0,11)&&inr(st.schShape.qi,0,Q.length-1)&&inr(st.schShape.vi,0,20)))st.schShape=null;
   if(!inr(st.semi,-11,11))st.semi=0;
   if(!inr(st.capo,0,12))st.capo=0;
