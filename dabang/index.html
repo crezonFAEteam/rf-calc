@@ -171,7 +171,10 @@ textarea{width:100%;background:var(--surface);border:1px solid var(--line);borde
 .drow .go[aria-pressed="true"]{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent);font-weight:600}
 #p-scale .head{align-items:center;margin-top:6px}
 .tab{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;overflow-x:auto;margin-top:14px}
-.tab pre{margin:0;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:13px;line-height:1.45}
+.tab pre{margin:0;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:var(--tabfs,13px);line-height:1.45}
+#adTab{touch-action:pan-x pan-y}   /* 두 손가락 확대는 스크립트가 악보 글자만 키운다 */
+.tab .ly{display:inline-block;overflow:hidden;white-space:nowrap;vertical-align:bottom}
+.tab .ly i{font-style:normal;font-family:"IBM Plex Sans KR",system-ui,sans-serif;font-size:.95em;color:var(--ink)}
 .tab .ch{color:var(--accent);font-weight:600}
 .tab span.now{background:var(--accent-fill);color:var(--on-accent);border-radius:3px}
 .btns.left{justify-content:flex-start}
@@ -192,8 +195,6 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .songbar select{flex:1 1 150px;min-width:0;width:auto!important;padding:6px 8px}
 .ghost.sm{padding:4px 12px;font-size:.85rem;min-height:0}
 .ghost.sm:disabled{opacity:.4;cursor:default}
-.syncst{flex-basis:100%;font-size:.74rem;color:var(--muted);line-height:1.4}
-.syncst a{color:inherit;text-decoration:underline dotted;cursor:pointer}
 /* ---- 스마트폰 ---- */
 button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 @media (max-width:640px){
@@ -224,7 +225,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
   .drow .go{min-height:36px}
   textarea,select,input{font-size:16px}   /* 16px 미만이면 아이폰이 입력할 때 확대한다 */
   select{width:100%}
-  .tab pre{font-size:12px}
+  .tab pre{font-size:var(--tabfs,12px)}
   .songbar .ghost.sm{min-height:38px;padding:4px 10px}
   .songbar select{flex-basis:100%}
 }
@@ -335,9 +336,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
           <button id="songDel" class="ghost sm" title="고른 곡 삭제">삭제</button>
           <button id="songExp" class="ghost sm" title="저장한 곡 전체를 파일로 (다른 기기로 옮길 때)">내보내기</button>
           <button id="songImp" class="ghost sm" title="내보낸 파일에서 곡 가져오기">가져오기</button>
-          <button id="songSync" class="ghost sm" title="GitHub(비밀 Gist)에 곡 목록을 저장해 PC · 휴대폰이 같은 목록을 쓰기" hidden>☁ 동기화</button><!-- 동기화: 토큰 입력이 어려워 당분간 숨김 (hidden 지우면 다시 켜짐) -->
           <input type="file" id="songFile" accept=".json,application/json" hidden>
-          <span id="syncStat" class="syncst" role="status" hidden></span>
         </div>
         <label class="flabel" for="adSrc">곡의 코드 진행</label>
         <textarea id="adSrc" rows="9" spellcheck="false"></textarea>
@@ -355,7 +354,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
         <div class="field"><label class="flabel" for="adBpm">템포 <output id="adBpmOut"></output> BPM</label><input type="range" id="adBpm" min="50" max="160" step="2"></div>
       </div>
       <div>
-        <div class="btns left"><button id="adPlayBtn" class="play">재생</button><button id="adGen" class="ghost">새로 만들기</button><button id="adCopy" class="ghost">TAB 복사</button></div>
+        <div class="btns left"><button id="adPlayBtn" class="play">재생</button><button id="adGen" class="ghost">새로 만들기</button><button id="adCopy" class="ghost">TAB 복사</button><button id="tabZo" class="ghost pc-only" title="악보 글자 작게 (Ctrl+휠)">가−</button><button id="tabZi" class="ghost pc-only" title="악보 글자 크게 (Ctrl+휠)">가+</button></div>
         <div class="tab" id="adTab"></div>
         <p class="sdesc" id="adNote">각 마디의 첫째 박과 셋째 박, 마지막 음은 그 마디 코드의 코드톤에 떨어지도록 만들고, 마지막 마디는 코드의 루트에서 끝납니다. 마음에 드는 프레이즈가 나올 때까지 새로 만들기를 눌러 보고, 좋은 건 TAB을 복사해 두세요. TAB의 칸 하나는 8분음표이고, h는 해머링, p는 풀링, /와 \는 슬라이드입니다.</p>
       </div>
@@ -1043,7 +1042,7 @@ function arpString(v,tok){
 }
 function genArp(b,pk){
   const pat=ARP[pk].p,sw=!!ARP[pk].sw,acc=new Set(ad.accOv[pk]||ARP[pk].acc||[0]),segs=[],notes=[];let t=0;
-  b.segs.forEach(s=>{segs.push({c:s.c,start:t,len:s.len});t+=s.len});
+  b.segs.forEach(s=>{segs.push({c:s.c,start:t,len:s.len,ly:s.ly});t+=s.len});
   segs.forEach(sg=>{
     const v=getV(sg.c);if(!v)return;
     for(let o=0;o<sg.len;o++){const tok=pat[o%pat.length];if(tok==='-')continue;
@@ -1087,11 +1086,27 @@ function applyCombo(k){
   ad.selArp=new Set(ad.blocks.map((_,i)=>i));
   ad.bpm=c.bpm;document.getElementById('adBpm').value=c.bpm;
 }
+/* 가사 줄을 바로 위 코드 줄의 코드마다 자른다. 입력칸은 글자 폭이 제각각인 글꼴이라
+   글자 수가 아니라 화면에 보이는 위치(픽셀)로 코드 아래에 있는 가사를 찾는다 */
+let lyCtx=null;
+function lyCut(chLine,idx,lyLine){
+  try{
+    lyCtx=lyCtx||document.createElement('canvas').getContext('2d');
+    const cs=getComputedStyle(document.getElementById('adSrc'));
+    lyCtx.font=`${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    const W=s=>lyCtx.measureText(s.replace(/\t/g,'    ')).width;
+    const xs=idx.map(i=>W(chLine.slice(0,i)));
+    const pre=[0];for(let i=1;i<=lyLine.length;i++)pre.push(W(lyLine.slice(0,i)));
+    const cuts=xs.map(x=>{let b=0;for(let i=1;i<pre.length;i++)if(Math.abs(pre[i]-x)<Math.abs(pre[b]-x))b=i;return b});
+    cuts[0]=0;
+    return cuts.map((c,j)=>lyLine.slice(c,j+1<cuts.length?Math.max(c,cuts[j+1]):lyLine.length).trim());
+  }catch(e){return idx.map((_,j)=>j?'':lyLine.trim())}
+}
 function adParse(){
   const txt=document.getElementById('adSrc').value.replace(/\r/g,'');
   const blocks=[];
   txt.split(/\n\s*\n/).forEach(chunk=>{
-    const b={label:'',lyric:'',segs:[]};let lastLine=null;
+    const b={label:'',lyric:'',segs:[]};let lastLine=null,lyT=null;
     chunk.split('\n').forEach(line=>{
       const t=line.trim();if(!t)return;
       const lab=t.match(/^[\(\[]\s*([^\)\]]+?)\s*[\)\]]$/);if(lab){b.label=lab[1];return}
@@ -1100,13 +1115,16 @@ function adParse(){
       if(ms.every(Boolean)){
         lastLine=[];
         ms.forEach(m=>{const s=m[3];const seg={c:{r:mod(BASEPC[m[1]]+accv(m[2])),s,b:m[4]?mod(BASEPC[m[4]]+accv(m[5])):null,qi:toQ(s)},len:ad.meter};b.segs.push(seg);lastLine.push(seg)});
+        const idx=[];line.replace(/[^\s|]+/g,(m,i)=>{idx.push(i);return m});
+        lyT={line,idx,segs:lastLine};                   /* 이 코드 줄 아래 가사 한 줄을 받는다 */
         return;
       }
-      if(/^\d/.test(t)&&lastLine){
+      if(/^\d+(\s|$)/.test(t)&&lastLine){              /* 첫 칸이 숫자면 박자 줄 ("2절…" 같은 가사는 아님) */
         const nums=[];for(const x of toks){if(/^\d+$/.test(x))nums.push(+x);else break}
         nums.forEach((n,k)=>{if(lastLine[k]&&n>0&&n<=64)lastLine[k].len=n});
         lastLine=null;return;
       }
+      if(lyT){lyCut(lyT.line,lyT.idx,line.replace(/\s+$/,'')).forEach((f,j)=>{if(lyT.segs[j])lyT.segs[j].ly=f});lyT=null}
       if(!b.lyric)b.lyric=t.replace(/\s+/g,' ').slice(0,12);
     });
     if(b.segs.length)blocks.push(b);
@@ -1139,7 +1157,7 @@ function nearestTone(pool,idx,tones,prefer){
 }
 function genBlock(b,pool,style){
   const R=RHY[style],BAR=ad.meter;let cur=pool[Math.floor(pool.length/2)].p,dir=Math.random()<.5?1:-1;
-  const segs=[];let t=0;b.segs.forEach(s=>{segs.push({c:s.c,start:t,len:s.len});t+=s.len});
+  const segs=[];let t=0;b.segs.forEach(s=>{segs.push({c:s.c,start:t,len:s.len,ly:s.ly});t+=s.len});
   const notes=[];
   segs.forEach((sg,si)=>{
     const tones=new Set(Q[sg.c.qi].iv.map(x=>mod(sg.c.r+x)));
@@ -1184,6 +1202,20 @@ function tabRender(lk,k,html,perIn){
   const BAR=lk.bar||8,per=perIn||4,W=BAR*3,out=[],bars=Math.ceil(lk.total/BAR);
   for(let b0=0;b0<bars;b0+=per){
     let head='  ',dirl='  ',hasDir=false,accl='  ',hasAcc=false;const rows=['e','B','G','D','A','E'].map(n=>n+'|');
+    /* 가사 줄: 코드 이름과 같은 칸에서 시작. 화면(html)에서는 칸 폭(ch)을 고정한 상자에 넣어 한글이 넓어도 줄이 밀리지 않게 */
+    let lyl=html?'<span class="ly" style="width:2ch"></span>':'  ',hasLy=false;
+    for(let b=b0;b<Math.min(bars,b0+per);b++){
+      const inBar=lk.segs.filter(s=>s.start>=b*BAR&&s.start<b*BAR+BAR);let lc=0;
+      inBar.forEach((s,j)=>{
+        const pos=(s.start-b*BAR)*3+1,end=j+1<inBar.length?(inBar[j+1].start-b*BAR)*3+1:W+1,txt=s.ly||'';
+        if(txt)hasLy=true;
+        if(pos>lc){lyl+=html?`<span class="ly" style="width:${pos-lc}ch"></span>`:' '.repeat(pos-lc);lc=pos}
+        const w=Math.max(1,end-lc);
+        lyl+=html?`<span class="ly" style="width:${w}ch"><i>${esc(txt)}</i></span>`:(txt+' ').padEnd(w).slice(0,Math.max(w,txt.length+1));
+        lc+=w;
+      });
+      if(lc<W+1)lyl+=html?`<span class="ly" style="width:${W+1-lc}ch"></span>`:' '.repeat(W+1-lc);
+    }
     for(let b=b0;b<Math.min(bars,b0+per);b++){
       let col=0,hs='';
       lk.segs.filter(s=>s.start>=b*BAR&&s.start<b*BAR+BAR).forEach(s=>{
@@ -1203,7 +1235,7 @@ function tabRender(lk,k,html,perIn){
       dirl+=dc.join('');accl+=ac.join('');
       for(let r=0;r<6;r++){let line='';for(let x=0;x<W;){const m=marks[r][x];if(html&&m){line+=`<span data-n="${m.id}">${esc(cells[r].slice(x,x+m.len).join(''))}</span>`;x+=m.len}else{line+=html?esc(cells[r][x]):cells[r][x];x++}}rows[r]+=line+'|'}
     }
-    out.push(head,...(hasAcc?[html?accl.replace(/>/g,'<span class="acc">&gt;</span>'):accl]:[]),...(hasDir?[dirl]:[]),...rows,'');
+    out.push(head,...(hasAcc?[html?accl.replace(/>/g,'<span class="acc">&gt;</span>'):accl]:[]),...(hasDir?[dirl]:[]),...rows,...(hasLy?[lyl]:[]),'');
   }
   return out.join('\n');
 }
@@ -1244,8 +1276,26 @@ function tabPer(bar){
   const el=document.getElementById('adTab'),w=el.clientWidth-26;
   if(!tabCw){const m=document.createElement('span');m.style.cssText='font:13px ui-monospace,"SF Mono",Menlo,Consolas,monospace;visibility:hidden;position:absolute;white-space:pre';m.textContent='-'.repeat(50);document.body.appendChild(m);tabCw=m.getBoundingClientRect().width/50;m.remove()}
   if(!(w>0)||!tabCw)return 4;
-  return Math.max(1,Math.min(8,Math.floor((w-2*tabCw)/(((bar||8)*3+1)*tabCw))));
+  const cw=tabCw*tabFsNow()/13;                        /* 악보 글자 크기에 맞춰 한 줄 마디 수 */
+  return Math.max(1,Math.min(8,Math.floor((w-2*cw)/(((bar||8)*3+1)*cw))));
 }
+/* ---------- 악보(TAB) 글자 크기: 휴대폰 두 손가락 · PC [가−][가+] · Ctrl+휠 ---------- */
+let tabFs=+store.get('chordcalc-tabfs')||0;             /* 0 = 기본 (PC 13px, 휴대폰 12px) */
+const tabFsDef=()=>matchMedia('(max-width:640px)').matches?12:13;
+const tabFsNow=()=>tabFs||tabFsDef();
+function setTabFs(v){tabFs=Math.round(Math.max(8,Math.min(28,v))*2)/2;document.getElementById('adTab').style.setProperty('--tabfs',tabFs+'px')}
+function tabFsDone(){store.set('chordcalc-tabfs',String(tabFs));renderAdTab()}   /* 다 바꾼 뒤 한 줄 마디 수 다시 계산 */
+if(tabFs)setTabFs(tabFs);
+(function(){
+  const el=document.getElementById('adTab');let pz=null;
+  const dist=t=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);
+  el.addEventListener('touchstart',e=>{if(e.touches.length===2)pz={d:dist(e.touches),f:tabFsNow()}},{passive:true});
+  el.addEventListener('touchmove',e=>{if(!pz||e.touches.length!==2)return;e.preventDefault();setTabFs(pz.f*dist(e.touches)/pz.d)},{passive:false});
+  el.addEventListener('touchend',e=>{if(pz&&e.touches.length<2){pz=null;tabFsDone()}});
+  el.addEventListener('wheel',e=>{if(!e.ctrlKey)return;e.preventDefault();setTabFs(tabFsNow()*Math.exp(-e.deltaY*0.01));clearTimeout(setTabFs.t);setTabFs.t=setTimeout(tabFsDone,250)},{passive:false});
+  document.getElementById('tabZo').addEventListener('click',()=>{setTabFs(tabFsNow()/1.15);tabFsDone()});
+  document.getElementById('tabZi').addEventListener('click',()=>{setTabFs(tabFsNow()*1.15);tabFsDone()});
+})();
 window.addEventListener('resize',()=>{clearTimeout(tabRz);tabRz=setTimeout(()=>{if(st.tab==='adlib'&&ad.licks.length)renderAdTab()},150)});
 function renderAdTab(){
   const el=document.getElementById('adTab');
@@ -1434,84 +1484,13 @@ document.getElementById('songSave').addEventListener('click',e=>{
   const i=a.findIndex(s=>s.name===name);
   if(i>=0&&name!==curSong&&!confirm(`"${name}" 곡이 이미 있습니다. 덮어쓸까요?`))return;
   const p=songPack(name);if(i>=0)a[i]=p;else a.push(p);
-  songsPut(a);curSong=name;store.set('chordcalc-cursong',name);renderSongs();songFlash(e.currentTarget,'저장됨');ghSync(true);
+  songsPut(a);curSong=name;store.set('chordcalc-cursong',name);renderSongs();songFlash(e.currentTarget,'저장됨');
 });
 document.getElementById('songDel').addEventListener('click',()=>{
   if(!curSong||!confirm(`"${curSong}" 곡을 삭제할까요?`))return;
-  tombsPut(tombs().filter(t=>t.name!==curSong).concat([{name:curSong,ts:Date.now()}]));   /* 다른 기기에서도 지워지도록 기록 */
-  songsPut(songs().filter(s=>s.name!==curSong));curSong='';store.set('chordcalc-cursong','');renderSongs();ghSync(true);
+  songsPut(songs().filter(s=>s.name!==curSong));curSong='';store.set('chordcalc-cursong','');renderSongs();
 });
 
-/* ---------- GitHub Gist 동기화 ----------
-   곡 목록을 비밀 Gist(saygita-songs.json) 하나에 둔다. 토큰은 기기마다 한 번 입력 → 그 기기 브라우저에만 저장 (페이지 코드에는 없음).
-   합치기: 같은 이름이면 나중에 저장(ts)한 쪽, 지운 기록(deleted)이 더 나중이면 지움. */
-const GH={tok:()=>store.get('saygita-gh-token')||'',gid:()=>store.get('saygita-gist-id')||'',FILE:'saygita-songs.json'};
-function tombs(){try{const t=JSON.parse(store.get('chordcalc-songs-del')||'[]');return Array.isArray(t)?t:[]}catch(e){return[]}}
-function tombsPut(t){store.set('chordcalc-songs-del',JSON.stringify(t.slice(-300)))}
-async function gh(path,opt){
-  opt=opt||{};
-  const r=await fetch('https://api.github.com'+path,Object.assign({},opt,{cache:'no-store',headers:Object.assign({'Accept':'application/vnd.github+json','Authorization':'Bearer '+GH.tok()},opt.body?{'Content-Type':'application/json'}:{})}));
-  if(!r.ok){
-    const t=await r.text().catch(()=>'');
-    const e=new Error(r.status===401?'토큰이 맞지 않거나 만료되었습니다':r.status===403?'토큰에 gist 권한이 없거나 요청이 너무 많습니다':r.status===404?'Gist를 찾지 못했습니다':'GitHub 오류 '+r.status+' '+t.slice(0,80));
-    e.status=r.status;throw e;
-  }
-  return r.status===204?null:r.json();
-}
-function mergeSongs(remote){
-  const rs=(remote&&Array.isArray(remote.songs))?remote.songs:[],rt=(remote&&Array.isArray(remote.deleted))?remote.deleted:[];
-  const tomb={};tombs().concat(rt).forEach(t=>{if(t&&t.name&&(!tomb[t.name]||tomb[t.name]<t.ts))tomb[t.name]=t.ts});
-  const by={};rs.concat(songs()).forEach(s=>{if(!s||typeof s.name!=='string')return;if(!by[s.name]||(by[s.name].ts||0)<(s.ts||0))by[s.name]=s});
-  return {songs:Object.values(by).filter(s=>!(tomb[s.name]&&tomb[s.name]>=(s.ts||0))),deleted:Object.entries(tomb).map(([name,ts])=>({name,ts}))};
-}
-async function ghGist(){
-  let id=GH.gid();
-  if(id){try{return await gh('/gists/'+id)}catch(e){if(e.status!==404)throw e}}
-  const list=await gh('/gists?per_page=100');                        /* 다른 기기에서 이미 만든 Gist 가 있으면 그걸 쓴다 */
-  const f=list.find(x=>x.files&&x.files[GH.FILE]);
-  const g=f?await gh('/gists/'+f.id):await gh('/gists',{method:'POST',body:JSON.stringify({description:'쎄이기타 곡 목록 (자동 동기화)',public:false,
-    files:{[GH.FILE]:{content:JSON.stringify({app:'쎄이기타',ver:2,songs:[],deleted:[]})}}})});
-  store.set('saygita-gist-id',g.id);return g;
-}
-let syncing=false,syncAgain=false;
-function syncStat(msg){
-  const el=document.getElementById('syncStat');
-  if(!GH.tok()){el.innerHTML='☁ GitHub 연결 안 됨 — [☁ 동기화]를 누르면 PC · 휴대폰이 같은 곡 목록을 씁니다.';return}
-  if(msg){el.textContent=msg;return}
-  const t=+store.get('saygita-gh-last')||0,m=t?Math.round((Date.now()-t)/60000):null;
-  el.innerHTML=`☁ GitHub 동기화됨${t?` · ${m<1?'방금':m<60?m+'분 전':Math.round(m/60)+'시간 전'}`:''} · <a id="ghOff">연결 해제</a>`;
-}
-async function ghSync(quiet){
-  if(!GH.tok())return;
-  if(syncing){syncAgain=true;return}
-  syncing=true;syncStat('☁ 동기화 중…');
-  try{
-    const g=await ghGist(),f=g.files&&g.files[GH.FILE];
-    let remote={songs:[],deleted:[]},txt='';
-    if(f){txt=f.content||'';if(f.truncated&&f.raw_url)txt=await (await fetch(f.raw_url,{cache:'no-store'})).text();try{remote=JSON.parse(txt)||remote}catch(e){}}
-    const m=mergeSongs(remote);
-    songsPut(m.songs);tombsPut(m.deleted);renderSongs();
-    const body=JSON.stringify({app:'쎄이기타',ver:2,songs:m.songs,deleted:m.deleted});
-    if(body!==txt)await gh('/gists/'+g.id,{method:'PATCH',body:JSON.stringify({files:{[GH.FILE]:{content:body}}})});
-    store.set('saygita-gh-last',String(Date.now()));syncStat();
-  }catch(e){syncStat('☁ 동기화 실패: '+e.message);if(!quiet)alert('GitHub 동기화 실패\n'+e.message)}
-  finally{syncing=false;if(syncAgain){syncAgain=false;ghSync(true)}}
-}
-document.getElementById('songSync').addEventListener('click',()=>{
-  if(!GH.tok()){
-    if(confirm('GitHub 토큰이 필요합니다 (처음 한 번, 이 기기에서만).\n\n토큰 만드는 페이지를 열까요?\n→ "gist" 한 칸만 체크 → Generate token → 나온 값을 복사해서 여기 붙여 넣기'))
-      window.open('https://github.com/settings/tokens/new?scopes=gist&description=saygita','_blank','noopener');
-    const t=prompt('GitHub 토큰을 붙여 넣으세요 (gist 권한만 있는 토큰).\n이 기기 브라우저에만 저장되고 페이지 코드나 GitHub 저장소에는 들어가지 않습니다.');
-    if(!t||!t.trim())return;
-    store.set('saygita-gh-token',t.trim());
-  }
-  ghSync(false);
-});
-document.getElementById('syncStat').addEventListener('click',e=>{
-  if(e.target.id!=='ghOff')return;
-  if(!confirm('이 기기의 GitHub 연결을 해제할까요?\n(이 기기에 저장된 토큰만 지웁니다. Gist의 곡과 이 기기의 곡은 그대로)'))return;
-  ['saygita-gh-token','saygita-gist-id','saygita-gh-last'].forEach(k=>{try{localStorage.removeItem(k)}catch(err){}});syncStat();
-});
 /* 내보낸 파일 위치 기억: PC 크롬 · 엣지는 파일 선택 창(File System Access)으로 저장하고, 그 파일 핸들을 IndexedDB 에 둔다.
    가져오기 창은 그 파일이 있는 폴더에서 열린다 (처음엔 다운로드 폴더). 지원 안 하는 브라우저는 예전 방식. */
 const FSA=!!(window.showSaveFilePicker&&window.showOpenFilePicker);
@@ -1520,6 +1499,7 @@ function idb(mode,fn){return new Promise((res,rej)=>{let q;try{q=indexedDB.open(
   q.onupgradeneeded=()=>q.result.createObjectStore('kv');q.onerror=()=>rej(q.error);
   q.onsuccess=()=>{try{const tx=q.result.transaction('kv',mode),r=fn(tx.objectStore('kv'));tx.oncomplete=()=>res(r&&r.result);tx.onerror=()=>rej(tx.error)}catch(e){rej(e)}}})}
 const lastFile={get:()=>idb('readonly',s=>s.get('songFile')).catch(()=>null),set:h=>idb('readwrite',s=>s.put(h,'songFile')).catch(()=>{})};
+let lastH=null;if(FSA)lastFile.get().then(h=>{lastH=h||null});   /* 미리 읽어 둠 — 버튼을 누르는 즉시 창을 열어야 브라우저가 허락 */
 function songImport(t){
   let inc;try{const j=JSON.parse(t);inc=Array.isArray(j)?j:j.songs}catch(err){}
   inc=(inc||[]).filter(s=>s&&typeof s.name==='string'&&typeof s.src==='string');
@@ -1528,7 +1508,7 @@ function songImport(t){
   if(dup&&!confirm(`${inc.length}곡 중 ${dup}곡은 같은 이름이 있습니다. 가져온 것으로 덮어쓸까요?\n(취소하면 같은 이름은 건너뜁니다)`))inc=inc.filter(s=>!a.some(x=>x.name===s.name));
   inc.forEach(s=>{const i=a.findIndex(x=>x.name===s.name);if(i>=0)a[i]=s;else a.push(s)});
   inc.forEach(s=>{if(!s.ts)s.ts=Date.now()});
-  songsPut(a);renderSongs();alert(`${inc.length}곡을 가져왔습니다.`);ghSync(true);
+  songsPut(a);renderSongs();alert(`${inc.length}곡을 가져왔습니다.`);
 }
 document.getElementById('songExp').addEventListener('click',async()=>{
   const a=songs();if(!a.length)return;
@@ -1536,10 +1516,9 @@ document.getElementById('songExp').addEventListener('click',async()=>{
   const text=JSON.stringify({app:'쎄이기타',ver:1,songs:a},null,1);
   if(FSA){
     try{
-      const prev=await lastFile.get();
-      const h=await window.showSaveFilePicker({suggestedName:name,types:JSONTYPE,startIn:prev||'downloads',id:'saygita-songs'});
+      const h=await window.showSaveFilePicker({suggestedName:name,types:JSONTYPE,startIn:lastH||'downloads',id:'saygita-songs'});
       const w=await h.createWritable();await w.write(text);await w.close();
-      await lastFile.set(h);songFlash(document.getElementById('songExp'),'저장됨');
+      lastH=h;lastFile.set(h);songFlash(document.getElementById('songExp'),'저장됨');
     }catch(e){if(e&&e.name!=='AbortError')alert('저장하지 못했습니다: '+e.message)}
     return;
   }
@@ -1549,8 +1528,7 @@ document.getElementById('songExp').addEventListener('click',async()=>{
 document.getElementById('songImp').addEventListener('click',async()=>{
   if(FSA){
     try{
-      const prev=await lastFile.get();
-      const [h]=await window.showOpenFilePicker({types:JSONTYPE,multiple:false,startIn:prev||'downloads',id:'saygita-songs'});
+      const [h]=await window.showOpenFilePicker({types:JSONTYPE,multiple:false,startIn:lastH||'downloads',id:'saygita-songs'});
       songImport(await (await h.getFile()).text());
     }catch(e){if(e&&e.name!=='AbortError')alert('불러오지 못했습니다: '+e.message)}
     return;
@@ -1643,7 +1621,7 @@ adInit();
 if(uiSaved&&Array.isArray(uiSaved.licks)&&uiSaved.licks.length&&uiSaved.adsrc===document.getElementById('adSrc').value&&uiSaved.ad&&uiSaved.ad.sig===ad.sig){
   ad.licks=uiSaved.licks;renderAdTab();renderAdControls();
 }
-renderSongs();syncStat();ghSync(true);   /* 연결돼 있으면 열 때마다 최신 목록 받기 */
+renderSongs();
 renderFindControls();renderFind();drawBoard();renderName();renderScale();renderShift();
 if(st.tab!=='find')setTab(st.tab);
 uiReady=true;
