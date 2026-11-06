@@ -47,8 +47,10 @@ button,select,textarea{font:inherit;color:inherit}
 .acc button{background:none;border:0;padding:4px 14px;cursor:pointer;font-size:1rem;color:var(--muted)}
 .acc button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
 
-.board-scroll{overflow-x:auto;border-radius:6px;-webkit-overflow-scrolling:touch}
-#board{display:block;width:100%;min-width:760px;height:auto;user-select:none}
+.board-scroll{overflow-x:auto;border-radius:6px;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y}   /* 두 손가락 확대는 스크립트가 지판만 키운다 */
+#board,#board2{display:block;width:100%;height:auto;user-select:none;-webkit-user-select:none;max-width:none}
+#board2{margin-top:6px}
+.lbl-tg.zm button{min-width:2.4em;font-variant-numeric:tabular-nums}
 .board-cap{margin:8px 2px 0;color:var(--muted);font-size:.88rem}
 .wood{fill:#3A2317}
 .inlay{fill:#EDE4D3;opacity:.5}
@@ -182,7 +184,6 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
   .top h1{font-size:1.35rem}
   .top p{font-size:.82rem}
   .acc button{padding:8px 16px}
-  #board{min-width:700px}
   .board-bar .board-cap{flex-basis:100%;font-size:.82rem}
   .lbl-tg button{padding:8px 14px}
   .legend{font-size:.76rem;gap:2px 10px}
@@ -226,9 +227,18 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
   </header>
 
   <section>
-    <div class="board-scroll"><svg id="board" viewBox="0 0 1000 226" role="img" aria-label="기타 지판"></svg></div>
+    <div class="board-scroll" id="boardScroll"><svg id="board" viewBox="0 0 1000 226" role="img" aria-label="기타 지판"></svg><svg id="board2" viewBox="0 0 1000 226" aria-hidden="true" hidden></svg></div>
     <div class="board-bar">
       <p class="board-cap" id="boardCap"></p>
+      <div class="lbl-tg" role="group" aria-label="지판 보기 방식">
+        <button data-view="1" aria-pressed="true" title="한 줄로 보기 (옆으로 밀어서)">한 줄</button>
+        <button data-view="2" aria-pressed="false" title="두 줄로 나눠 15프렛 전체 보기">두 줄</button>
+      </div>
+      <div class="lbl-tg zm" role="group" aria-label="지판 크기">
+        <button data-zoom="-1" aria-label="지판 작게">－</button>
+        <button data-zoom="0" id="zoomVal" title="화면에 맞추기">100%</button>
+        <button data-zoom="1" aria-label="지판 크게">＋</button>
+      </div>
       <div class="lbl-tg" role="group" aria-label="지판 점에 표시할 내용">
         <button data-lbl="note" aria-pressed="true">음이름</button>
         <button data-lbl="deg" aria-pressed="false">도수</button>
@@ -556,27 +566,88 @@ function drawBoard(){
     cap.textContent=`${cname(st.root,st.qi,st.bass)}의 구성음 위치입니다. 진한 점이 선택한 운지, 금색이 루트음입니다.`;
   }
   document.getElementById('board').innerHTML=s;
+  document.getElementById('board2').innerHTML=s;   /* 두 줄 보기: 같은 지판을 아랫줄(7~15프렛) 창으로 한 번 더 */
   boardFollow();
 }
 /* 휴대폰처럼 지판이 화면보다 넓을 때: 운지가 바뀌면 그 프렛 쪽으로 지판을 밀어 준다 (직접 민 위치는 건드리지 않음) */
 let boardKey='';
 function boardFollow(){
   const sc=document.querySelector('.board-scroll'),svg=document.getElementById('board');
-  if(!sc||sc.scrollWidth<=sc.clientWidth+4||st.tab!=='find')return;
+  if(!sc||bview!=='1'||sc.scrollWidth<=sc.clientWidth+4||st.tab!=='find')return;
   const v=st.voicings[st.vi];if(!v)return;
   const key=st.root+'|'+st.qi+'|'+st.bass+'|'+st.vi;if(key===boardKey)return;boardKey=key;
   const fr=v.filter(f=>f>0),f=fr.length?Math.min(...fr):0;
   const k=svg.clientWidth/1000;
   sc.scrollTo({left:f<=3?0:Math.max(0,(cx(f)-110)*k),behavior:'smooth'});
 }
-document.getElementById('board').addEventListener('click',e=>{
+['board','board2'].forEach(id=>document.getElementById(id).addEventListener('click',e=>{
   if(st.tab!=='name')return;
   const t=e.target.closest('[data-s]');if(!t)return;
   const i=+t.dataset.s,f=+t.dataset.f;
   if(f===0)st.nv[i]=st.nv[i]===0?-1:0;
   else st.nv[i]=st.nv[i]===f?-1:f;
   drawBoard();renderName();
-});
+}));
+
+/* ---------- 지판 보기: 한 줄 / 두 줄, 크기 (두 손가락 · 버튼 · Ctrl+휠) ----------
+   두 줄: 윗줄 = 개방현~6프렛, 아랫줄 = 7~15프렛. 두 줄의 프렛 간격 비율은 같게 맞춘다. */
+const SPLIT=6;
+const VB1=[0,0,1000,226];
+const VB_A=[0,0,+(fx(SPLIT)+6).toFixed(1),226];
+const VB_B=[+(fx(SPLIT)-6).toFixed(1),0,+(1000-(fx(SPLIT)-6)).toFixed(1),226];
+const bs=document.getElementById('boardScroll'),b1=document.getElementById('board'),b2=document.getElementById('board2');
+let bview=store.get('chordcalc-view')||(window.innerWidth<640?'2':'1');
+if(bview!=='1'&&bview!=='2')bview='1';
+const bz={'1':+store.get('chordcalc-bz1')||1,'2':+store.get('chordcalc-bz2')||1};
+function bzRange(){
+  const cw=bs.clientWidth||360;
+  if(bview==='1'){const base=Math.max(cw,700);return [Math.min(1,cw/base),3]}   /* 한 줄: 가장 작게 = 화면 폭에 15프렛 전체 */
+  return [1,2.5];                                                                /* 두 줄: 가장 작게 = 화면 폭에 맞춤 */
+}
+function boardLayout(){
+  const cw=bs.clientWidth||360,[lo,hi]=bzRange();
+  const z=bz[bview]=Math.min(hi,Math.max(lo,bz[bview]));
+  if(bview==='1'){
+    b1.setAttribute('viewBox',VB1.join(' '));b2.setAttribute('hidden','');   /* SVG 는 .hidden 속성이 없어 attribute 로 */
+    b1.style.width=Math.round(Math.max(cw,700)*z)+'px';
+  }else{
+    b1.setAttribute('viewBox',VB_A.join(' '));b2.setAttribute('viewBox',VB_B.join(' '));b2.removeAttribute('hidden');
+    const W=cw*z,k=W/VB_A[2];
+    b1.style.width=Math.round(W)+'px';b2.style.width=Math.round(VB_B[2]*k)+'px';
+  }
+  document.getElementById('zoomVal').textContent=Math.round(z*100)+'%';
+  document.querySelectorAll('[data-view]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.view===bview));
+}
+function bzSave(){store.set('chordcalc-bz'+bview,bz[bview].toFixed(3))}
+/* 확대 중심(손가락 사이 · 마우스 위치)이 그대로 있도록 가로 스크롤을 맞춘다 */
+function bzSet(z,midX){
+  const r=bs.getBoundingClientRect(),mid=midX==null?bs.clientWidth/2:midX-r.left;
+  const frac=(bs.scrollLeft+mid)/Math.max(1,bs.scrollWidth);
+  bz[bview]=z;boardLayout();
+  bs.scrollLeft=frac*bs.scrollWidth-mid;
+}
+document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>{
+  bview=b.dataset.view;store.set('chordcalc-view',bview);boardKey='';boardLayout();bs.scrollLeft=0;boardFollow();
+}));
+document.querySelectorAll('[data-zoom]').forEach(b=>b.addEventListener('click',()=>{
+  const d=+b.dataset.zoom;
+  bzSet(d===0?bzRange()[0]:bz[bview]*(d>0?1.25:0.8));bzSave();
+}));
+let pz=null;
+const tdist=t=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);
+bs.addEventListener('touchstart',e=>{if(e.touches.length===2)pz={d:tdist(e.touches),z:bz[bview]}},{passive:true});
+bs.addEventListener('touchmove',e=>{
+  if(!pz||e.touches.length!==2)return;
+  e.preventDefault();
+  bzSet(pz.z*tdist(e.touches)/pz.d,(e.touches[0].clientX+e.touches[1].clientX)/2);
+},{passive:false});
+bs.addEventListener('touchend',e=>{if(pz&&e.touches.length<2){pz=null;bzSave()}});
+bs.addEventListener('wheel',e=>{                      /* PC: Ctrl+휠, 노트북 터치패드 두 손가락 벌리기 */
+  if(!e.ctrlKey)return;
+  e.preventDefault();
+  bzSet(bz[bview]*Math.exp(-e.deltaY*0.01),e.clientX);clearTimeout(bzSet.t);bzSet.t=setTimeout(bzSave,300);
+},{passive:false});
+window.addEventListener('resize',()=>{clearTimeout(boardLayout.t);boardLayout.t=setTimeout(boardLayout,120)});
 
 /* ---------- 코드 박스 ---------- */
 function boxSVG(v,root){
@@ -1314,6 +1385,7 @@ document.querySelectorAll('[data-acc]').forEach(x=>x.setAttribute('aria-pressed'
 document.getElementById('src').value=store.get('chordcalc-src')||'G  D  Em  C\nAm7  D7  G  G7\nC  D/F#  Em  Bm\nC  Am7  Dsus4  D';
 computeFind();
 if(uiSaved&&uiSaved.st&&Number.isInteger(uiSaved.st.vi)&&uiSaved.st.vi<st.voicings.length)st.vi=uiSaved.st.vi;
+boardLayout();
 adInit();renderFindControls();renderFind();drawBoard();renderName();renderScale();renderShift();
 if(st.tab!=='find')setTab(st.tab);
 uiReady=true;
