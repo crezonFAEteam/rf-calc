@@ -1368,7 +1368,9 @@ function blTok(tok){
   const o={notes:[],dir:null,ch:null};if(tok==='.'||tok==='-')return o;
   let t=tok;const cm=t.match(/^\[([^\]]+)\]/);if(cm){o.ch=cm[1];t=t.slice(cm[0].length)}
   if(/^[du]/.test(t)){o.dir=t[0]==='d'?'D':'U';t=t.slice(1)}
-  const re=/([eBGDAE])(x|\d{1,2})/g;let m;while((m=re.exec(t)))o.notes.push({i:BL_STR[m[1]],f:m[2]==='x'?0:+m[2],mute:m[2]==='x'});
+  /* 음: [h|p|s]줄프렛[b목표프렛][~]  h 해머링 · p 풀링 · s 슬라이드(앞 음에서) · b 벤딩(목표 음높이 프렛) · ~ 비브라토 */
+  const re=/([hps]?)([eBGDAE])(x|\d{1,2})(?:b(\d{1,2}))?(~?)/g;let m;
+  while((m=re.exec(t))){const f=m[3]==='x'?0:+m[3];o.notes.push({i:BL_STR[m[2]],f:m[4]?+m[4]:f,bend:m[4]?f:null,mute:m[3]==='x',tk:m[1]||null,vib:!!m[5]})}
   return o;
 }
 /* 코드 진행만 있는 예제: 1·3박 베이스, 2·4박 코드 (예제 11과 같은 패턴) */
@@ -1388,23 +1390,29 @@ function blProgBars(prog,style){
 /* 예제 → TAB 렌더러(tabRender)가 쓰는 모양 {name,segs,notes,total,bar} */
 function blBuild(ex){
   const raw=ex.prog?blProgBars(ex.prog,ex.progStyle):(ex.bars||[]);
+  const G=ex.prog?8:(+ex.grid||8);   /* 한 마디 칸 수 */
   const notes=[],marks=[],segs=[],lys=[];let t=0,pick=0;
   raw.forEach((line,bi)=>{
     let s=String(line).trim();const ai=s.indexOf('@');if(ai>=0){lys.push([t,s.slice(ai+1).trim()]);s=s.slice(0,ai).trim()}   /* '@ 글' = TAB 아래 줄 (손가락 번호 등) */
     const bm=s.match(/^([A-G][^\s:]*):\s*/);if(bm){marks.push([t,bm[1]]);s=s.slice(bm[0].length)}
     let toks=s.split(/\s+/).filter(Boolean);
-    if(bi===0&&toks.length<8){pick=8-toks.length;toks=Array(pick).fill('.').concat(toks)}   /* 못갖춘마디: 앞을 쉼으로 채움 */
-    while(toks.length<8)toks.push('.');toks=toks.slice(0,8);
+    if(bi===0&&toks.length<G){pick=G-toks.length;toks=Array(pick).fill('.').concat(toks)}   /* 못갖춘마디: 앞을 쉼으로 채움 */
+    while(toks.length<G)toks.push('.');toks=toks.slice(0,G);
     toks.forEach((tk,k)=>{const o=blTok(tk);if(o.ch)marks.push([t+k,o.ch]);
-      o.notes.forEach((n,q)=>notes.push({t:t+k,dur:1,i:n.i,f:n.f,p:TUNE[n.i]+n.f,mute:n.mute,dir:q===0?o.dir:null,sd:o.dir==='U'?o.notes.length-1-q:q}))});
-    t+=8;
+      o.notes.forEach((n,q)=>{
+        const nb={t:t+k,dur:1,i:n.i,f:n.f,p:TUNE[n.i]+n.f,mute:n.mute,dir:q===0?o.dir:null,sd:o.dir==='U'?o.notes.length-1-q:q};
+        if(n.bend!=null)nb.bend=n.bend;if(n.vib)nb.vib=true;
+        if(n.tk){const pv=[...notes].reverse().find(x=>x.i===n.i);const pf=pv?(pv.bend!=null?pv.f:pv.f):n.f;   /* 기교는 같은 줄의 앞 음 기준 */
+          nb.tech=n.tk==='s'?(n.f>=pf?'/':'\\'):n.tk;nb.legato=true}
+        notes.push(nb)})});
+    t+=G;
   });
   marks.sort((a,b)=>a[0]-b[0]).forEach(([at,nm])=>{const c=blChord(nm);if(!c)return;if(segs.length&&segs[segs.length-1].start===at)segs.pop();segs.push({c,start:at,len:0})});
   segs.forEach((sg,k)=>sg.len=(k+1<segs.length?segs[k+1].start:t)-sg.start);
   lys.forEach(([at,tx])=>{const sg=segs.find(x=>x.start===at);if(sg)sg.ly=tx});
   /* 음 길이: 같은 줄의 다음 음까지 (최대 1마디) */
-  notes.forEach(n=>{const nx=notes.find(m=>m.i===n.i&&m.t>n.t);n.dur=Math.max(1,Math.min(8,(nx?nx.t:t)-n.t))});
-  return {name:ex.title||('예제 '+ex.id),segs,notes,total:t,bar:8,pick:pick?1:0,bars:t/8};
+  notes.forEach(n=>{const nx=notes.find(m=>m.i===n.i&&m.t>n.t);n.dur=Math.max(1,Math.min(G,(nx?nx.t:t)-n.t))});
+  return {name:ex.title||('예제 '+ex.id),segs,notes,total:t,bar:G,pick:pick?1:0,bars:t/G};
 }
 function blEx(){const d=BL.data;return d&&d.examples[BL.idx]?d.examples[BL.idx]:null}
 function blBpm(ex){return BL.tempo[ex.id]||ex.bpm||80}
@@ -1431,7 +1439,7 @@ function blRender(){
   g('blShuf').setAttribute('aria-pressed',blShuf(ex));
   g('blBpm').value=blBpm(ex);g('blBpmOut').textContent=blBpm(ex);
   g('blPlay').textContent=BL.playing?'정지':'재생';g('blLoop').setAttribute('aria-pressed',BL.loop);
-  tab.innerHTML=`<div class="tabsec"><pre>${tabRender(lk,'b',true,tabPer(8,'blTab'))}</pre></div>`;
+  tab.innerHTML=`<div class="tabsec"><pre>${tabRender(lk,'b',true,tabPer(lk.bar,'blTab'))}</pre></div>`;
   blBoxRender();
   blMark();drawBoard();
 }
@@ -1439,7 +1447,7 @@ function blRender(){
 function blShapes(lk){
   const out=[];
   if(lk.segs.some(sg=>sg.ly)){
-    lk.segs.forEach(sg=>{if(!sg.ly)return;const v=[-1,-1,-1,-1,-1,-1];lk.notes.forEach(n=>{if(n.t===sg.start)v[n.i]=n.f});
+    lk.segs.forEach(sg=>{if(!sg.ly)return;const v=[-1,-1,-1,-1,-1,-1];lk.notes.forEach(n=>{if(n.t===sg.start)v[n.i]=n.bend!=null?n.bend:n.f});
       out.push({name:sg.c.name,c:sg.c,v,fing:sg.ly.replace(/^손가락\s*/,''),from:sg.start,to:sg.start+sg.len})});
     return {kind:'bar',list:out};
   }
@@ -1476,19 +1484,22 @@ function blStop(){
 function blPlay(){
   const ex=blEx();if(!ex)return;blStop();
   try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume()}catch(e){return}
-  const lk=BL.lk||blBuild(ex),e=60/blBpm(ex)/2,sw=blShuf(ex);
-  let a=BL.from*8;const z=(BL.to+1)*8;
+  const lk=BL.lk||blBuild(ex),G=lk.bar,e=60/blBpm(ex)/(G/4),sw=G===8&&blShuf(ex);   /* 한 칸 = 한 박 ÷ (칸 수/4). 셔플은 8칸 마디만 */
+  let a=BL.from*G;const z=(BL.to+1)*G;
   const inR=lk.notes.filter(n=>n.t>=a&&n.t<z);if(!inR.length)return;
   if(BL.from===0)a=Math.min(...inR.map(n=>n.t));                  /* 못갖춘마디: 첫 음부터 */
   const out=actx.createGain();out.gain.value=0.34;out.connect(gOut());
   const at=t=>(t-a)*e+(sw&&t%2?e/3:0);                            /* 셔플: 뒤 8분음표를 셋잇단 셋째 자리로 */
   const built=inR.map(n=>{const d=n.mute?0.06:Math.min(2.4,Math.min(n.dur,z-n.t)*e+0.15);
-    return {tt:at(n.t)+(n.sd||0)*0.014,buf:makeBuf(n.p,d,n.mute?0.9:0.996,n.mute?0.8:(n.i<=1?1.05:0.8))}});
+    return {tt:at(n.t)+(n.sd||0)*0.014,bend:n.bend!=null?(n.f-n.bend)*100:0,vib:!!n.vib,d,buf:makeBuf(n.p,d,n.mute?0.9:0.996,n.mute?0.8:n.legato?0.55:(n.i<=1?1.05:0.8))}});
   const times=[...new Set(inR.map(n=>n.t))],len=(z-a)*e;
   function sched(t0){
     if(BL.srcs.length>3*built.length)BL.srcs=BL.srcs.slice(-built.length);
     if(BL.timers.length>600)BL.timers=BL.timers.slice(-300);
-    built.forEach(x=>{const s=actx.createBufferSource();s.buffer=x.buf;s.connect(out);s.start(t0+x.tt);BL.srcs.push(s)});
+    built.forEach(x=>{const s=actx.createBufferSource();s.buffer=x.buf;s.connect(out);const st=t0+x.tt;
+      if(x.bend&&s.detune){s.detune.setValueAtTime(-x.bend,st);s.detune.linearRampToValueAtTime(0,st+0.16)}
+      if(x.vib&&s.detune){const lfo=actx.createOscillator(),lg=actx.createGain();lfo.frequency.value=5.5;lg.gain.setValueAtTime(0,st);lg.gain.linearRampToValueAtTime(28,st+0.3);lfo.connect(lg).connect(s.detune);lfo.start(st);lfo.stop(st+x.d);BL.srcs.push(lfo)}
+      s.start(st);BL.srcs.push(s)});
     times.forEach(t=>hlAdd('bl',t0+at(t),()=>{BL.cur={t};blMark();drawBoard()}));
     const end=t0+len;
     BL.timers.push(setTimeout(()=>{
@@ -1502,22 +1513,22 @@ function blPlay(){
 /* 지판: 지금 마디에서 쓰는 음(흐리게) + 지금 치는 음(진하게), 색은 그 순간 코드 기준 */
 function blDots(){
   const lk=BL.lk;if(!lk)return'';
-  const t=BL.cur?BL.cur.t:blRestT(lk),b=Math.floor(t/8);
+  const G=lk.bar,t=BL.cur?BL.cur.t:blRestT(lk),b=Math.floor(t/G);
   const sg=lk.segs.find(x=>t>=x.start&&t<x.start+x.len)||lk.segs[0];
   const seen=new Set();let s='';
-  lk.notes.filter(n=>Math.floor(n.t/8)===b&&!n.mute).sort((x,y)=>(y.t===t)-(x.t===t)).forEach(n=>{   /* 지금 치는 음을 먼저 → 같은 자리는 한 번만 */
-    const k=n.i+'-'+n.f,on=!BL.cur||n.t===t;if(seen.has(k))return;seen.add(k);
-    let cls='tone',lab=nn(TUNE[n.i]+n.f);
-    if(sg){const x=mod(TUNE[n.i]+n.f-sg.c.r),q=Q[sg.c.qi];if(q.iv.some(y=>mod(y)===x)){cls=role(x,q);if(st.lbl==='deg')lab=degree(x,q)}else if(st.lbl==='deg')lab=GEN[x]}
-    s+=dot(n.i,n.f,cls+(on?' on':' dim'),lab);
+  lk.notes.filter(n=>Math.floor(n.t/G)===b&&!n.mute).sort((x,y)=>(y.t===t)-(x.t===t)).forEach(n=>{   /* 지금 치는 음을 먼저 → 같은 자리는 한 번만 */
+    const ff=n.bend!=null?n.bend:n.f,k=n.i+'-'+ff,on=!BL.cur||n.t===t;if(seen.has(k))return;seen.add(k);
+    let cls='tone',lab=nn(TUNE[n.i]+ff);
+    if(sg){const x=mod(TUNE[n.i]+ff-sg.c.r),q=Q[sg.c.qi];if(q.iv.some(y=>mod(y)===x)){cls=role(x,q);if(st.lbl==='deg')lab=degree(x,q)}else if(st.lbl==='deg')lab=GEN[x]}
+    s+=dot(n.i,ff,cls+(on?' on':' dim'),lab);
   });
   return s;
 }
-function blRestT(lk){const b=BL.from===0&&lk.pick&&lk.bars>1?1:BL.from;return b*8}   /* 멈춰 있을 때 보여 줄 마디 */
+function blRestT(lk){const b=BL.from===0&&lk.pick&&lk.bars>1?1:BL.from;return b*lk.bar}   /* 멈춰 있을 때 보여 줄 마디 */
 function blCap(){
   const ex=blEx(),lk=BL.lk;if(!ex||!lk)return'블루스 예제 파일을 가져오면 지판에 운지가 표시됩니다.';
   const t=BL.cur?BL.cur.t:blRestT(lk),sg=lk.segs.find(x=>t>=x.start&&t<x.start+x.len)||lk.segs[0];
-  return ex.title+' · '+blBarLabel(lk,Math.floor(t/8))+(sg?' · '+sg.c.name:'')+'. 진한 점이 지금 치는 음입니다.';
+  return ex.title+' · '+blBarLabel(lk,Math.floor(t/lk.bar))+(sg?' · '+sg.c.name:'')+'. 진한 점이 지금 치는 음입니다.';
 }
 async function blImport(){
   let txt='';
