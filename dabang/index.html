@@ -207,7 +207,7 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .secpat{width:auto!important;font:inherit;font-size:.78rem!important;padding:2px 6px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--muted);max-width:60vw}
 .secbadge{font-size:.72rem;color:var(--ink);border:1px solid var(--accent-fill);border-radius:999px;padding:1px 8px}
 .secpat.set{border-color:var(--accent-fill);color:var(--ink);font-weight:600}
-#blLoop[aria-pressed="true"],#adLoop[aria-pressed="true"]{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent);font-weight:600}
+.follow[aria-pressed="true"],#blLoop[aria-pressed="true"],#adLoop[aria-pressed="true"]{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent);font-weight:600}
 .pgrp{display:flex;flex-wrap:wrap;gap:6px;align-items:center;width:100%}
 .pgl{font-size:.8rem;color:var(--muted);min-width:4.6em}
 .tab .acc{color:var(--accent);font-weight:700;display:inline;border:0;border-radius:0;overflow:visible}   /* 머리글 버튼 묶음(.acc) 테두리가 붙지 않게 */
@@ -381,7 +381,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
         <div class="field"><label class="flabel" for="adBpm">템포 <output id="adBpmOut"></output> BPM</label><input type="range" id="adBpm" min="50" max="160" step="2"></div>
       </div>
       <div>
-        <div class="btns left"><button id="adPlayBtn" class="play">재생</button><button id="adLoop" class="ghost" aria-pressed="false" title="켜면 끝까지 재생한 뒤 처음부터 계속 반복">⟳ 반복</button><button id="adGen" class="ghost">새로 만들기</button><button id="adCopy" class="ghost">TAB 복사</button><button id="tabZo" class="ghost pc-only" title="악보 글자 작게 (Ctrl+휠)">가−</button><button id="tabZi" class="ghost pc-only" title="악보 글자 크게 (Ctrl+휠)">가+</button></div>
+        <div class="btns left"><button id="adPlayBtn" class="play">재생</button><button id="adLoop" class="ghost" aria-pressed="false" title="켜면 끝까지 재생한 뒤 처음부터 계속 반복">⟳ 반복</button><button class="ghost follow" data-follow aria-pressed="true" title="재생 중 지금 치는 음이 보이도록 악보를 자동으로 스크롤">⇣ 따라가기</button><button id="adGen" class="ghost">새로 만들기</button><button id="adCopy" class="ghost">TAB 복사</button><button id="tabZo" class="ghost pc-only" title="악보 글자 작게 (Ctrl+휠)">가−</button><button id="tabZi" class="ghost pc-only" title="악보 글자 크게 (Ctrl+휠)">가+</button></div>
         <div class="tab" id="adTab"></div>
         <p class="sdesc" id="adNote">각 마디의 첫째 박과 셋째 박, 마지막 음은 그 마디 코드의 코드톤에 떨어지도록 만들고, 마지막 마디는 코드의 루트에서 끝납니다. 마음에 드는 프레이즈가 나올 때까지 새로 만들기를 눌러 보고, 좋은 건 TAB을 복사해 두세요. TAB의 칸 하나는 8분음표이고, h는 해머링, p는 풀링, /와 \는 슬라이드입니다.</p>
       </div>
@@ -414,7 +414,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
         <div class="field"><label class="flabel" for="blBpm">템포 <output id="blBpmOut"></output> BPM</label><input type="range" id="blBpm" min="40" max="160" step="2"></div>
       </div>
       <div>
-        <div class="btns left"><button id="blPlay" class="play">재생</button><button id="blLoop" class="ghost" aria-pressed="false" title="켜면 끝까지 재생한 뒤 처음부터 계속 반복">⟳ 반복</button><button id="blZo" class="ghost pc-only" title="악보 글자 작게 (Ctrl+휠)">가−</button><button id="blZi" class="ghost pc-only" title="악보 글자 크게 (Ctrl+휠)">가+</button></div>
+        <div class="btns left"><button id="blPlay" class="play">재생</button><button id="blLoop" class="ghost" aria-pressed="false" title="켜면 끝까지 재생한 뒤 처음부터 계속 반복">⟳ 반복</button><button class="ghost follow" data-follow aria-pressed="true" title="재생 중 지금 치는 음이 보이도록 악보를 자동으로 스크롤">⇣ 따라가기</button><button id="blZo" class="ghost pc-only" title="악보 글자 작게 (Ctrl+휠)">가−</button><button id="blZi" class="ghost pc-only" title="악보 글자 크게 (Ctrl+휠)">가+</button></div>
         <div class="tab" id="blTab"></div>
         <p class="sdesc">칸 하나는 8분음표이고, 셔플을 켜면 둘째 8분음표를 늦게(셋잇단의 셋째) 칩니다. D는 다운, U는 업 스트로크, x는 뮤트입니다. 재생하면 지금 치는 음이 TAB과 지판에 표시되고, 지판의 흐린 점은 그 마디에서 잡는 모양입니다.</p>
       </div>
@@ -1466,6 +1466,7 @@ function blMark(){
   blBoxMark();
   document.querySelectorAll('#blTab span.now').forEach(x=>x.classList.remove('now'));
   if(BL.cur&&BL.lk)BL.lk.notes.forEach((n,ni)=>{if(n.t===BL.cur.t){const s=document.querySelector('#blTab [data-n="b-'+ni+'"]');if(s)s.classList.add('now')}});
+  if(BL.playing)followNow('blTab');
 }
 function blStop(){
   BL.timers.forEach(clearTimeout);BL.timers=[];hlClear('bl');BL.srcs.forEach(s=>{try{s.stop()}catch(e){}});BL.srcs=[];
@@ -1721,6 +1722,26 @@ function adCap(){
 function markTab(){
   document.querySelectorAll('#adTab span.now').forEach(x=>x.classList.remove('now'));
   if(ad.cur){const s=document.querySelector(`#adTab [data-n="${ad.cur.k}-${ad.cur.n}"]`);if(s){s.classList.add('now');}}
+  if(ad.playing)followNow('adTab');
+}
+/* ---------- 재생 중 자동 스크롤: 지금 치는 음이 고정된 지판 · 탭 줄 아래, 화면 위쪽 1/3쯤에 오게 ---------- */
+let follow=store.get('chordcalc-follow')!=='0';
+function followSync(){document.querySelectorAll('[data-follow]').forEach(b=>b.setAttribute('aria-pressed',follow))}
+followSync();
+document.addEventListener('click',e=>{const b=e.target.closest('[data-follow]');if(!b)return;follow=!follow;store.set('chordcalc-follow',follow?'1':'0');followSync()});
+function followNow(id){
+  if(!follow)return;
+  const box=document.getElementById(id),s=box&&box.querySelector('span.now');if(!s)return;
+  const r=s.getBoundingClientRect(),lh=r.height||16;
+  /* 가로: 악보 칸 안에서 옆으로 넘친 경우 */
+  const br=box.getBoundingClientRect();
+  if(r.left<br.left+8||r.right>br.right-8)box.scrollTo({left:box.scrollLeft+(r.left-br.left)-br.width*0.3,behavior:'smooth'});
+  /* 세로: 위에 고정된 영역(지판 · 탭 줄) 아래부터 보이는 범위 */
+  let top=0;const pin=document.getElementById('pin'),tabs=document.querySelector('.tabs');
+  if(pin&&!pin.classList.contains('off')){const pr=pin.getBoundingClientRect();if(pr.top<=1)top=Math.max(top,pr.bottom)}
+  if(tabs){const tr=tabs.getBoundingClientRect();if(tr.top<=top+2&&tr.bottom>top)top=tr.bottom}
+  const h=window.innerHeight;
+  if(r.top<top+lh*4||r.bottom>h-lh*8)window.scrollBy({top:r.top-(top+(h-top)*0.3),behavior:'smooth'});   /* 위로 코드 이름 · 아래로 6줄이 보이게 */
 }
 /* ---------- 재생 표시를 '실제로 들리는 시각'에 맞추기 ----------
    소리는 예약한 시각보다 출력 지연(휴대폰 · 블루투스 이어폰은 0.1~0.3초)만큼 늦게 나온다.
