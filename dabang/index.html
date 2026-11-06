@@ -165,6 +165,7 @@ textarea{width:100%;background:var(--surface);border:1px solid var(--line);borde
 .drow .sel b{font-weight:600;font-size:1.1rem;margin-right:10px}
 .drow .sel span{color:var(--muted);font-size:.85rem}
 .drow .go{background:none;border:1px solid var(--line);border-radius:999px;padding:5px 12px;cursor:pointer;font-size:.85rem;white-space:nowrap}
+.drow .go[aria-pressed="true"]{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent);font-weight:600}
 #p-scale .head{align-items:center;margin-top:6px}
 .tab{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;overflow-x:auto;margin-top:14px}
 .tab pre{margin:0;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:13px;line-height:1.45}
@@ -575,9 +576,11 @@ function drawBoard(){
 let boardKey='';
 function boardFollow(){
   const sc=document.querySelector('.board-scroll'),svg=document.getElementById('board');
-  if(!sc||bview!=='1'||sc.scrollWidth<=sc.clientWidth+4||st.tab!=='find')return;
-  const v=st.voicings[st.vi];if(!v)return;
-  const key=st.root+'|'+st.qi+'|'+st.bass+'|'+st.vi;if(key===boardKey)return;boardKey=key;
+  if(!sc||bview!=='1'||sc.scrollWidth<=sc.clientWidth+4)return;
+  let v=null,key='';
+  if(st.tab==='find'){v=st.voicings[st.vi];key='f|'+st.root+'|'+st.qi+'|'+st.bass+'|'+st.vi}
+  else if(st.tab==='scale'&&st.schShape){v=shapeV();key='s|'+st.schShape.r+'|'+st.schShape.qi+'|'+st.schShape.vi}
+  if(!v||key===boardKey)return;boardKey=key;
   const fr=v.filter(f=>f>0),f=fr.length?Math.min(...fr):0;
   const k=svg.clientWidth/1000;
   sc.scrollTo({left:f<=3?0:Math.max(0,(cx(f)-110)*k),behavior:'smooth'});
@@ -836,7 +839,23 @@ function scaleName(){
   if(st.stype==='penta')return `${nn(st.sk)} ${st.smode==='major'?'메이저':'마이너'} 펜타토닉`;
   return `${nn(st.sk)} ${st.smode==='major'?'메이저 스케일':'내추럴 마이너 스케일'}`;
 }
+/* 다이아토닉 코드의 [운지 보기]: 탭은 그대로, 지판에 그 코드 운지만 표시. 다시 누르면 다음 운지 */
+const shapeList=sh=>sh?(sh._l&&sh._k===sh.r+'|'+sh.qi?sh._l:(sh._k=sh.r+'|'+sh.qi,sh._l=findVoicings(sh.r,sh.qi,null))):[];
+function shapeV(){const sh=st.schShape,l=shapeList(sh);return l.length?l[Math.min(sh.vi,l.length-1)]:null}
+function shapeDots(){
+  const sh=st.schShape,v=shapeV();if(!v)return'';const q=Q[sh.qi];let s='';
+  v.forEach((f,i)=>{
+    if(f<0){s+=`<text x="12" y="${sy(i)+6}" class="mute">×</text>`;return}
+    const x=mod(TUNE[i]+f-sh.r);
+    s+=dot(i,f,role(x,q)+' on',st.lbl==='deg'?degree(x,q):nn(TUNE[i]+f));
+  });
+  return s;
+}
 function scaleCap(){
+  if(st.schShape&&shapeV()){
+    const sh=st.schShape,l=shapeList(sh),v=shapeV();
+    return `${cname(sh.r,sh.qi,null)} 운지 ${Math.min(sh.vi,l.length-1)+1}/${l.length} (${v.map(f=>f<0?'x':f).join(' ')}) — [다음 운지]를 누르면 다른 자리, 코드 이름을 누르면 스케일로 돌아갑니다.`;
+  }
   let c=`${scaleName()}의 지판 위치입니다.`;
   if(st.stype==='penta'&&st.box>0)c+=` 진한 점이 포지션 ${st.box} 박스입니다.`;
   if(st.schSel)c+=` 색이 있는 진한 점이 ${cname(st.schSel.r,st.schSel.qi,null)}의 코드톤입니다.`;
@@ -857,11 +876,12 @@ function scaleDots(){
     else if(pc===blue)cls='rx';
     else cls=(pc===st.sk&&!cset)?'root':'tone';
     const inBox=!keys||keys.has(i+'-'+f)||(pc===blue&&(keys.has(i+'-'+(f-1))||keys.has(i+'-'+(f+1))));
-    const on=inBox&&(!cset||cset.has(pc));
+    const on=!st.schShape&&inBox&&(!cset||cset.has(pc));   /* 운지 표시 중이면 스케일 점은 모두 흐리게 */
     s+=dot(i,f,cls+(on?' on':' dim'),st.lbl==='deg'?GEN[mod(pc-st.sk)]:nn(pc));
   }
-  return s;
+  return s+shapeDots();
 }
+const shOn=rw=>!!(st.schShape&&st.schShape.r===rw.r&&st.schShape.qi===rw.qi);
 function renderScale(){
   const el=id=>document.getElementById(id);
   el('sRoots').innerHTML=SHARP.map((_,i)=>`<button class="chip" data-sk="${i}" aria-pressed="${i===st.sk}">${nn(i)}</button>`).join('');
@@ -882,7 +902,7 @@ function renderScale(){
   const rows=base.map((x,j)=>({r:mod(st.sk+x),qi:st.s7?d.sev[j]:d.tri[j],num:st.s7?d.ns[j]:d.nt[j],fn:d.fn[j]}));
   if(st.smode==='minor')rows.push({r:mod(st.sk+7),qi:st.s7?2:0,num:st.s7?'V7':'V',fn:'도미넌트 (화성 단음계, 실제로 더 자주 씁)',v:true});
   el('s7').innerHTML=[[0,'3화음'],[1,'7화음']].map(([k,l])=>`<button class="chip" data-s7="${k}" aria-pressed="${st.s7===!!k}">${l}</button>`).join('');
-  el('sChords').innerHTML=rows.map(rw=>{const cur=!!(st.schSel&&st.schSel.r===rw.r&&st.schSel.qi===rw.qi);return `<div class="drow${rw.v?' var':''}" aria-current="${cur}"><span class="num">${rw.num}</span><button class="sel" data-r="${rw.r}" data-qi="${rw.qi}" aria-pressed="${cur}"><b>${cname(rw.r,rw.qi,null)}</b><span>${rw.fn}</span></button><button class="go" data-r="${rw.r}" data-qi="${rw.qi}">운지 보기</button></div>`}).join('');
+  el('sChords').innerHTML=rows.map(rw=>{const cur=!!(st.schSel&&st.schSel.r===rw.r&&st.schSel.qi===rw.qi);return `<div class="drow${rw.v?' var':''}" aria-current="${cur}"><span class="num">${rw.num}</span><button class="sel" data-r="${rw.r}" data-qi="${rw.qi}" aria-pressed="${cur}"><b>${cname(rw.r,rw.qi,null)}</b><span>${rw.fn}</span></button><button class="go" data-r="${rw.r}" data-qi="${rw.qi}"${shOn(rw)?' aria-pressed="true"':''}>${shOn(rw)?`다음 운지 ${Math.min(st.schShape.vi,shapeList(st.schShape).length-1)+1}/${shapeList(st.schShape).length}`:'운지 보기'}</button></div>`}).join('');
 }
 function seq(ps){
   try{
@@ -913,14 +933,21 @@ function playScale(){
 document.getElementById('p-scale').addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;const ds=b.dataset;
   if(b.id==='playScale'){playScale();return}
-  if(b.classList.contains('go')){openChord(+ds.r,Q[+ds.qi].s,null);return}
-  if(b.classList.contains('sel')){const r=+ds.r,qi=+ds.qi;st.schSel=(st.schSel&&st.schSel.r===r&&st.schSel.qi===qi)?null:{r,qi};if(st.schSel){const v=findVoicings(r,qi,null)[0];if(v)strum(v)}}
-  else if(ds.sk!=null){st.sk=+ds.sk;st.schSel=null}
-  else if(ds.smode){st.smode=ds.smode;st.schSel=null}
+  if(b.classList.contains('go')){   /* 탭 이동 없이 지판에 운지. 같은 코드면 다음 운지 */
+    const r=+ds.r,qi=+ds.qi,sh=st.schShape;
+    if(sh&&sh.r===r&&sh.qi===qi){const n=shapeList(sh).length;sh.vi=n?(sh.vi+1)%n:0}
+    else st.schShape={r,qi,vi:0};
+    st.schSel={r,qi};
+    const v=shapeV();if(v)strum(v);
+    boardKey='';renderScale();drawBoard();return;
+  }
+  if(b.classList.contains('sel')){const r=+ds.r,qi=+ds.qi;st.schShape=null;st.schSel=(st.schSel&&st.schSel.r===r&&st.schSel.qi===qi)?null:{r,qi};if(st.schSel){const v=findVoicings(r,qi,null)[0];if(v)strum(v)}}
+  else if(ds.sk!=null){st.sk=+ds.sk;st.schSel=null;st.schShape=null}
+  else if(ds.smode){st.smode=ds.smode;st.schSel=null;st.schShape=null}
   else if(ds.stype){st.stype=ds.stype}
   else if(ds.box!=null){st.box=+ds.box}
   else if(ds.blue){st.blue=!st.blue}
-  else if(ds.s7!=null){st.s7=ds.s7==='1';st.schSel=null}
+  else if(ds.s7!=null){st.s7=ds.s7==='1';st.schSel=null;st.schShape=null}
   else return;
   renderScale();drawBoard();
 });
@@ -1355,7 +1382,7 @@ document.querySelectorAll('[data-lbl]').forEach(b=>b.addEventListener('click',()
    휴대폰은 다른 앱 · 다른 페이지에 다녀오면 페이지를 다시 읽는 일이 많다.
    열린 탭과 각 탭의 선택(루트 · 코드 종류 · 운지 · 스케일 · 카포 · 애드리브 설정)과 스크롤 위치를 저장했다가 되살린다. */
 const UI_KEY='chordcalc-ui';
-const ST_KEYS=['tab','root','qi','bass','vi','nv','sk','smode','stype','box','blue','s7','schSel','semi','capo'];
+const ST_KEYS=['tab','root','qi','bass','vi','nv','sk','smode','stype','box','blue','s7','schSel','schShape','semi','capo'];
 const AD_KEYS=['mode','meter','bend','vib','harm','accOv','arp','backStyle','key','box','style','bpm','back','arpBy','combo','sig'];
 let uiReady=false,uiT=null;
 function uiSave(){
@@ -1382,6 +1409,7 @@ if(uiSaved){
   if(st.bass!=null&&!inr(st.bass,0,11))st.bass=null;
   if(!Array.isArray(st.nv)||st.nv.length!==6)st.nv=[-1,3,2,0,1,0];
   if(!['find','name','scale','adlib','shift'].includes(st.tab))st.tab='find';
+  if(st.schShape&&!(inr(st.schShape.r,0,11)&&inr(st.schShape.qi,0,Q.length-1)&&inr(st.schShape.vi,0,20)))st.schShape=null;
   if(!inr(st.semi,-11,11))st.semi=0;
   if(!inr(st.capo,0,12))st.capo=0;
   if(!ARP[ad.arp])ad.arp='slow';
