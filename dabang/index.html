@@ -65,10 +65,10 @@ html{scroll-padding-top:var(--pinH,0px)}
 .fret{stroke:#B9BDC3;stroke-width:3}
 .nut{fill:#EEE7D7}
 .str{stroke:#D9CFBD}
-.fnum{fill:var(--muted);font-size:12px;text-anchor:middle;font-family:inherit}
-.mute{fill:var(--ink);font-size:17px;text-anchor:middle;font-weight:600}
+.fnum{fill:var(--muted);font-size:17px;font-weight:600;text-anchor:middle;font-family:inherit}
+.mute{fill:var(--ink);font-size:24px;text-anchor:middle;font-weight:700}
 .dot circle{stroke:#2A1A10;stroke-width:1.2}
-.dot text{font-size:10.5px;text-anchor:middle;font-weight:600;font-family:"IBM Plex Sans KR",sans-serif;pointer-events:none}
+.dot text{font-size:14.5px;text-anchor:middle;font-weight:700;font-family:"IBM Plex Sans KR",sans-serif;pointer-events:none}
 .dot.tone circle{fill:#EFE6D3}.dot.tone text{fill:#2A1A10}
 .dot.root circle{fill:#E2A93A}.dot.root text{fill:#24170A}
 .dot.r3 circle{fill:#A8D0BC}.dot.r3 text{fill:#13281D}
@@ -553,7 +553,8 @@ const FR=15,X0=62,SCALE=1572;
 const fx=n=>X0+SCALE*(1-Math.pow(2,-n/12));
 const sy=i=>32+(5-i)*30;
 const cx=f=>f===0?36:(fx(f-1)+fx(f))/2;
-function dot(i,f,cls,label){return `<g class="dot ${cls}"><circle cx="${cx(f).toFixed(1)}" cy="${sy(i)}" r="11"/><text x="${cx(f).toFixed(1)}" y="${sy(i)+3.7}">${label}</text></g>`}
+/* 점은 줄 간격(30)에 거의 꽉 차게(반지름 14), 글자는 점 안에서 최대한 크게. 세 글자(♭13 등)는 조금 줄임 */
+function dot(i,f,cls,label){const L=String(label).replace(/<[^>]*>/g,'').length,fs=L>=3?12:L===2?14.5:16.5;return `<g class="dot ${cls}"><circle cx="${cx(f).toFixed(1)}" cy="${sy(i)}" r="14"/><text x="${cx(f).toFixed(1)}" y="${(sy(i)+fs*0.36).toFixed(1)}" style="font-size:${fs}px">${label}</text></g>`}
 function drawBoard(){
   let s=`<rect x="${X0}" y="14" width="${(fx(FR)-X0+8).toFixed(1)}" height="186" rx="3" class="wood"/>`;
   [3,5,7,9,15].forEach(n=>s+=`<circle cx="${cx(n).toFixed(1)}" cy="107" r="7" class="inlay"/>`);
@@ -561,12 +562,12 @@ function drawBoard(){
   for(let n=1;n<=FR;n++)s+=`<line x1="${fx(n).toFixed(1)}" x2="${fx(n).toFixed(1)}" y1="14" y2="200" class="fret"/>`;
   s+=`<rect x="${X0-6}" y="12" width="7" height="190" rx="1.5" class="nut"/>`;
   for(let i=0;i<6;i++)s+=`<line x1="${X0-3}" x2="${(fx(FR)+8).toFixed(1)}" y1="${sy(i)}" y2="${sy(i)}" class="str" stroke-width="${(2.7-i*0.38).toFixed(2)}"/>`;
-  [1,3,5,7,9,12,15].forEach(n=>s+=`<text x="${cx(n).toFixed(1)}" y="220" class="fnum">${n}</text>`);
+  [1,3,5,7,9,12,15].forEach(n=>s+=`<text x="${cx(n).toFixed(1)}" y="222" class="fnum">${n}</text>`);
   const cap=document.getElementById('boardCap');
   if(st.tab==='name'){
     const v=st.nv;const idr=identify(v);const idb=idr.list&&idr.list[0];
     for(let i=0;i<6;i++){
-      if(v[i]<0)s+=`<text x="${cx(0)}" y="${sy(i)+6}" class="mute">×</text>`;
+      if(v[i]<0)s+=`<text x="${cx(0)}" y="${sy(i)+8}" class="mute">×</text>`;
       else{const pc=mod(TUNE[i]+v[i]);let cls='tone',lab=nn(pc);
         if(idb){const x=mod(pc-idb.r),q2=Q[idb.qi];if(q2.iv.some(y=>mod(y)===x)){cls=role(x,q2);if(st.lbl==='deg')lab=degree(x,q2)}}
         s+=dot(i,v[i],cls+' on',lab)}
@@ -587,7 +588,7 @@ function drawBoard(){
     const pcs=new Set(q.iv.map(x=>mod(st.root+x)));pcs.add(bass);
     const v=st.voicings[st.vi];
     for(let i=0;i<6;i++){
-      if(v&&v[i]<0)s+=`<text x="12" y="${sy(i)+6}" class="mute">×</text>`;
+      if(v&&v[i]<0)s+=`<text x="12" y="${sy(i)+8}" class="mute">×</text>`;
       for(let f=0;f<=FR;f++){
         const pc=mod(TUNE[i]+f);if(!pcs.has(pc))continue;
         const on=v&&v[i]===f;const x=mod(pc-st.root);const inC=q.iv.some(y=>mod(y)===x);
@@ -877,7 +878,7 @@ function shapeV(){const sh=st.schShape,l=shapeList(sh);return l.length?l[Math.mi
 function shapeDots(){
   const sh=st.schShape,v=shapeV();if(!v)return'';const q=Q[sh.qi];let s='';
   v.forEach((f,i)=>{
-    if(f<0){s+=`<text x="12" y="${sy(i)+6}" class="mute">×</text>`;return}
+    if(f<0){s+=`<text x="12" y="${sy(i)+8}" class="mute">×</text>`;return}
     const x=mod(TUNE[i]+f-sh.r);
     s+=dot(i,f,role(x,q)+' on',st.lbl==='deg'?degree(x,q):nn(TUNE[i]+f));
   });
@@ -1340,7 +1341,7 @@ function adDots(){
     const sg=curN?lk.segs.find(x=>curN.t>=x.start&&curN.t<x.start+x.len):lk.segs[0];
     const v=sg&&getV(sg.c);if(!v)return'';let s='';
     v.forEach((f,i)=>{
-      if(f<0){s+=`<text x="12" y="${sy(i)+6}" class="mute">×</text>`;return}
+      if(f<0){s+=`<text x="12" y="${sy(i)+8}" class="mute">×</text>`;return}
       const pc=mod(TUNE[i]+f),x=mod(pc-sg.c.r),q=Q[sg.c.qi],inC=q.iv.some(y=>mod(y)===x);
       s+=dot(i,f,(inC?role(x,q):'tone')+((!curN||curN.i===i)?' on':' dim'),st.lbl==='deg'?(inC?degree(x,q):'베'):nn(pc));
     });
