@@ -395,7 +395,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
           <select id="blSel" aria-label="블루스 예제 고르기"></select>
           <button id="blPrev" class="ghost sm" aria-label="이전 예제">◀</button>
           <button id="blNext" class="ghost sm" aria-label="다음 예제">▶</button>
-          <button id="blSrv" class="ghost sm" title="서버의 잠긴 예제 파일을 받아 암호로 열기">서버에서 받기</button>
+          <button id="blSrv" class="ghost sm" title="서버의 예제 전체를 받아 암호로 열기 (이 기기의 예제는 새것으로 통째로 바뀜)">서버에서 받기</button>
           <button id="blImp" class="ghost sm" title="예제 파일(.json) 가져오기 — 여러 개를 한꺼번에 골라도 되고, 장(章) 파일을 하나씩 더해도 됨">예제 파일</button>
           <button id="blClr" class="ghost sm" title="이 기기에 저장된 블루스 예제를 모두 지우기">지우기</button>
           <input type="file" id="blFile" accept=".json,application/json" multiple hidden>
@@ -1553,27 +1553,28 @@ async function blPwGo(){
   ok.disabled=true;ok.textContent='여는 중…';
   try{
     const out=[];for(const o of blPending.enc)out.push(await blDecrypt(o,pw));
-    const plain=blPending.plain.concat(out);blPending=null;document.getElementById('blPwRow').hidden=true;blLoadText(plain);
+    const plain=blPending.plain.concat(out),rp=blPending.replace;blPending=null;document.getElementById('blPwRow').hidden=true;blLoadText(plain,rp);
   }catch(e){alert('암호가 맞지 않습니다.');document.getElementById('blPw').select()}
   finally{ok.disabled=false;ok.textContent='열기'}
 }
 document.getElementById('blPwOk').addEventListener('click',blPwGo);
 document.getElementById('blPw').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();blPwGo()}});
 document.getElementById('blPwNo').addEventListener('click',()=>{blPending=null;document.getElementById('blPwRow').hidden=true});
-function blLoadText(txts){
+/* replace=true: 지금 기기의 예제를 지우고 새로 받은 것으로 통째로 (서버에서 받기). 아니면 더하기 (예제 파일) */
+function blLoadText(txts,replace){
   if(!Array.isArray(txts))txts=[txts];
   const add=[],enc=[],plainTx=[];let bad=0;
   txts.forEach(txt=>{let d;try{d=JSON.parse(txt)}catch(e){bad++;return}
     if(d&&d.kind==='saygita-blues-enc'&&d.ct){enc.push(d);return}
     if(!d||d.kind!=='saygita-blues'||!Array.isArray(d.examples)){bad++;return}plainTx.push(txt);add.push(...d.examples)});
-  if(enc.length){blPending={plain:plainTx,enc};blPwAsk(enc.length);return}   /* 잠긴 파일이 섞여 있으면 암호부터 */
+  if(enc.length){blPending={plain:plainTx,enc,replace};blPwAsk(enc.length);return}   /* 잠긴 파일이 섞여 있으면 암호부터 */
   if(!add.length){alert('블루스 예제 파일이 아닙니다.');return}
   const curId=blEx()&&blEx().id;
-  const base=BL.data?BL.data.examples.filter(e=>!add.some(a=>a.id===e.id)):[];   /* 같은 번호는 새 파일 것으로 */
+  const base=(BL.data&&!replace)?BL.data.examples.filter(e=>!add.some(a=>a.id===e.id)):[];   /* 같은 번호는 새 파일 것으로 */
   const all=base.concat(add).map((e,i)=>[e,i]).sort((a,b)=>blChOrd(a[0].ch)-blChOrd(b[0].ch)||a[1]-b[1]).map(x=>x[0]);
   blStop();BL.data={kind:'saygita-blues',version:1,examples:all};store.set(BL_KEY,JSON.stringify(BL.data));
   const ni=curId?all.findIndex(e=>e.id===curId):-1;BL.idx=ni>=0?ni:0;BL.from=0;BL.to=-1;BL.lk=null;blSaveUI();blRender();
-  alert(`예제 ${add.length}개를 가져왔습니다. (이 기기에 모두 ${all.length}개)`+(bad?`\n읽지 못한 파일 ${bad}개`:''));
+  alert((replace?`예제 ${add.length}개를 받았습니다. (이전 예제는 지우고 새로 바꿈)`:`예제 ${add.length}개를 가져왔습니다. (이 기기에 모두 ${all.length}개)`)+(bad?`\n읽지 못한 파일 ${bad}개`:''));
 }
 document.getElementById('blFile').addEventListener('change',async e=>{const fs=[...e.target.files];if(fs.length)blLoadText(await Promise.all(fs.map(f=>f.text())));e.target.value=''});
 /* 서버에서 받기: 서버의 잠긴 파일(blues.enc.json)을 받아 → 같은 암호 칸으로 열기 */
@@ -1581,7 +1582,7 @@ document.getElementById('blSrv').addEventListener('click',async e=>{
   const b=e.currentTarget;b.disabled=true;
   try{const r=await fetch('blues.enc.json?v='+Date.now(),{cache:'no-store'});
     if(!r.ok){alert('서버에 예제 파일이 아직 없습니다.');return}
-    blLoadText([await r.text()]);
+    blLoadText([await r.text()],true);   /* 서버 = 전체 → 통째로 바꿈 */
   }catch(err){alert('서버에서 받지 못했습니다. 인터넷 연결을 확인하세요.')}
   finally{b.disabled=false}
 });
