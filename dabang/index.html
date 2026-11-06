@@ -395,6 +395,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
           <select id="blSel" aria-label="블루스 예제 고르기"></select>
           <button id="blPrev" class="ghost sm" aria-label="이전 예제">◀</button>
           <button id="blNext" class="ghost sm" aria-label="다음 예제">▶</button>
+          <button id="blSrv" class="ghost sm" title="서버의 잠긴 예제 파일을 받아 암호로 열기">서버에서 받기</button>
           <button id="blImp" class="ghost sm" title="예제 파일(.json) 가져오기 — 여러 개를 한꺼번에 골라도 되고, 장(章) 파일을 하나씩 더해도 됨">예제 파일</button>
           <button id="blClr" class="ghost sm" title="이 기기에 저장된 블루스 예제를 모두 지우기">지우기</button>
           <input type="file" id="blFile" accept=".json,application/json" multiple hidden>
@@ -1420,7 +1421,7 @@ function blRender(){
   const g=id=>document.getElementById(id),ex=blEx(),tab=g('blTab');
   if(!BL.data){
     g('blSel').innerHTML='<option>예제 파일을 먼저 가져오세요</option>';
-    g('blInfo').innerHTML='<p class="sdesc" style="margin:0">[예제 파일]을 눌러 예제 파일(.json)을 가져오면 목록이 나타납니다. 잠긴 파일은 암호를 물어봅니다. 장(章)별 파일을 여러 개 한꺼번에 고르거나 하나씩 더해도 됩니다. 가져온 내용은 이 기기에만 저장됩니다.</p>';
+    g('blInfo').innerHTML='<p class="sdesc" style="margin:0">[서버에서 받기]를 누르고 암호를 넣거나, [예제 파일]로 예제 파일(.json)을 가져오면 목록이 나타납니다. 잠긴 파일은 암호를 물어봅니다. 장(章)별 파일을 여러 개 한꺼번에 고르거나 하나씩 더해도 됩니다. 가져온 내용은 이 기기에만 저장됩니다.</p>';
     tab.innerHTML='<div class="empty">예제 파일을 가져오면 TAB이 여기에 나옵니다.</div>';
     ['blPlay','blFrom','blTo','blPrev','blNext','blSel'].forEach(id=>g(id).disabled=true);BL.lk=null;blBoxRender();drawBoard();return;
   }
@@ -1575,6 +1576,15 @@ function blLoadText(txts){
   alert(`예제 ${add.length}개를 가져왔습니다. (이 기기에 모두 ${all.length}개)`+(bad?`\n읽지 못한 파일 ${bad}개`:''));
 }
 document.getElementById('blFile').addEventListener('change',async e=>{const fs=[...e.target.files];if(fs.length)blLoadText(await Promise.all(fs.map(f=>f.text())));e.target.value=''});
+/* 서버에서 받기: 서버의 잠긴 파일(blues.enc.json)을 받아 → 같은 암호 칸으로 열기 */
+document.getElementById('blSrv').addEventListener('click',async e=>{
+  const b=e.currentTarget;b.disabled=true;
+  try{const r=await fetch('blues.enc.json?v='+Date.now(),{cache:'no-store'});
+    if(!r.ok){alert('서버에 예제 파일이 아직 없습니다.');return}
+    blLoadText([await r.text()]);
+  }catch(err){alert('서버에서 받지 못했습니다. 인터넷 연결을 확인하세요.')}
+  finally{b.disabled=false}
+});
 document.getElementById('blClr').addEventListener('click',()=>{
   if(!BL.data){alert('저장된 예제가 없습니다.');return}
   if(!confirm('이 기기에 저장된 블루스 예제를 모두 지울까요? (예제 파일은 그대로 남습니다)'))return;
