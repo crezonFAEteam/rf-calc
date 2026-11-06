@@ -8,8 +8,8 @@
 <meta name="theme-color" content="#111915" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="통기타 코드">
-<title>통기타 코드 계산기</title>
+<meta name="apple-mobile-web-app-title" content="기타계산기">
+<title>기타계산기</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
@@ -41,12 +41,11 @@ button,select,textarea{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 
 /* 제목: 한 줄로 작게 */
-.top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
-.top>div:first-child{display:flex;align-items:baseline;gap:10px;min-width:0;flex-wrap:wrap}
-.top h1{font-family:"Gowun Batang",serif;font-weight:700;font-size:1.15rem;margin:0;letter-spacing:-.01em;white-space:nowrap}
-.top p{margin:0;color:var(--muted);font-size:.74rem}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;flex-wrap:nowrap}
+.top h1{font-family:"Gowun Batang",serif;font-weight:700;font-size:1.1rem;margin:0;letter-spacing:-.01em;white-space:nowrap}
+.tops{display:flex;gap:5px;align-items:center;flex-wrap:nowrap;flex:none}
 .acc{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;flex:none}
-.acc button{background:none;border:0;padding:2px 11px;cursor:pointer;font-size:.88rem;color:var(--muted)}
+.acc button{background:none;border:0;padding:2px 9px;cursor:pointer;font-size:.78rem;line-height:1.5;color:var(--muted)}
 .acc button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
 
 .board-scroll{overflow-x:auto;border-radius:6px;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y}   /* 두 손가락 확대는 스크립트가 지판만 키운다 */
@@ -184,10 +183,10 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 @media (max-width:640px){
   .wrap{padding:12px 12px 40px}
-  .top{margin-bottom:6px}
-  .top p{display:none}                          /* 휴대폰: 부제목 숨김 — 제목 한 줄만 */
-  .acc button{padding:4px 12px}
-  .lbl-tg button{padding:5px 9px;font-size:.78rem}
+  .top{margin-bottom:6px;gap:6px}
+  .top h1{font-size:1rem}
+  .tops{gap:4px}
+  .acc button,.lbl-tg button{padding:5px 7px;font-size:.74rem}
   .board-bar .board-cap{font-size:.72rem}
   /* 탭: 화면 위에 붙어 있게 (스크롤해도 바로 바꿀 수 있게) */
   .tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);margin:14px -12px 14px;padding:0 12px;scrollbar-width:none}
@@ -218,13 +217,20 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
 <body>
 <div class="wrap">
   <header class="top">
-    <div>
-      <h1>통기타 코드 계산기</h1>
-      <p>코드 운지, 코드 이름 찾기, 조옮김과 카포 계산</p>
+    <h1>기타계산기</h1>
+    <div class="tops">
+    <div class="lbl-tg" role="group" aria-label="지판 보기 방식">
+      <button data-view="1" aria-pressed="true" title="한 줄로 보기 (옆으로 밀어서)">1줄</button>
+      <button data-view="2" aria-pressed="false" title="두 줄로 나눠 15프렛 전체 보기">2줄</button>
+    </div>
+    <div class="lbl-tg" role="group" aria-label="지판 점에 표시할 내용">
+      <button data-lbl="note" aria-pressed="true">음이름</button>
+      <button data-lbl="deg" aria-pressed="false">도수</button>
     </div>
     <div class="acc" role="group" aria-label="샵·플랫 표기">
       <button data-acc="sharp" aria-pressed="true" aria-label="샵으로 표기">♯</button>
       <button data-acc="flat" aria-pressed="false" aria-label="플랫으로 표기">♭</button>
+    </div>
     </div>
   </header>
 
@@ -232,19 +238,6 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
     <div class="board-scroll" id="boardScroll"><svg id="board" viewBox="0 0 1000 226" role="img" aria-label="기타 지판"></svg><svg id="board2" viewBox="0 0 1000 226" aria-hidden="true" hidden></svg></div>
     <div class="board-bar">
       <p class="board-cap" id="boardCap"></p>
-      <div class="lbl-tg" role="group" aria-label="지판 보기 방식">
-        <button data-view="1" aria-pressed="true" title="한 줄로 보기 (옆으로 밀어서)">한 줄</button>
-        <button data-view="2" aria-pressed="false" title="두 줄로 나눠 15프렛 전체 보기">두 줄</button>
-      </div>
-      <div class="lbl-tg zm" role="group" aria-label="지판 크기">
-        <button data-zoom="-1" aria-label="지판 작게">－</button>
-        <button data-zoom="0" id="zoomVal" title="화면에 맞추기">100%</button>
-        <button data-zoom="1" aria-label="지판 크게">＋</button>
-      </div>
-      <div class="lbl-tg" role="group" aria-label="지판 점에 표시할 내용">
-        <button data-lbl="note" aria-pressed="true">음이름</button>
-        <button data-lbl="deg" aria-pressed="false">도수</button>
-      </div>
     </div>
     <div class="legend"><span><i style="background:#E2A93A"></i>루트</span><span><i style="background:#A8D0BC"></i>3도 (성격)</span><span><i style="background:#EFE6D3"></i>5도</span><span><i style="background:#E9B4A4"></i>7도</span><span><i style="background:#B7C8EA"></i>텐션·sus·6도</span></div>
   </section>
@@ -621,7 +614,6 @@ function boardLayout(){
     const W=cw*z,k=W/VB_A[2];
     b1.style.width=Math.round(W)+'px';b2.style.width=Math.round(VB_B[2]*k)+'px';
   }
-  document.getElementById('zoomVal').textContent=Math.round(z*100)+'%';
   document.querySelectorAll('[data-view]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.view===bview));
 }
 function bzSave(){store.set('chordcalc-bz'+bview,bz[bview].toFixed(3))}
