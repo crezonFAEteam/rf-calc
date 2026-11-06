@@ -84,7 +84,7 @@ html{scroll-padding-top:var(--pinH,0px)}
 .tabs button{background:none;border:0;padding:10px 14px;cursor:pointer;color:var(--muted);font-weight:500;border-bottom:3px solid transparent;margin-bottom:-1px;white-space:nowrap}
 .tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent-fill)}
 
-.grid{display:grid;gap:28px}
+.grid{display:grid;gap:28px;grid-template-columns:minmax(0,1fr)}   /* 1단일 때 긴 TAB 이 칸을 넓히지 않게 */
 @media (min-width:820px){.grid{grid-template-columns:minmax(0,5fr) minmax(0,7fr)}}
 .flabel{display:block;font-size:.85rem;color:var(--muted);margin:0 0 6px;font-weight:500}
 .field{margin-bottom:18px}
@@ -187,6 +187,11 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .acced button[aria-pressed="true"]{background:var(--accent-fill);color:var(--on-accent);border-color:var(--accent-fill);font-weight:700}
 .acced button:disabled{opacity:.35;cursor:default}
 .acced .reset{font-family:inherit;padding:0 10px;margin-left:6px}
+/* 곡 저장 · 불러오기 줄 */
+.songbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 10px}
+.songbar select{flex:1 1 150px;min-width:0;width:auto!important;padding:6px 8px}
+.ghost.sm{padding:4px 12px;font-size:.85rem;min-height:0}
+.ghost.sm:disabled{opacity:.4;cursor:default}
 /* ---- 스마트폰 ---- */
 button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 @media (max-width:640px){
@@ -218,6 +223,8 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
   textarea,select,input{font-size:16px}   /* 16px 미만이면 아이폰이 입력할 때 확대한다 */
   select{width:100%}
   .tab pre{font-size:12px}
+  .songbar .ghost.sm{min-height:38px;padding:4px 10px}
+  .songbar select{flex-basis:100%}
 }
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -320,6 +327,14 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
   <section id="p-adlib" role="tabpanel" hidden>
     <div class="grid">
       <div>
+        <div class="songbar">
+          <select id="songSel" aria-label="저장된 곡 불러오기"></select>
+          <button id="songSave" class="ghost sm" title="지금 코드 진행 · 설정 · 프레이즈를 곡으로 저장">저장</button>
+          <button id="songDel" class="ghost sm" title="고른 곡 삭제">삭제</button>
+          <button id="songExp" class="ghost sm" title="저장한 곡 전체를 파일로 (다른 기기로 옮길 때)">내보내기</button>
+          <button id="songImp" class="ghost sm" title="내보낸 파일에서 곡 가져오기">가져오기</button>
+          <input type="file" id="songFile" accept=".json,application/json" hidden>
+        </div>
         <label class="flabel" for="adSrc">곡의 코드 진행</label>
         <textarea id="adSrc" rows="9" spellcheck="false"></textarea>
         <p class="sdesc" style="margin:6px 0 0">코드 줄 아래에 숫자를 쓰면 각 코드의 길이가 됩니다(가사 줄을 사이에 둬도 됩니다). 8은 한 마디, 16은 두 마디, 4는 반 마디이고, 숫자가 없으면 한 마디로 칩니다. 빈 줄로 구간을 나누고 (전주)처럼 괄호로 이름을 붙이세요.</p>
@@ -1365,6 +1380,82 @@ document.getElementById('p-adlib').addEventListener('click',e=>{
 document.getElementById('adKey').addEventListener('change',e=>{ad.key=e.target.value;adStop();adGenerate();renderAdControls()});
 document.getElementById('adBpm').addEventListener('input',e=>{ad.bpm=+e.target.value;document.getElementById('adBpmOut').textContent=ad.bpm});
 document.getElementById('adSrc').addEventListener('input',e=>{store.set('chordcalc-adsrc',e.target.value);clearTimeout(adDeb);adDeb=setTimeout(()=>{adStop();adGenerate();renderAdControls()},450)});
+/* ---------- 곡 저장 · 불러오기 ----------
+   코드 진행 + 애드리브 설정 + 지금 만들어진 프레이즈(TAB)까지 저장. 이 브라우저에 저장되고,
+   다른 기기로 옮길 때는 [내보내기] 파일을 [가져오기]. */
+const SONG_KEY='chordcalc-songs';
+const SONG_SET=['mode','meter','bend','vib','harm','accOv','arp','backStyle','key','box','style','bpm','back','arpBy','combo'];
+let curSong=store.get('chordcalc-cursong')||'';
+function songs(){try{const a=JSON.parse(store.get(SONG_KEY)||'[]');return Array.isArray(a)?a.filter(s=>s&&typeof s.name==='string'):[]}catch(e){return[]}}
+function songsPut(a){a.sort((x,y)=>x.name.localeCompare(y.name,'ko'));store.set(SONG_KEY,JSON.stringify(a))}
+function songPack(name){
+  const set={};SONG_SET.forEach(k=>set[k]=ad[k]);
+  const d=new Date(),p=n=>('0'+n).slice(-2);
+  return {name,src:document.getElementById('adSrc').value,set,sel:ad.sel?[...ad.sel]:null,selArp:ad.selArp?[...ad.selArp]:null,licks:ad.licks,
+          at:`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`};
+}
+function renderSongs(){
+  const a=songs(),el=document.getElementById('songSel');
+  if(curSong&&!a.some(s=>s.name===curSong))curSong='';
+  el.innerHTML=`<option value="">${a.length?`저장된 곡 ${a.length}개 — 골라서 불러오기`:'저장된 곡 없음'}</option>`+
+    a.map((s,i)=>`<option value="${i}"${s.name===curSong?' selected':''}>${esc(s.name)}${s.at?'  ·  '+esc(s.at.slice(2,10)):''}</option>`).join('');
+  document.getElementById('songDel').disabled=!curSong;
+  document.getElementById('songExp').disabled=!a.length;
+}
+function songLoad(s){
+  adStop();
+  const src=String(s.src||'');document.getElementById('adSrc').value=src;store.set('chordcalc-adsrc',src);
+  SONG_SET.forEach(k=>{if(s.set&&k in s.set)ad[k]=s.set[k]});
+  if(!ARP[ad.arp])ad.arp='slow';if(!(ad.bpm>=50&&ad.bpm<=160))ad.bpm=84;
+  ad.sel=Array.isArray(s.sel)?new Set(s.sel):null;ad.selArp=Array.isArray(s.selArp)?new Set(s.selArp):null;
+  ad.sig=adParse().map(b=>b.name).join('|');          /* 같은 곡이면 고른 구간 · 추천 조합을 그대로 둔다 */
+  document.getElementById('adBpm').value=ad.bpm;
+  adGenerate();
+  if(Array.isArray(s.licks)&&s.licks.length){ad.licks=s.licks;renderAdTab();drawBoard()}   /* 저장한 프레이즈 그대로 */
+  renderAdControls();
+  curSong=s.name;store.set('chordcalc-cursong',curSong);renderSongs();uiLater();
+}
+function songFlash(b,t){const o=b.textContent;b.textContent=t;setTimeout(()=>b.textContent=o,1400)}
+document.getElementById('songSel').addEventListener('change',e=>{
+  const a=songs(),s=a[+e.target.value];if(e.target.value===''||!s){renderSongs();return}
+  const now=document.getElementById('adSrc').value;
+  if(now.trim()&&!a.some(x=>x.src===now)&&!confirm('지금 코드 진행은 저장되지 않았습니다.\n불러오면 지금 내용은 사라집니다. 계속할까요?')){renderSongs();return}
+  songLoad(s);
+});
+document.getElementById('songSave').addEventListener('click',e=>{
+  const a=songs(),src=document.getElementById('adSrc').value;
+  if(!src.trim()){alert('코드 진행이 비어 있습니다.');return}
+  const guess=curSong||((src.match(/^\s*\(([^)]+)\)/)||[])[1]||'').trim()||`곡 ${a.length+1}`;
+  let name=prompt('곡 이름 (같은 이름이면 덮어씁니다)',guess);if(name==null)return;name=name.trim().slice(0,60);if(!name)return;
+  const i=a.findIndex(s=>s.name===name);
+  if(i>=0&&name!==curSong&&!confirm(`"${name}" 곡이 이미 있습니다. 덮어쓸까요?`))return;
+  const p=songPack(name);if(i>=0)a[i]=p;else a.push(p);
+  songsPut(a);curSong=name;store.set('chordcalc-cursong',name);renderSongs();songFlash(e.currentTarget,'저장됨');
+});
+document.getElementById('songDel').addEventListener('click',()=>{
+  if(!curSong||!confirm(`"${curSong}" 곡을 삭제할까요?`))return;
+  songsPut(songs().filter(s=>s.name!==curSong));curSong='';store.set('chordcalc-cursong','');renderSongs();
+});
+document.getElementById('songExp').addEventListener('click',()=>{
+  const a=songs();if(!a.length)return;
+  const d=new Date(),p=n=>('0'+n).slice(-2);
+  const blob=new Blob([JSON.stringify({app:'쎄이기타',ver:1,songs:a},null,1)],{type:'application/json'});
+  const l=document.createElement('a');l.href=URL.createObjectURL(blob);l.download=`쎄이기타_곡_${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}.json`;
+  document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(l.href),2000);
+});
+document.getElementById('songImp').addEventListener('click',()=>document.getElementById('songFile').click());
+document.getElementById('songFile').addEventListener('change',e=>{
+  const f=e.target.files&&e.target.files[0];if(!f)return;
+  f.text().then(t=>{
+    let inc;try{const j=JSON.parse(t);inc=Array.isArray(j)?j:j.songs}catch(err){}
+    inc=(inc||[]).filter(s=>s&&typeof s.name==='string'&&typeof s.src==='string');
+    if(!inc.length){alert('곡을 찾지 못했습니다. [내보내기]로 만든 파일인지 확인해 주세요.');return}
+    const a=songs(),dup=inc.filter(s=>a.some(x=>x.name===s.name)).length;
+    if(dup&&!confirm(`${inc.length}곡 중 ${dup}곡은 같은 이름이 있습니다. 가져온 것으로 덮어쓸까요?\n(취소하면 같은 이름은 건너뜁니다)`))inc=inc.filter(s=>!a.some(x=>x.name===s.name));
+    inc.forEach(s=>{const i=a.findIndex(x=>x.name===s.name);if(i>=0)a[i]=s;else a.push(s)});
+    songsPut(a);renderSongs();alert(`${inc.length}곡을 가져왔습니다.`);
+  }).finally(()=>{e.target.value=''});
+});
 function adInit(){
   document.getElementById('adSrc').value=store.get('chordcalc-adsrc')||'(전주)\nDmadd9  Gdim  A  Dm  Dmadd9\n8 8 8 8 8\n\n(간주)\nDmadd9  Gdim  A  Dm  Gdim  Dm  Gdim  A\n8 8 8 16 8 8 8 8';
   document.getElementById('adBpm').value=ad.bpm;
@@ -1402,6 +1493,7 @@ function uiSave(){
   ST_KEYS.forEach(k=>o.st[k]=st[k]);
   AD_KEYS.forEach(k=>o.ad[k]=ad[k]);
   o.ad.sel=ad.sel?[...ad.sel]:null;o.ad.selArp=ad.selArp?[...ad.selArp]:null;
+  o.licks=ad.licks;o.adsrc=document.getElementById('adSrc').value;   /* 만들어진 프레이즈도 (다시 열어도 같은 TAB) */
   store.set(UI_KEY,JSON.stringify(o));
 }
 function uiLater(){clearTimeout(uiT);uiT=setTimeout(uiSave,250)}
@@ -1442,7 +1534,12 @@ document.getElementById('src').value=store.get('chordcalc-src')||'G  D  Em  C\nA
 computeFind();
 if(uiSaved&&uiSaved.st&&Number.isInteger(uiSaved.st.vi)&&uiSaved.st.vi<st.voicings.length)st.vi=uiSaved.st.vi;
 boardLayout();pinFit();
-adInit();renderFindControls();renderFind();drawBoard();renderName();renderScale();renderShift();
+adInit();
+if(uiSaved&&Array.isArray(uiSaved.licks)&&uiSaved.licks.length&&uiSaved.adsrc===document.getElementById('adSrc').value&&uiSaved.ad&&uiSaved.ad.sig===ad.sig){
+  ad.licks=uiSaved.licks;renderAdTab();renderAdControls();
+}
+renderSongs();
+renderFindControls();renderFind();drawBoard();renderName();renderScale();renderShift();
 if(st.tab!=='find')setTab(st.tab);
 uiReady=true;
 if(uiSaved&&uiSaved.y)requestAnimationFrame(()=>requestAnimationFrame(()=>window.scrollTo(0,uiSaved.y)));
