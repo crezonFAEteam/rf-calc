@@ -198,7 +198,7 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .sg-deep.done{border-color:#2f9a5c;color:#2f9a5c;font-weight:600}.sg-deep.err{border-color:#c0392b;color:#c0392b}.sg-deep.off{color:var(--muted)}
 .sg-autochk{margin:0 0 8px}
 .sg-key{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;margin:10px 0 0;font-size:.92rem}.sg-key b{color:var(--accent)}.sg-k0{color:var(--muted);font-size:.82rem;margin-left:4px}
-.sg-kgrp{display:inline-flex;gap:4px;align-items:center}.sg-kv{min-width:2em;text-align:center}.sg-key select{width:auto!important;padding:4px 6px}.sg-shapes button[aria-pressed="true"]{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent)}
+.sg-kgrp{display:inline-flex;gap:4px;align-items:center}.sg-kv{min-width:2em;text-align:center}.sg-key select{width:auto!important;padding:4px 6px}.sg-snd[aria-pressed="true"],.sg-shapes button[aria-pressed="true"]{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent)}
 .sg-knote{color:var(--muted);font-size:.8rem}
 .sg-list{width:auto!important;max-width:260px;min-width:0;padding:6px 8px;border-radius:999px}
 .sg-stat{margin:0 0 10px;font-weight:600;color:var(--accent)}.sg-stat progress{width:180px;vertical-align:middle;margin-left:8px}
@@ -2099,14 +2099,99 @@ function sgLoad(song,urls){
   if(!SG.ids.length){alert('트랙 파일(mp3)을 찾지 못했습니다.');return}
   const m=SG.els[SG.ids[0]];m.addEventListener('loadedmetadata',()=>{sgEl('sgDur').textContent=sgFmt(m.duration)});
   m.addEventListener('ended',()=>{if(SG.loop){sgSeek(SG.from?sgTime(SG.from*16):0);sgPlay()}else sgPause()});
-  sgVol();sgRender();
+  sgVol();sgRender();if(SG.ps||sgPitchSemi())sgPitchApply();
   if(!song.quick&&!SG.keepOff)sgKeep(song,urls);   /* 다음엔 '분석된 곡' 목록에서 바로 */
 }
 function sgMaster(){return SG.els[SG.ids[0]]}
+/* ---------- 음원 키 바꾸기: 모든 트랙 → 피치 시프터(AudioWorklet) → 스피커. 빠르기는 그대로 · 한 번도 안 쓰면 기본 재생 경로 그대로 ---------- */
+const SG_PS_SRC=String.raw`/* 음높이만 바꾸기(빠르기 그대로): 위상 보코더 피치 시프트 + 위상 고정(같은 음의 이웃 성분은 봉우리와 위상을 맞춤) + 포먼트 보존(목소리 색 = 스펙트럼 윤곽은 원래대로). FFT 2048, 8배 겹침 */
+class SgPitch extends AudioWorkletProcessor{
+  static get parameterDescriptors(){return [{name:'semi',defaultValue:0,minValue:-12,maxValue:12,automationRate:'k-rate'},{name:'formant',defaultValue:1,minValue:0,maxValue:1,automationRate:'k-rate'}]}
+  constructor(){
+    super();const N=2048,os=8,H=N/2;this.N=N;this.os=os;this.step=N/os;this.lat=N-this.step;this.semi=0;this.ratio=1;this.cs=[];
+    this.win=new Float32Array(N);for(let i=0;i<N;i++)this.win[i]=0.5-0.5*Math.cos(2*Math.PI*i/N);
+    this.re=new Float32Array(N);this.im=new Float32Array(N);
+    this.aM=new Float32Array(H+1);this.aF=new Float32Array(H+1);this.ph=new Float32Array(H+1);this.pk=new Int32Array(H+1);this.pp=new Float32Array(H+1);this.sM=new Float32Array(H+1);this.E=new Float32Array(H+1);this.L=Math.max(8,Math.round(sampleRate*0.0015));this.fm=1;
+    this.rev=new Uint32Array(N);const b=Math.log2(N);for(let i=0;i<N;i++){let r=0;for(let j=0;j<b;j++)r|=((i>>j)&1)<<(b-1-j);this.rev[i]=r}
+    this.cos=new Float32Array(H);this.sin=new Float32Array(H);for(let i=0;i<H;i++){this.cos[i]=Math.cos(2*Math.PI*i/N);this.sin[i]=Math.sin(2*Math.PI*i/N)}
+    this.gain=1/(N*os*3/8);   /* 분석 크기(×2, 한쪽 스펙트럼) · Hann² 겹침 합(os·3/8) 보정 */
+  }
+  mk(){const N=this.N;return{inF:new Float32Array(N),outF:new Float32Array(N),acc:new Float32Array(2*N),lp:new Float32Array(N/2+1),sp:new Float32Array(N/2+1),rv:this.lat}}
+  fft(inv){
+    const N=this.N,re=this.re,im=this.im,rev=this.rev;
+    for(let i=0;i<N;i++){const j=rev[i];if(j>i){let t=re[i];re[i]=re[j];re[j]=t;t=im[i];im[i]=im[j];im[j]=t}}
+    for(let s=2;s<=N;s<<=1){const h=s>>1,st=N/s;
+      for(let i=0;i<N;i+=s)for(let k=0;k<h;k++){const c=this.cos[k*st],sn=inv?this.sin[k*st]:-this.sin[k*st],a=i+k,b=a+h;
+        const tr=re[b]*c-im[b]*sn,ti=re[b]*sn+im[b]*c;re[b]=re[a]-tr;im[b]=im[a]-ti;re[a]+=tr;im[a]+=ti}}
+  }
+  frame(S){
+    const N=this.N,H=N/2,os=this.os,step=this.step,re=this.re,im=this.im,w=this.win,r=this.ratio,ex=2*Math.PI*step/N;
+    const aM=this.aM,aF=this.aF,ph=this.ph,pk=this.pk,pp=this.pp,sM=this.sM;
+    for(let k=0;k<N;k++){re[k]=S.inF[k]*w[k];im[k]=0}
+    this.fft(false);
+    for(let k=0;k<=H;k++){const p=Math.atan2(im[k],re[k]);let d=p-S.lp[k];S.lp[k]=p;ph[k]=p;d-=k*ex;
+      d-=2*Math.PI*Math.round(d/(2*Math.PI));aF[k]=k+os*d/(2*Math.PI);aM[k]=2*Math.hypot(re[k],im[k])}
+    /* 포먼트(목소리 색) 윤곽: 켑스트럼 — log 크기 → 역FFT → 1.5ms 이하만 남김 → FFT */
+    const E=this.E,fm=this.fm&&r!==1;
+    if(fm){for(let k=0;k<N;k++){re[k]=Math.log(aM[k<=H?k:N-k]+1e-9);im[k]=0}
+      this.fft(true);const L=this.L;for(let k=L+1;k<N-L;k++){re[k]=0;im[k]=0}for(let k=0;k<N;k++)im[k]=0;
+      this.fft(false);for(let k=0;k<=H;k++)E[k]=Math.exp(re[k]/N)}
+    /* 봉우리 찾기 → 각 성분을 가장 가까운 봉우리에 묶음 */
+    let last=-1;for(let k=0;k<=H;k++){pk[k]=-1;if(k>1&&k<H-1&&aM[k]>aM[k-1]&&aM[k]>=aM[k+1]&&aM[k]>aM[k-2]&&aM[k]>=aM[k+2]){pk[k]=k;
+        if(last<0)for(let j=0;j<k;j++)pk[j]=k;else{const mid=(last+k)>>1;for(let j=last+1;j<k;j++)pk[j]=j<=mid?last:k}last=k}}
+    if(last<0)for(let k=0;k<=H;k++)pk[k]=0;else for(let k=last+1;k<=H;k++)pk[k]=last;
+    /* 1단계: 봉우리 성분 → 새 칸(k·비율)에서 새 주파수로 위상 이어서 누적 */
+    for(let k=0;k<=H;k++){re[k]=0;im[k]=0;sM[k]=0}
+    for(let k=0;k<=H;k++)if(pk[k]===k){const j=Math.round(k*r);if(j>H)break;S.sp[j]+=ex*aF[k]*r;pp[k]=S.sp[j]}
+    /* 2단계: 같은 음의 이웃 성분(봉우리 덩어리)은 봉우리와 같은 칸 수만큼 옮기고, 봉우리 위상 + (분석 위상 차) → 모양 · 음량 유지. 겹치면 큰 쪽 */
+    for(let k=0;k<=H;k++){const kp=pk[k],j=Math.round(kp*r)+(k-kp);if(j<0||j>H||aM[k]<=sM[j])continue;sM[j]=aM[k];   /* 봉우리 덩어리째 옮김 */
+      let p;if(kp===k)p=S.sp[j];else{p=pp[kp]+ph[k]-ph[kp];S.sp[j]=p}
+      let m=aM[k];if(fm){const q=E[j]/(E[k]+1e-12);m*=q<0.1?0.1:q>10?10:q}   /* 새 자리에서도 원래 목소리 윤곽 */
+      re[j]=m*Math.cos(p);im[j]=m*Math.sin(p)}
+    for(let k=H+1;k<N;k++){re[k]=0;im[k]=0}
+    this.fft(true);
+    const g=this.gain;for(let k=0;k<N;k++)S.acc[k]+=w[k]*re[k]*g;
+    for(let k=0;k<step;k++)S.outF[k]=S.acc[k];
+    S.acc.copyWithin(0,step);S.acc.fill(0,2*N-step);
+    S.inF.copyWithin(0,step);
+  }
+  process(inputs,outputs,params){
+    const sm=params.semi[0];if(sm!==this.semi){this.semi=sm;this.ratio=Math.pow(2,sm/12);this.cs=[]}this.fm=params.formant[0]>=0.5;
+    const inp=inputs[0],out=outputs[0];
+    for(let c=0;c<out.length;c++){
+      const x=inp[c]||inp[0],y=out[c];if(!x){y.fill(0);continue}
+      if(this.ratio===1){y.set(x);continue}
+      const S=this.cs[c]||(this.cs[c]=this.mk());
+      for(let i=0;i<x.length;i++){S.inF[S.rv]=x[i];y[i]=S.outF[S.rv-this.lat];if(++S.rv>=this.N){S.rv=this.lat;this.frame(S)}}
+    }
+    return true;
+  }
+}
+registerProcessor('sg-pitch',SgPitch);`;
+SG.ac=null;SG.ps=null;SG.routed=new WeakSet();
+async function sgPitchInit(){
+  if(SG.ps)return true;if(SG.psInit)return SG.psInit;
+  return SG.psInit=(async()=>{try{
+    const AC=window.AudioContext||window.webkitAudioContext;if(!AC||!AC.prototype.hasOwnProperty('audioWorklet')&&!('audioWorklet' in AC.prototype))throw new Error('no worklet');
+    SG.ac=SG.ac||new AC({latencyHint:'playback'});
+    try{if(location.protocol==='file:')throw 0;await SG.ac.audioWorklet.addModule(URL.createObjectURL(new Blob([SG_PS_SRC],{type:'application/javascript'})))}   /* 파일(file://)로 열면 blob 이 막힘 → data: 주소로 */
+    catch(e1){await SG.ac.audioWorklet.addModule('data:application/javascript;charset=utf-8,'+encodeURIComponent(SG_PS_SRC))}
+    SG.ps=new AudioWorkletNode(SG.ac,'sg-pitch',{outputChannelCount:[2],channelCount:2,channelCountMode:'explicit'});SG.ps.connect(SG.ac.destination);return true}
+  catch(e){SG.psErr=String(e&&e.message||e);SG.psInit=null;return false}})();
+}
+function sgPitchSemi(){return SG.song&&SG.kc&&SG.kc.s?SG.kc.t:0}
+async function sgPitchApply(){
+  const n=sgPitchSemi();if(!n&&!SG.ps)return;
+  if(!(await sgPitchInit())){if(n)alert('이 브라우저에서는 음원 키 바꾸기를 쓸 수 없습니다. (악보 조옮김만 됩니다)\n'+(SG.psErr||''));return}
+  for(const i of SG.ids){const e=SG.els[i];if(e&&!SG.routed.has(e)){SG.ac.createMediaElementSource(e).connect(SG.ps);SG.routed.add(e)}}
+  SG.ps.parameters.get('semi').setValueAtTime(n,SG.ac.currentTime);
+  if(SG.playing&&SG.ac.state!=='running')SG.ac.resume();
+}
 function sgVol(){const anySolo=SG.ids.some(i=>SG.mix[i].solo);for(const i of SG.ids){const x=SG.mix[i];SG.els[i].volume=(anySolo?x.solo:!x.mute)?Math.max(0,Math.min(1,x.vol)):0}}
 /* ---------- 재생 · 동기 ---------- */
 function sgPlay(){
   const m=sgMaster();if(!m)return;if(BL.playing)blStop();if(ad.playing)adStop();
+  if(SG.ac&&SG.ac.state!=='running')SG.ac.resume();if(sgPitchSemi()||SG.ps)sgPitchApply();
   const nb=SG.song.bars,a=SG.seg?SG.seg.a:SG.from*16,z=SG.seg?SG.seg.z:(SG.to<0?nb:SG.to+1)*16;
   if(SG.seg||SG.from>0||SG.to>=0){const t=m.currentTime,ta=Math.max(0,sgTime(a)),tz=sgTime(z);if(t<ta-0.05||t>=tz)sgSeek(ta)}
   const t=m.currentTime;SG.ids.forEach(i=>{const e=SG.els[i];e.playbackRate=SG.rate;if(Math.abs(e.currentTime-t)>0.03)e.currentTime=t;e.play().catch(()=>{})});
@@ -2142,7 +2227,7 @@ function sgShowTime(t,force){
 }
 /* ---------- 화면 ---------- */
 /* ---------- 키 · 카포: 조옮김(T, 반음) = 악보를 다른 키로, 카포(C) = 코드 이름은 카포 기준 모양 · TAB 숫자는 카포를 0으로 ----------
-   소리(원곡)는 그대로. 곡마다 기억 */
+   S(음원도 같이) 켜면 소리도 T 반음만큼 (sgPitchApply). 곡마다 기억 */
 SG.kc={t:0,c:0};
 function sgKcLoad(){try{const a=JSON.parse(store.get('chordcalc-songkey')||'{}');SG.kc=a[SG.song.title]||{t:0,c:0}}catch(e){SG.kc={t:0,c:0}}}
 function sgKcSave(){try{const a=JSON.parse(store.get('chordcalc-songkey')||'{}');a[SG.song.title]=SG.kc;store.set('chordcalc-songkey',JSON.stringify(a))}catch(e){}}
@@ -2166,14 +2251,16 @@ function sgShapes(key){   /* 이 키를 쉬운 코드 모양(G C D A E)으로 �
   const out=[];for(let c=0;c<=7;c++){const sh=mod(key-c);if([7,0,2,9,4].includes(sh))out.push({c,sh})}return out;
 }
 function sgKeyBar(){
-  const k0=sgKey0(),T=SG.kc.t,C=SG.kc.c,key=mod(k0+T),shape=mod(key-C),hint=sgCapoHint(key);
+  const k0=sgKey0(),T=SG.kc.t,C=SG.kc.c,S=!!SG.kc.s,key=mod(k0+T),shape=mod(key-C),hint=sgCapoHint(key);
   return `<div class="sg-key">곡 키 <b>${nn(key)}</b>${T?`<span class="sg-k0">(분석 ${nn(k0)})</span>`:''}
-    <span class="sg-kgrp">조옮김 <button class="ghost sm" data-sgtr="-1" aria-label="반음 내림">−</button><b class="sg-kv">${T>0?'+'+T:T}</b><button class="ghost sm" data-sgtr="1" aria-label="반음 올림">+</button></span>
+    <span class="sg-kgrp">조옮김 <button class="ghost sm" data-sgtr="-1" aria-label="반음 내림">−</button><b class="sg-kv">${T>0?'+'+T:T}</b><button class="ghost sm" data-sgtr="1" aria-label="반음 올림">+</button>
+      <button class="ghost sm sg-snd" data-sgsnd="1" aria-pressed="${S}" title="조옮김한 만큼 음원(노래 · 반주 모두) 소리도 올리고 내림. 빠르기는 그대로">🔊 음원도 같이</button></span>
     <span class="sg-kgrp">카포 <select id="sgCapo">${Array.from({length:10},(_,i)=>`<option value="${i}"${i===C?' selected':''}>${i?i+'프렛':'없음'}</option>`).join('')}</select></span>
     ${C?`<span>→ <b>${nn(shape)}</b> 코드 모양으로 연주</span>`:''}
     <span class="sg-kgrp sg-shapes">쉬운 모양 ${sgShapes(key).map(o=>`<button class="ghost sm" data-sgcapo="${o.c}" aria-pressed="${o.c===C}" title="${o.c?'카포 '+o.c+'프렛에 ':''}${nn(o.sh)} 코드 모양으로 치기">${nn(o.sh)}${o.c?' · 카포 '+o.c:''}</button>`).join('')}</span>
     ${T||C?`<button class="ghost sm" data-sgkreset="1">원래대로</button>`:''}
-    ${T?`<span class="sg-knote">※ 조옮김은 악보만 바뀌고 소리는 원곡 키 그대로입니다</span>`:''}</div>`;
+    ${T&&!S?`<span class="sg-knote">※ 지금은 악보만 바뀌고 소리는 원곡(${nn(k0)}) 그대로입니다 — [🔊 음원도 같이]를 켜면 소리도 ${nn(key)} 키로</span>`:''}
+    ${T&&S?`<span class="sg-knote sg-knote-on">🔊 음원도 ${nn(k0)} → <b>${nn(key)}</b> 키로 재생 중 (빠르기 그대로)</span>`:''}</div>`;
 }
 /* 기타 음: 조옮김한 음높이를 카포 기준 프렛으로 (같은 줄 우선, 안 되면 가까운 프렛의 다른 줄) */
 function sgFitNote(n,T,C){
@@ -2340,9 +2427,10 @@ document.getElementById('p-song').addEventListener('click',e=>{
   if(b.id==='sgLoop'){SG.loop=!SG.loop;b.setAttribute('aria-pressed',SG.loop);sgSave();return}
   if(b.id==='sgAll'){SG.from=0;SG.to=-1;sgRender();return}
   if(b.id==='sgBack'){sgSeek(sgMaster().currentTime-5);return}
-  if(ds.sgtr){SG.kc.t=Math.max(-11,Math.min(11,SG.kc.t+(+ds.sgtr)));sgKcSave();SG.lk={};SG._ch=null;sgRender();drawBoard();return}
+  if(ds.sgtr){SG.kc.t=Math.max(-11,Math.min(11,SG.kc.t+(+ds.sgtr)));sgKcSave();SG.lk={};SG._ch=null;sgRender();drawBoard();sgPitchApply();return}
+  if(ds.sgsnd){SG.kc.s=!SG.kc.s;sgKcSave();sgRender();sgPitchApply();return}
   if(ds.sgcapo!=null){SG.kc.c=+ds.sgcapo;sgKcSave();SG.lk={};SG._ch=null;sgRender();drawBoard();return}
-  if(ds.sgkreset){SG.kc={t:0,c:0};sgKcSave();SG.lk={};SG._ch=null;sgRender();drawBoard();return}
+  if(ds.sgkreset){SG.kc={t:0,c:0};sgKcSave();SG.lk={};SG._ch=null;sgRender();drawBoard();sgPitchApply();return}
   if(b.id==='sgZo'){setTabFs(tabFsNow()/1.15);return tabFsDone()}
   if(b.id==='sgZi'){setTabFs(tabFsNow()*1.15);return tabFsDone()}
   if(ds.sgm){const x=SG.mix[ds.sgm];x.mute=!x.mute;sgVol();b.setAttribute('aria-pressed',!x.mute);b.textContent=x.mute?'끔':'켬';return}
