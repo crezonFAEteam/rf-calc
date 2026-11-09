@@ -1639,7 +1639,7 @@ let tabFs=+store.get('chordcalc-tabfs')||0;             /* 0 = 기본 (PC 13px, 
 const tabFsDef=()=>matchMedia('(max-width:640px)').matches?12:13;
 const tabFsNow=()=>tabFs||tabFsDef();
 function setTabFs(v){tabFs=Math.round(Math.max(4,Math.min(28,v))*2)/2;   /* 가장 작게: 4px (예전 최소 8px의 절반) */['adTab','blTab','sgTab'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.setProperty('--tabfs',tabFs+'px')});sgApplyZ()}
-function sgApplyZ(){const e=document.getElementById('p-song');if(e)e.style.setProperty('--sgz',(tabFsNow()/(matchMedia('(max-width:640px)').matches?12:13)).toFixed(3));if(typeof SG!=='undefined'&&SG.song&&SG.view==='sheet'){cancelAnimationFrame(SG.fitRaf);SG.fitRaf=requestAnimationFrame(sgLyFit)}}   /* 곡연습 코드 · 가사 · 하모니카 칸 배율 */
+function sgApplyZ(){const e=document.getElementById('p-song');if(e)e.style.setProperty('--sgz',(tabFsNow()/(matchMedia('(max-width:640px)').matches?12:13)).toFixed(3));try{if(SG.song&&SG.view==='sheet'){cancelAnimationFrame(SG.fitRaf);SG.fitRaf=requestAnimationFrame(sgLyFit)}}catch(e){/* 페이지 시작 중(SG 준비 전)엔 건너뜀 */}}   /* 곡연습 코드 · 가사 · 하모니카 칸 배율 */
 function tabFsDone(){store.set('chordcalc-tabfs',String(tabFs));renderAdTab();if(st.tab==='blues')blRender();if(st.tab==='song'&&SG.song&&SG.view!=='sheet')sgTabView()}   /* 다 바꾼 뒤 한 줄 마디 수 다시 계산 */
 if(tabFs)setTabFs(tabFs);
 (function(){
