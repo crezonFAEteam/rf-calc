@@ -194,6 +194,9 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .tabsec.off{opacity:.45}
 /* 곡연습 */
 .sg-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.sg-deep{margin:0 0 10px;padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-size:.9rem}.sg-deep progress{width:160px;vertical-align:middle;margin:0 6px}
+.sg-deep.done{border-color:#2f9a5c;color:#2f9a5c;font-weight:600}.sg-deep.err{border-color:#c0392b;color:#c0392b}.sg-deep.off{color:var(--muted)}
+.sg-autochk{margin:0 0 8px}
 .sg-stat{margin:0 0 10px;font-weight:600;color:var(--accent)}.sg-stat progress{width:180px;vertical-align:middle;margin-left:8px}
 .sg-rect{color:#c0392b;font-weight:700}#sgRec.rec{background:#c0392b;border-color:#c0392b;color:#fff}
 .sg-help{padding:12px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface);line-height:1.65}.sg-help ol{margin:6px 0 0;padding-left:1.3em}.sg-help li{margin:4px 0}
@@ -527,11 +530,13 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
       <input type="file" id="sgDirIn" webkitdirectory multiple hidden>
       <input type="file" id="sgFileIn" accept="audio/*,video/*,.mp3,.mp4,.m4a,.wav,.webm,.ogg,.flac,.aac,.mov,.zip,.json" multiple hidden>
     </div>
+    <label class="check sg-autochk" id="sgAutoL" title="PC 분석 도우미가 켜져 있으면 음원을 열 때 이어서 트랙 분리 · 가사 · TAB까지 자동 분석"><input type="checkbox" id="sgAuto"> 음원을 열면 PC 정밀 분석도 자동으로</label>
     <div id="sgStat" class="sg-stat" hidden></div>
+    <div id="sgDeep" class="sg-deep" hidden></div>
     <div id="sgHelp" class="sg-help">
       <b>곡에 맞춰 코드 · 가사 · TAB을 보며 따라 치기</b>
       <p style="margin:6px 0"><b>이미 음원 파일이 있으면 (PC · 휴대폰):</b> [🎵 음원 파일 열기] → mp3 · mp4 · m4a · wav 파일을 고르면 이 기기에서 바로 <b>박자 · 코드</b>를 찾아 원곡과 함께 보여 줍니다 (4분 곡에 수십 초). 같은 파일은 다음부터 바로 열립니다.</p>
-      <p style="margin:6px 0"><b>가사 · 트랙 분리(노래 · 기타 · 베이스 · 드럼) · 기타 TAB까지 (PC):</b></p>
+      <p style="margin:6px 0"><b>가사 · 트랙 분리(노래 · 기타 · 베이스 · 드럼) · 기타 TAB까지 (PC):</b> 프로젝트 폴더의 <b>"분석 도우미 켜기.bat"</b>을 실행해 두면 [🎵 음원 파일 열기]만으로 이어서 자동 분석됩니다. 도우미 없이 하려면:</p>
       <ol>
         <li><b>소리 녹음:</b> 유튜브 등 연습할 곡을 다른 탭에서 재생할 준비를 하고 [🔴 탭 소리 녹음] → 공유 창에서 그 <b>탭</b>을 고르고 <b>"탭 오디오도 공유"</b>를 켠 뒤 [공유] → 곡을 처음부터 재생 → 끝나면 [■ 녹음 끝내고 저장]. (음원 파일이 있으면 녹음 없이 그 파일을 써도 됩니다)</li>
         <li><b>분석:</b> 저장한 파일을 프로젝트 폴더의 <b>"곡 분석하기.bat"</b> 위에 끌어다 놓으세요. 노래 · 기타 · 베이스 · 드럼으로 나누고 박자 · 코드 · TAB · 가사를 찾습니다 (4분 곡에 몇 분).</li>
@@ -2041,13 +2046,13 @@ const sgDB={open(){return new Promise((ok,no)=>{const r=indexedDB.open('saygita-
 async function sgOpen(handle){
   try{
     let dir=handle;
-    if(!dir){if(!window.showDirectoryPicker){sgEl('sgFileIn').click();return}dir=await window.showDirectoryPicker({id:'saygita-song',mode:'read'})}
+    if(!dir){if(!window.showDirectoryPicker){sgEl('sgFileIn').click();return}dir=await window.showDirectoryPicker({id:'saygita-song',mode:'read',startIn:SG.lastDir||SG.lastAudio||'music'})}
     if(dir.queryPermission&&(await dir.queryPermission({mode:'read'}))!=='granted'&&(await dir.requestPermission({mode:'read'}))!=='granted')return;
     const files={};for await(const [n,h] of dir.entries())if(h.kind==='file')files[n]=h;
     if(!files['song.json']){alert('이 폴더에 song.json 이 없습니다. "○○ 분석" 폴더를 골라 주세요.');return}
     const song=JSON.parse(await (await files['song.json'].getFile()).text());
     const urls={};for(const st of song.stems||[])if(files[st.file])urls[st.id]=URL.createObjectURL(await files[st.file].getFile());
-    sgLoad(song,urls);sgDB.set('lastDir',dir);sgDB.set('lastName',dir.name);sgRecentBtn();
+    sgLoad(song,urls);SG.lastDir=dir;sgDB.set('lastDir',dir);sgDB.set('lastName',dir.name);sgRecentBtn();
   }catch(e){if(!(e&&e.name==='AbortError'))alert('폴더를 열지 못했습니다: '+(e&&e.message||e))}
 }
 sgEl('sgDirIn').addEventListener('change',async e=>{
@@ -2208,7 +2213,7 @@ document.getElementById('p-song').addEventListener('click',e=>{
   if(!b){const c=e.target.closest('.sg-c');if(c&&SG.song){sgSeek(sgTime(+c.dataset.b*4));if(!SG.playing)sgMark(sgMaster().currentTime)}return}   /* 박 칸 누르면 거기로 */
   const ds=b.dataset;
   if(b.id==='sgOpen')return sgOpen();
-  if(b.id==='sgFileBtn'){sgEl('sgFileIn').click();return}
+  if(b.id==='sgFileBtn')return sgPickAudio();
   if(b.id==='sgRecent'){sgDB.get('lastDir').then(h=>h?sgOpen(h):sgOpen());return}
   if(b.id==='sgRec')return sgRecord();
   if(!SG.song)return;
@@ -2235,7 +2240,7 @@ document.getElementById('p-song').addEventListener('change',e=>{
 /* 스페이스 = 재생/정지 (곡연습 탭에서, 입력 칸 밖) */
 document.addEventListener('keydown',e=>{if(st.tab!=='song'||!SG.song||e.code!=='Space'||/INPUT|SELECT|TEXTAREA|BUTTON/.test(document.activeElement&&document.activeElement.tagName))return;e.preventDefault();SG.playing?sgPause():sgPlay()});
 window.addEventListener('resize',()=>{clearTimeout(sgShow.t);sgShow.t=setTimeout(()=>{if(st.tab==='song'&&SG.song&&SG.view!=='sheet')sgTabView()},200)});
-function sgShow(){sgEl('sgRec').hidden=!(navigator.mediaDevices&&navigator.mediaDevices.getDisplayMedia)||matchMedia('(pointer:coarse)').matches;sgRecentBtn();sgRender();if(!SG.raf&&SG.song)SG.raf=requestAnimationFrame(sgTick)}
+function sgShow(){sgLoadLast();const pc=!matchMedia('(pointer:coarse)').matches;sgEl('sgAutoL').hidden=!pc;sgEl('sgAuto').checked=SG.auto;sgEl('sgRec').hidden=!(navigator.mediaDevices&&navigator.mediaDevices.getDisplayMedia)||matchMedia('(pointer:coarse)').matches;sgRecentBtn();sgRender();if(!SG.raf&&SG.song)SG.raf=requestAnimationFrame(sgTick)}
 /* ---------- 이미 있는 음원 파일(mp3 · mp4 · m4a · wav …)을 이 기기에서 바로 분석: 박자 · 마디 · 코드 (PC · 휴대폰 공통) ----------
    PC 분석기(analyze.py)의 박자 · 코드 방법을 그대로 옮긴 간이판. 트랙 분리 · 가사 · TAB 은 PC 분석에서만 */
 function sgStat(msg,pct){const e=sgEl('sgStat');if(msg==null){e.hidden=true;return}e.hidden=false;e.innerHTML=esc(msg)+(pct!=null?` <progress max="100" value="${Math.round(pct)}"></progress>`:'')}
@@ -2354,7 +2359,54 @@ async function sgFiles(fs){
     const key='q:'+au.name+'|'+au.size+'|'+au.lastModified;let song=await sgDB.get(key);   /* 같은 파일은 다시 분석하지 않음 */
     if(!song||song.kind!=='saygita-song'){song=await sgAnalyze(au);sgDB.set(key,song)}
     sgLoad(song,{mix:URL.createObjectURL(au)});
+    sgDeep(au);   /* PC 분석 도우미가 켜져 있으면 이어서 정밀 분석 */
   }catch(e){sgStat(null);alert('열지 못했습니다: '+(e&&e.message||e)+(/decode/i.test(String(e&&e.message))?'\n(이 기기가 이 형식을 재생하지 못할 수 있습니다. mp3 로 바꿔 보세요)':''))}
+}
+/* 마지막에 고른 음원 · 분석 폴더 위치 (탭을 열 때 미리 읽어 둠: 파일 창을 누르자마자 열려야 해서) */
+SG.lastAudio=null;SG.lastDir=null;
+function sgLoadLast(){sgDB.get('lastAudio').then(h=>{SG.lastAudio=h||null});sgDB.get('lastDir').then(h=>{SG.lastDir=h||null})}
+async function sgPickAudio(){
+  if(!window.showOpenFilePicker){sgEl('sgFileIn').click();return}   /* 휴대폰 등: 기기 파일 창 (위치는 기기가 기억) */
+  let hs;
+  try{hs=await window.showOpenFilePicker({id:'saygita-audio',startIn:SG.lastAudio||'music',multiple:true,excludeAcceptAllOption:false,
+    types:[{description:'음원 · 영상 · 분석 결과',accept:{'audio/*':['.mp3','.m4a','.wav','.webm','.ogg','.flac','.aac'],'video/*':['.mp4','.mov','.mkv','.webm'],'application/zip':['.zip'],'application/json':['.json']}}]})}
+  catch(e){if(e&&e.name==='AbortError')return;try{hs=await window.showOpenFilePicker({id:'saygita-audio',multiple:true})}catch(x){if(!(x&&x.name==='AbortError'))sgEl('sgFileIn').click();return}}
+  SG.lastAudio=hs[0];sgDB.set('lastAudio',hs[0]);
+  sgFiles(await Promise.all(hs.map(h=>h.getFile())));
+}
+sgEl('sgAuto').addEventListener('change',e=>{SG.auto=e.target.checked;store.set('chordcalc-sgauto',SG.auto?'1':'0');if(!SG.auto)sgEl('sgDeep').hidden=true});
+/* ---------- PC 분석 도우미(127.0.0.1:52525)가 켜져 있으면: 음원을 열 때 이어서 정밀 분석(트랙 분리 · 가사 · TAB) 자동 진행 ---------- */
+const SG_HELPER='http://127.0.0.1:52525';
+SG.auto=store.get('chordcalc-sgauto')!=='0';
+async function sgHelperOn(){try{const r=await fetch(SG_HELPER+'/ping',{cache:'no-store',signal:AbortSignal.timeout(1500)});const j=await r.json();return j&&j.app==='saygita'}catch(e){return false}}
+async function sgDeep(file){
+  if(matchMedia('(pointer:coarse)').matches)return;                      /* 휴대폰은 간이 분석만 */
+  if(!SG.auto)return;
+  if(!(await sgHelperOn())){sgDeepUi('off');return}
+  const myTitle=SG.song&&SG.song.title;
+  try{
+    sgDeepUi('run',2,'PC 정밀 분석: 음원 보내는 중…');
+    const r=await fetch(SG_HELPER+'/analyze',{method:'POST',headers:{'X-File-Name':encodeURIComponent(file.name),'Content-Type':'application/octet-stream'},body:file});
+    const {id}=await r.json();if(!id)throw new Error('도우미 응답 없음');
+    for(;;){
+      const j=await (await fetch(SG_HELPER+'/job/'+encodeURIComponent(id),{cache:'no-store'})).json();
+      if(j.state==='done'){sgDeepUi('run',99,'PC 정밀 분석 결과 불러오는 중…');
+        const base=SG_HELPER+'/job/'+encodeURIComponent(id)+'/file/';
+        const song=await (await fetch(base+'song.json',{cache:'no-store'})).json(),urls={};
+        for(const st of song.stems||[])urls[st.id]=URL.createObjectURL(await (await fetch(base+encodeURIComponent(st.file))).blob());
+        if(SG.song&&SG.song.title!==myTitle)return;                        /* 그사이 다른 곡을 열었으면 그대로 */
+        const m=sgMaster(),t=m?m.currentTime:0,was=SG.playing;sgLoad(song,urls);if(t>0)sgSeek(t);if(was)sgPlay();
+        sgDeepUi('done',100,`PC 정밀 분석 완료 — 트랙 분리 · 가사 · TAB 적용 (저장: ${j.out})`);return}
+      if(j.state==='error'){sgDeepUi('err',null,j.msg||'PC 정밀 분석 실패');return}
+      sgDeepUi('run',j.pct,'PC 정밀 분석 중: '+(j.msg||'…'));
+      await new Promise(r=>setTimeout(r,1000));
+    }
+  }catch(e){sgDeepUi('err',null,'PC 정밀 분석 실패: '+(e&&e.message||e)+' (분석 도우미가 켜져 있는지, 브라우저가 "로컬 네트워크 접근"을 허용했는지 확인)')}
+}
+function sgDeepUi(kind,pct,msg){
+  const e=sgEl('sgDeep');if(!e)return;e.hidden=false;e.className='sg-deep '+kind;
+  if(kind==='off'){e.innerHTML='PC 정밀 분석(트랙 분리 · 가사 · TAB)을 자동으로 하려면 프로젝트 폴더의 <b>"분석 도우미 켜기.bat"</b>을 실행해 두세요. 켜 둔 뒤 음원을 다시 열면 이어서 자동 진행됩니다.';return}
+  e.innerHTML=esc(msg)+(pct!=null&&kind==='run'?` <progress max="100" value="${Math.round(pct)}"></progress> ${Math.round(pct)}%`:'');
 }
 sgEl('sgFileIn').addEventListener('change',e=>{const fs=e.target.files;sgFiles(fs).finally(()=>{e.target.value=''})});
 /* 악보 두 손가락 확대 · Ctrl+휠: 블루스 TAB 에도 */
