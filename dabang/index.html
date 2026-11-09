@@ -194,6 +194,7 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .tabsec.off{opacity:.45}
 /* 곡연습 */
 .sg-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.sg-stat{margin:0 0 10px;font-weight:600;color:var(--accent)}.sg-stat progress{width:180px;vertical-align:middle;margin-left:8px}
 .sg-rect{color:#c0392b;font-weight:700}#sgRec.rec{background:#c0392b;border-color:#c0392b;color:#fff}
 .sg-help{padding:12px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface);line-height:1.65}.sg-help ol{margin:6px 0 0;padding-left:1.3em}.sg-help li{margin:4px 0}
 .sg-head{margin:4px 0 8px}.sg-head b{font-size:1.15rem}.sg-meta{color:var(--muted);font-size:.85rem}
@@ -518,18 +519,23 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
 
   <section id="p-song" role="tabpanel" hidden>
     <div class="sg-top">
-      <button id="sgOpen" class="play">📂 분석 결과 열기</button>
+      <button id="sgFileBtn" class="play" title="mp3 · mp4 · m4a · wav 등 이미 있는 음원을 이 기기에서 바로 분석 (박자 · 코드)">🎵 음원 파일 열기</button>
+      <button id="sgOpen" class="ghost" title="PC 분석기가 만든 결과 열기 (PC: '… 분석' 폴더, 휴대폰: '휴대폰용 ….zip')">📂 분석 결과 열기</button>
       <button id="sgRecent" class="ghost sm" hidden>최근 곡</button>
       <button id="sgRec" class="ghost" title="Edge · Chrome: 재생 중인 탭(유튜브 등)의 소리를 원음 그대로 녹음">🔴 탭 소리 녹음</button>
       <span id="sgRecT" class="sg-rect" hidden></span>
       <input type="file" id="sgDirIn" webkitdirectory multiple hidden>
+      <input type="file" id="sgFileIn" accept="audio/*,video/*,.mp3,.mp4,.m4a,.wav,.webm,.ogg,.flac,.aac,.mov,.zip,.json" multiple hidden>
     </div>
+    <div id="sgStat" class="sg-stat" hidden></div>
     <div id="sgHelp" class="sg-help">
-      <b>곡에 맞춰 코드 · 가사 · TAB을 보며 따라 치기 (PC · Edge 기준)</b>
+      <b>곡에 맞춰 코드 · 가사 · TAB을 보며 따라 치기</b>
+      <p style="margin:6px 0"><b>이미 음원 파일이 있으면 (PC · 휴대폰):</b> [🎵 음원 파일 열기] → mp3 · mp4 · m4a · wav 파일을 고르면 이 기기에서 바로 <b>박자 · 코드</b>를 찾아 원곡과 함께 보여 줍니다 (4분 곡에 수십 초). 같은 파일은 다음부터 바로 열립니다.</p>
+      <p style="margin:6px 0"><b>가사 · 트랙 분리(노래 · 기타 · 베이스 · 드럼) · 기타 TAB까지 (PC):</b></p>
       <ol>
         <li><b>소리 녹음:</b> 유튜브 등 연습할 곡을 다른 탭에서 재생할 준비를 하고 [🔴 탭 소리 녹음] → 공유 창에서 그 <b>탭</b>을 고르고 <b>"탭 오디오도 공유"</b>를 켠 뒤 [공유] → 곡을 처음부터 재생 → 끝나면 [■ 녹음 끝내고 저장]. (음원 파일이 있으면 녹음 없이 그 파일을 써도 됩니다)</li>
         <li><b>분석:</b> 저장한 파일을 프로젝트 폴더의 <b>"곡 분석하기.bat"</b> 위에 끌어다 놓으세요. 노래 · 기타 · 베이스 · 드럼으로 나누고 박자 · 코드 · TAB · 가사를 찾습니다 (4분 곡에 몇 분).</li>
-        <li><b>연습:</b> [📂 분석 결과 열기] → 만들어진 <b>"… 분석"</b> 폴더를 고르면 원음에 맞춰 코드 · 가사가 흘러갑니다. 기타 트랙을 끄면 반주에 맞춰 직접 칠 수 있고, 속도를 줄이거나 마디를 반복할 수 있습니다.</li>
+        <li><b>연습:</b> [📂 분석 결과 열기] → 만들어진 <b>"… 분석"</b> 폴더를 고르면 (휴대폰에서는 그 폴더 안의 <b>"휴대폰용 ….zip"</b> 파일 하나를 휴대폰으로 옮겨 고르면) 원음에 맞춰 코드 · 가사가 흘러갑니다. 기타 트랙을 끄면 반주에 맞춰 직접 칠 수 있고, 속도를 줄이거나 마디를 반복할 수 있습니다.</li>
       </ol>
       <p class="sdesc" style="margin:6px 0 0">녹음 · 분석 결과는 이 PC에만 저장되고 서버에 올라가지 않습니다. 개인 연습용으로만 쓰세요.</p>
     </div>
@@ -2035,7 +2041,7 @@ const sgDB={open(){return new Promise((ok,no)=>{const r=indexedDB.open('saygita-
 async function sgOpen(handle){
   try{
     let dir=handle;
-    if(!dir){if(!window.showDirectoryPicker){sgEl('sgDirIn').click();return}dir=await window.showDirectoryPicker({id:'saygita-song',mode:'read'})}
+    if(!dir){if(!window.showDirectoryPicker){sgEl('sgFileIn').click();return}dir=await window.showDirectoryPicker({id:'saygita-song',mode:'read'})}
     if(dir.queryPermission&&(await dir.queryPermission({mode:'read'}))!=='granted'&&(await dir.requestPermission({mode:'read'}))!=='granted')return;
     const files={};for await(const [n,h] of dir.entries())if(h.kind==='file')files[n]=h;
     if(!files['song.json']){alert('이 폴더에 song.json 이 없습니다. "○○ 분석" 폴더를 골라 주세요.');return}
@@ -2101,7 +2107,7 @@ function sgRender(){
   const s=SG.song;sgEl('sgMain').hidden=!s;sgEl('sgHelp').hidden=!!s;if(!s)return;
   sgEl('sgTitle').textContent=s.title;
   const chs=[...new Set(s.chords.map(c=>c.name))];
-  sgEl('sgMeta').textContent=` · 템포 약 ${s.tempo} BPM · ${s.bars}마디 · 코드 ${chs.slice(0,10).join(' ')}${chs.length>10?' …':''}`;
+  sgEl('sgMeta').textContent=` · 템포 약 ${s.tempo} BPM · ${s.bars}마디 · 코드 ${chs.slice(0,10).join(' ')}${chs.length>10?' …':''}`+(s.quick?' · 간이 분석(박자 · 코드). 가사 · 트랙 분리 · TAB은 PC 분석에서':'');
   /* 믹서 */
   sgEl('sgMix').innerHTML=SG.ids.map(i=>{const st=s.stems.find(x=>x.id===i),x=SG.mix[i];
     return `<div class="sg-mx"><span class="sg-mxn">${esc(st.name)}</span><button class="ghost sm" data-sgm="${i}" aria-pressed="${!x.mute}" title="켜기/끄기">${x.mute?'끔':'켬'}</button><button class="ghost sm" data-sgs="${i}" aria-pressed="${x.solo}" title="이 트랙만 듣기">혼자</button><input type="range" min="0" max="100" value="${Math.round(x.vol*100)}" data-sgv="${i}" aria-label="${esc(st.name)} 음량"></div>`}).join('');
@@ -2202,6 +2208,7 @@ document.getElementById('p-song').addEventListener('click',e=>{
   if(!b){const c=e.target.closest('.sg-c');if(c&&SG.song){sgSeek(sgTime(+c.dataset.b*4));if(!SG.playing)sgMark(sgMaster().currentTime)}return}   /* 박 칸 누르면 거기로 */
   const ds=b.dataset;
   if(b.id==='sgOpen')return sgOpen();
+  if(b.id==='sgFileBtn'){sgEl('sgFileIn').click();return}
   if(b.id==='sgRecent'){sgDB.get('lastDir').then(h=>h?sgOpen(h):sgOpen());return}
   if(b.id==='sgRec')return sgRecord();
   if(!SG.song)return;
@@ -2228,7 +2235,128 @@ document.getElementById('p-song').addEventListener('change',e=>{
 /* 스페이스 = 재생/정지 (곡연습 탭에서, 입력 칸 밖) */
 document.addEventListener('keydown',e=>{if(st.tab!=='song'||!SG.song||e.code!=='Space'||/INPUT|SELECT|TEXTAREA|BUTTON/.test(document.activeElement&&document.activeElement.tagName))return;e.preventDefault();SG.playing?sgPause():sgPlay()});
 window.addEventListener('resize',()=>{clearTimeout(sgShow.t);sgShow.t=setTimeout(()=>{if(st.tab==='song'&&SG.song&&SG.view!=='sheet')sgTabView()},200)});
-function sgShow(){sgRecentBtn();sgRender();if(!SG.raf&&SG.song)SG.raf=requestAnimationFrame(sgTick)}
+function sgShow(){sgEl('sgRec').hidden=!(navigator.mediaDevices&&navigator.mediaDevices.getDisplayMedia)||matchMedia('(pointer:coarse)').matches;sgRecentBtn();sgRender();if(!SG.raf&&SG.song)SG.raf=requestAnimationFrame(sgTick)}
+/* ---------- 이미 있는 음원 파일(mp3 · mp4 · m4a · wav …)을 이 기기에서 바로 분석: 박자 · 마디 · 코드 (PC · 휴대폰 공통) ----------
+   PC 분석기(analyze.py)의 박자 · 코드 방법을 그대로 옮긴 간이판. 트랙 분리 · 가사 · TAB 은 PC 분석에서만 */
+function sgStat(msg,pct){const e=sgEl('sgStat');if(msg==null){e.hidden=true;return}e.hidden=false;e.innerHTML=esc(msg)+(pct!=null?` <progress max="100" value="${Math.round(pct)}"></progress>`:'')}
+const sgWait=()=>new Promise(r=>setTimeout(r,0));
+function sgFFT(re,im){   /* 제자리 FFT (길이 2의 거듭제곱) */
+  const n=re.length;for(let i=1,j=0;i<n;i++){let b=n>>1;for(;j&b;b>>=1)j^=b;j^=b;if(i<j){let t=re[i];re[i]=re[j];re[j]=t;t=im[i];im[i]=im[j];im[j]=t}}
+  for(let len=2;len<=n;len<<=1){const a=-2*Math.PI/len,wr=Math.cos(a),wi=Math.sin(a);
+    for(let i=0;i<n;i+=len){let cr=1,ci=0;for(let k=0;k<len/2;k++){const p=i+k,q=p+len/2,tr=re[q]*cr-im[q]*ci,ti=re[q]*ci+im[q]*cr;re[q]=re[p]-tr;im[q]=im[p]-ti;re[p]+=tr;im[p]+=ti;const nr=cr*wr-ci*wi;ci=cr*wi+ci*wr;cr=nr}}}
+}
+async function sgAnalyze(file){
+  const SR=22050,N=2048,H=512,NOTE=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  sgStat('음원 읽는 중…',2);
+  const ac=new (window.AudioContext||window.webkitAudioContext)();let au;
+  try{au=await ac.decodeAudioData(await file.arrayBuffer())}finally{try{ac.close()}catch(e){}}
+  const off=new OfflineAudioContext(1,Math.ceil(au.duration*SR),SR),bs=off.createBufferSource();bs.buffer=au;bs.connect(off.destination);bs.start();
+  const x=(await off.startRendering()).getChannelData(0),dur=au.duration;
+  /* 1) 짧은 구간마다 주파수 → 소리 시작 세기(onset) · 화음 성분(chroma) · 저음 성분 */
+  const nf=Math.max(1,Math.floor((x.length-N)/H)+1),win=new Float32Array(N).map((_,i)=>0.5-0.5*Math.cos(2*Math.PI*i/N));
+  const bpc=new Int8Array(N/2).fill(-1),bass=new Uint8Array(N/2);
+  for(let k=1;k<N/2;k++){const f=k*SR/N;if(f>=65&&f<=1000)bpc[k]=((Math.round(12*Math.log2(f/440)+69)%12)+12)%12;if(f>=40&&f<=200)bass[k]=1}
+  const onset=new Float32Array(nf),low=new Float32Array(nf),chroma=new Float32Array(nf*12),bch=new Float32Array(nf*12),en=new Float32Array(nf);
+  let prev=new Float32Array(N/2),re=new Float32Array(N),im=new Float32Array(N);
+  const mg=new Float32Array(N/2),wt=new Float32Array(N/2),kLo=Math.max(8,Math.floor(65*N/SR)-1),kHi=Math.min(N/2-9,Math.ceil(1000*N/SR)+1);
+  for(let fr=0;fr<nf;fr++){
+    const o=fr*H;for(let i=0;i<N;i++){re[i]=(x[o+i]||0)*win[i];im[i]=0}sgFFT(re,im);
+    let fl=0,ll=0,e=0;
+    for(let k=1;k<N/2;k++){const m=Math.hypot(re[k],im[k]),lm=Math.log1p(10*m),d=lm-prev[k];prev[k]=lm;mg[k]=Math.log1p(100*m);
+      if(d>0){fl+=d;if(bass[k])ll+=d}e+=m}
+    /* 화음 성분: 로그 크기 → 주변 평균을 빼 평탄화(넓게 퍼진 드럼 · 말소리 제거) → 봉우리만 → 음 이름별 합 (전체 믹스에서 가장 잘 맞은 방법) */
+    for(let k=kLo;k<=kHi;k++){let a=0;for(let j=k-7;j<=k+7;j++)a+=mg[j];wt[k]=Math.max(0,mg[k]-a/15)}
+    let cm=0;for(let k=kLo+1;k<kHi;k++)if(wt[k]>wt[k-1]&&wt[k]>=wt[k+1]&&bpc[k]>=0){chroma[fr*12+bpc[k]]+=wt[k]}
+    for(let q=0;q<12;q++)cm=Math.max(cm,chroma[fr*12+q]);if(cm>0)for(let q=0;q<12;q++)chroma[fr*12+q]/=cm;
+    onset[fr]=fl;low[fr]=ll;en[fr]=e;
+    if(fr%300===0){sgStat('박자 · 코드 분석 중…',5+70*fr/nf);await sgWait()}
+  }
+  /* 2) 템포: 소리 시작 세기의 자기상관 (110 BPM 근처를 조금 선호) */
+  const mean=a=>{let s=0;for(const v of a)s+=v;return s/a.length};
+  const fps=SR/H,W=Math.round(fps);const on=new Float32Array(nf);
+  {let s=0;const q=[];for(let i=0;i<nf;i++){q.push(onset[i]);s+=onset[i];if(q.length>W)s-=q.shift();on[i]=Math.max(0,onset[i]-s/q.length)}}
+  let best=0,bl=0;
+  for(let l=Math.round(fps*60/200);l<=Math.round(fps*60/50);l++){let s=0;for(let i=l;i<nf;i++)s+=on[i]*on[i-l];
+    const bpm=60*fps/l,w=Math.exp(-0.5*Math.pow(Math.log2(bpm/110)/0.9,2))*s;if(w>best){best=w;bl=l}}
+  const per=bl||Math.round(fps*0.55);
+  /* 3) 박 찾기: 동적 계획법 (소리 시작 세기 + 일정한 간격) */
+  sgStat('박 찾는 중…',78);await sgWait();
+  const om=mean(on),sd=Math.sqrt(mean(on.map(v=>(v-om)*(v-om))))||1;
+  const sc=new Float32Array(nf),bp=new Int32Array(nf).fill(-1);
+  for(let t=0;t<nf;t++){let bv=-Infinity,bi=-1;for(let p=t-2*per;p<=t-Math.round(per/2);p++){if(p<0)continue;const r=Math.log((t-p)/per),v=sc[p]-100*r*r;if(v>bv){bv=v;bi=p}}
+    sc[t]=on[t]/sd+(bi>=0?bv:0);bp[t]=bi}   /* librosa 와 같은 방식 (tightness 100) */
+  let t=0;for(let i=Math.max(0,nf-2*per);i<nf;i++)if(sc[i]>sc[t])t=i;
+  let bf=[];while(t>=0){bf.push(t);t=bp[t]}bf.reverse();
+  let bt=bf.map(f=>(f*H+N/2)/SR);if(bt.length<8){bt=[];for(let s=0;s<dur;s+=per/fps)bt.push(s)}
+  const pS=per/fps;while(bt[0]>pS*0.5)bt.unshift(bt[0]-pS);while(bt[bt.length-1]<dur)bt.push(bt[bt.length-1]+pS);
+  /* 4) 박마다 코드 (PC 분석기와 같은 틀 · 비터비) */
+  const fr0=s=>Math.max(0,Math.min(nf,Math.round((s*SR-N/2)/H)));
+  const nb=bt.length-1,cs=[],bsq=[],eb=[],lb=[];
+  /* 박마다: 프레임마다 크기를 맞춘 화음 성분의 '중앙값' (드럼 타격 프레임이 끼어들지 않게 · PC 분석기와 같은 방식) */
+  const med=v=>{v.sort((x,y)=>x-y);return v.length?v[v.length>>1]:0};
+  for(let b=0;b<nb;b++){const a=fr0(bt[b]),z=Math.min(nf,Math.max(a+1,fr0(bt[b+1])));const c=new Float32Array(12),bc=new Float32Array(12);let e=0,lo=0;
+    const cols=[],bcols=[];
+    for(let f=a;f<z;f++){let sm=0,sb=0;for(let k=0;k<12;k++){sm+=chroma[f*12+k];sb+=bch[f*12+k]}
+      cols.push(Array.from({length:12},(_,k)=>sm?chroma[f*12+k]/sm:0));bcols.push(Array.from({length:12},(_,k)=>sb?bch[f*12+k]/sb:0));e+=en[f];lo+=low[f]}
+    for(let k=0;k<12;k++){c[k]=med(cols.map(x=>x[k]));bc[k]=med(bcols.map(x=>x[k]))}
+    cs.push(c);bsq.push(bc);eb.push(e/Math.max(1,z-a));lb.push(lo/Math.max(1,z-a))}
+  const types=[['',[0,4,7],0],['m',[0,3,7],0],['7',[0,4,7,10],0.06],['m7',[0,3,7,10],0.08]],L=[],T=[],P=[];
+  for(let r=0;r<12;r++)for(const [nm,iv,p] of types){const v=new Float32Array(12);iv.forEach(i=>v[(r+i)%12]=1);v[r]+=0.5;const n=Math.hypot(...v);L.push([r,nm]);T.push(v.map(y=>y/n));P.push(p)}
+  const K=L.length,score=cs.map((c,b)=>{const n=Math.hypot(...c)||1,bc=bsq[b],root=bc.indexOf(Math.max(...bc)),hasB=false;
+    return T.map((tv,k)=>{let s=0;for(let i=0;i<12;i++)s+=tv[i]*c[i]/n;return s-P[k]+(hasB&&L[k][0]===root?0.12:0)})});
+  let dp=score[0]?score[0].slice():[],bk=[];
+  for(let b=1;b<nb;b++){const m=Math.max(...dp),am=dp.indexOf(m),row=new Int16Array(K),nd=new Array(K);
+    for(let k=0;k<K;k++){if(dp[k]+0.35>=m){row[k]=k;nd[k]=dp[k]+0.35}else{row[k]=am;nd[k]=m}nd[k]+=score[b][k]}bk.push(row);dp=nd}
+  let k=dp.indexOf(Math.max(...dp));const path=[k];for(let b=nb-1;b>0;b--){k=bk[b-1][k];path.push(k)}path.reverse();
+  const es=[...eb].sort((a,b)=>a-b),thr=(es[Math.floor(es.length*0.9)]||0)*0.08;
+  const names=path.map((k,b)=>eb[b]<thr?'N':NOTE[L[k][0]]+L[k][1]);
+  for(let b=1;b<names.length-1;b++)if(names[b]!==names[b-1]&&names[b]!==names[b+1])names[b]=names[b-1];
+  /* 5) 마디 첫 박 = 코드가 바뀌는 박이 가장 많이 모이는 위상 */
+  const lm=Math.max(...lb,1e-9),ph=[0,1,2,3].map(p=>{let c=0;for(let b=1;b<names.length;b++)if(b%4===p&&names[b]!==names[b-1]&&names[b]!=='N')c++;
+    const v=lb.filter((_,i)=>i%4===p);return c+0.3*(v.length?mean(v):0)/lm});
+  const phase=ph.indexOf(Math.max(...ph)),first=bt[phase],pre=first>1e-3?Math.ceil((first+1e-6)/pS/4)*4:0;
+  const beats=[];for(let i=pre;i>0;i--)beats.push(first-pS*i);beats.push(...bt.slice(phase));while((beats.length-1)%4)beats.push(beats[beats.length-1]+pS);
+  const shift=pre-phase,out=[];
+  names.forEach((n,b)=>{let x=b+shift;if(x<0)return;if(out.length&&out[out.length-1].name===n)return;
+    const r=x%4;if(r===3)x++;else if(r===1)x--;if(out.length&&x*4<=out[out.length-1].s){out[out.length-1].name=n;return}out.push({s:x*4,name:n})});
+  const chords=[];out.forEach(c=>{if(c.name==='N')return;if(chords.length&&chords[chords.length-1].name===c.name)return;chords.push(c)});
+  sgStat(null);
+  return {kind:'saygita-song',version:1,quick:true,title:file.name.replace(/\.[^.]+$/,''),source:file.name,duration:+dur.toFixed(3),
+    tempo:+(60/pS).toFixed(1),beatsPerBar:4,slotsPerBeat:4,grid:16,beats:beats.map(v=>+v.toFixed(4)),bars:(beats.length-1)/4,
+    chords:chords.length?chords:[{s:0,name:'C'}],lyrics:[],lines:[],parts:{},stems:[{id:'mix',name:'원곡',file:file.name}]};
+}
+/* 휴대폰용 묶음(.zip, 저장 방식 · 압축 방식 모두) 풀기 */
+async function sgUnzip(file){
+  const buf=new Uint8Array(await file.arrayBuffer()),dv=new DataView(buf.buffer),out={};
+  let e=buf.length-22;while(e>=0&&dv.getUint32(e,true)!==0x06054b50)e--;if(e<0)throw new Error('zip 아님');
+  let p=dv.getUint32(e+16,true);const n=dv.getUint16(e+10,true);
+  for(let i=0;i<n;i++){
+    if(dv.getUint32(p,true)!==0x02014b50)break;
+    const flag=dv.getUint16(p+8,true),meth=dv.getUint16(p+10,true),csz=dv.getUint32(p+20,true),nl=dv.getUint16(p+28,true),xl=dv.getUint16(p+30,true),cl=dv.getUint16(p+32,true),lo=dv.getUint32(p+42,true);
+    const name=new TextDecoder(flag&0x800?'utf-8':'utf-8').decode(buf.subarray(p+46,p+46+nl)).split('/').pop();
+    const ds=lo+30+dv.getUint16(lo+26,true)+dv.getUint16(lo+28,true);let data=buf.subarray(ds,ds+csz);
+    if(meth===8)data=new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());
+    if(name)out[name]=new Blob([data],{type:/\.mp3$/i.test(name)?'audio/mpeg':'application/octet-stream'});
+    p+=46+nl+xl+cl;
+  }
+  return out;
+}
+/* 파일 고르기 하나로: 음원 → 바로 분석 / .zip · song.json(+mp3) → 분석 결과 */
+async function sgFiles(fs){
+  fs=[...fs];if(!fs.length)return;
+  try{
+    const zip=fs.find(f=>/\.zip$/i.test(f.name)),sj=fs.find(f=>f.name==='song.json');
+    if(zip){sgStat('묶음 파일 여는 중…');const m=await sgUnzip(zip);sgStat(null);if(!m['song.json'])throw new Error('묶음 안에 song.json 이 없습니다');
+      const song=JSON.parse(await m['song.json'].text()),urls={};for(const st of song.stems||[])if(m[st.file])urls[st.id]=URL.createObjectURL(m[st.file]);sgLoad(song,urls);return}
+    if(sj){const song=JSON.parse(await sj.text()),urls={};for(const st of song.stems||[]){const f=fs.find(x=>x.name===st.file);if(f)urls[st.id]=URL.createObjectURL(f)}sgLoad(song,urls);return}
+    const au=fs.find(f=>/^(audio|video)\//.test(f.type)||/\.(mp3|mp4|m4a|wav|webm|ogg|oga|flac|aac|mov|mkv)$/i.test(f.name));
+    if(!au){alert('음원(mp3 · mp4 · m4a · wav …) 또는 분석 결과(.zip / song.json)를 골라 주세요.');return}
+    const key='q:'+au.name+'|'+au.size+'|'+au.lastModified;let song=await sgDB.get(key);   /* 같은 파일은 다시 분석하지 않음 */
+    if(!song||song.kind!=='saygita-song'){song=await sgAnalyze(au);sgDB.set(key,song)}
+    sgLoad(song,{mix:URL.createObjectURL(au)});
+  }catch(e){sgStat(null);alert('열지 못했습니다: '+(e&&e.message||e)+(/decode/i.test(String(e&&e.message))?'\n(이 기기가 이 형식을 재생하지 못할 수 있습니다. mp3 로 바꿔 보세요)':''))}
+}
+sgEl('sgFileIn').addEventListener('change',e=>{const fs=e.target.files;sgFiles(fs).finally(()=>{e.target.value=''})});
 /* 악보 두 손가락 확대 · Ctrl+휠: 블루스 TAB 에도 */
 (function(){
   const el=document.getElementById('blTab');let pz=null;
