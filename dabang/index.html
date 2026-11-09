@@ -536,6 +536,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
       <button id="sgRec" class="ghost" title="Edge · Chrome: 재생 중인 탭(유튜브 등)의 소리를 원음 그대로 녹음">🔴 탭 소리 녹음</button>
       <span id="sgRecT" class="sg-rect" hidden></span>
       <input type="file" id="sgDirIn" webkitdirectory multiple hidden>
+      <input type="file" id="sgZipIn" multiple hidden>
       <input type="file" id="sgFileIn" accept="audio/*,video/*,.mp3,.mp4,.m4a,.wav,.webm,.ogg,.flac,.aac,.mov,.zip,.json" multiple hidden>
     </div>
     <label class="check sg-autochk" id="sgAutoL" title="PC 분석 도우미가 켜져 있으면 음원을 열 때 이어서 트랙 분리 · 가사 · TAB까지 자동 분석"><input type="checkbox" id="sgAuto"> 음원을 열면 PC 정밀 분석도 자동으로</label>
@@ -2054,7 +2055,7 @@ const sgDB={open(){return new Promise((ok,no)=>{const r=indexedDB.open('saygita-
 async function sgOpen(handle){
   try{
     let dir=handle;
-    if(!dir){if(!window.showDirectoryPicker){sgEl('sgFileIn').click();return}dir=await window.showDirectoryPicker({id:'saygita-song',mode:'read',startIn:SG.lastDir||SG.lastAudio||'music'})}
+    if(!dir){if(!window.showDirectoryPicker||matchMedia('(pointer:coarse)').matches){sgEl('sgZipIn').click();return}   /* 휴대폰: 폴더 대신 zip 파일 고르기 */dir=await window.showDirectoryPicker({id:'saygita-song',mode:'read',startIn:SG.lastDir||SG.lastAudio||'music'})}
     if(dir.queryPermission&&(await dir.queryPermission({mode:'read'}))!=='granted'&&(await dir.requestPermission({mode:'read'}))!=='granted')return;
     const files={};for await(const [n,h] of dir.entries())if(h.kind==='file')files[n]=h;
     if(!files['song.json']){alert('이 폴더에 song.json 이 없습니다. "○○ 분석" 폴더를 골라 주세요.');return}
@@ -2391,7 +2392,8 @@ async function sgUnzip(file){
 async function sgFiles(fs){
   fs=[...fs];if(!fs.length)return;
   try{
-    const zip=fs.find(f=>/\.zip$/i.test(f.name)),sj=fs.find(f=>f.name==='song.json');
+    let zip=fs.find(f=>/\.zip$/i.test(f.name));const sj=fs.find(f=>f.name==='song.json');
+    if(!zip&&!sj)for(const f of fs){const h=new Uint8Array(await f.slice(0,4).arrayBuffer());if(h[0]===0x50&&h[1]===0x4b&&h[2]===3&&h[3]===4&&!/\.(mp4|m4a|mov)$/i.test(f.name)){zip=f;break}}   /* 이름에 .zip 이 없어도 내용으로 */
     if(zip){sgStat('묶음 파일 여는 중…');const m=await sgUnzip(zip);sgStat(null);if(!m['song.json'])throw new Error('묶음 안에 song.json 이 없습니다');
       const song=JSON.parse(await m['song.json'].text()),urls={};for(const st of song.stems||[])if(m[st.file])urls[st.id]=URL.createObjectURL(m[st.file]);sgLoad(song,urls);return}
     if(sj){const song=JSON.parse(await sj.text()),urls={};for(const st of song.stems||[]){const f=fs.find(x=>x.name===st.file);if(f)urls[st.id]=URL.createObjectURL(f)}sgLoad(song,urls);return}
@@ -2449,6 +2451,7 @@ function sgDeepUi(kind,pct,msg){
   if(kind==='off'){e.innerHTML='PC 정밀 분석(트랙 분리 · 가사 · TAB)을 자동으로 하려면 프로젝트 폴더의 <b>"분석 도우미 켜기.bat"</b>을 실행하세요. 도우미가 켜지고 Edge 로 <a href="http://127.0.0.1:52525/" target="_blank" rel="noopener">http://127.0.0.1:52525</a> 이 열립니다 — 그 화면에서 음원을 열면 이어서 자동 진행됩니다.'+(location.protocol==='https:'?' (지금 인터넷 주소에서 도우미가 막혔다면 주소창 왼쪽 자물쇠 → \'로컬 네트워크 액세스\' 허용, 또는 위 주소로 여세요)':'');return}
   e.innerHTML=esc(msg)+(pct!=null&&kind==='run'?` <progress max="100" value="${Math.round(pct)}"></progress> ${Math.round(pct)}%`:'');
 }
+sgEl('sgZipIn').addEventListener('change',e=>{const fs=e.target.files;sgFiles(fs).finally(()=>{e.target.value=''})});
 sgEl('sgFileIn').addEventListener('change',e=>{const fs=e.target.files;sgFiles(fs).finally(()=>{e.target.value=''})});
 /* 악보 두 손가락 확대 · Ctrl+휠: 블루스 TAB 에도 */
 (function(){
