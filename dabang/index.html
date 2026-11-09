@@ -248,6 +248,8 @@ body[data-page="tune"] #boardScroll,body[data-page="tune"] .board-bar,body[data-
 .tu-nd{stroke:var(--ink);stroke-width:3.5;stroke-linecap:round}.tu-nc{fill:var(--ink)}
 #tuNeedle{transition:transform .12s linear}#tuNeedle.ok .tu-nd{stroke:#2f9a5c}#tuNeedle.ok .tu-nc{fill:#2f9a5c}
 .tu-hub{fill:none}
+.tu-trail{display:block;width:100%;height:280px;border-radius:10px;background:var(--bg)}
+.tuner[data-view="trail"] #tuGauge,.tuner:not([data-view="trail"]) .tu-trail{display:none}
 .tu-note{font-size:3.2rem;font-weight:800;line-height:1;margin-top:4px}
 .tu-note small{font-size:1.2rem;color:var(--muted);margin-left:2px}
 .tu-cents{font-size:1.15rem;font-weight:700;min-height:1.5em}
@@ -344,7 +346,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
   select{width:100%}
   .tab pre{font-size:var(--tabfs,12px)}
   .tu-top{margin-bottom:8px}.tu-top .play{min-height:40px;padding:6px 16px}.tu-top .chip{min-height:38px;padding:6px 12px}
-  .tu-meter{padding:6px 8px 8px}#tuGauge{max-width:230px}
+  .tu-meter{padding:6px 8px 8px}#tuGauge{max-width:230px}.tu-trail{height:210px}
   .tu-note{font-size:2.5rem;margin-top:0}.tu-note small{font-size:1rem}.tu-cents{font-size:1rem;min-height:1.3em}
   .tu-fine{height:30px;margin:6px auto 3px}.tu-strobe{height:13px;margin-bottom:4px}
   .tu-msg{font-size:.92rem;min-height:1.3em}.tu-hz{font-size:.74rem}
@@ -596,9 +598,11 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
       <div class="tu-top">
         <button id="tuMic" class="play">🎤 마이크 켜기</button>
         <div class="chips"><button class="chip" data-tumode="auto" aria-pressed="true">자동</button><button class="chip" data-tumode="manual" aria-pressed="false">수동</button></div>
+        <div class="chips" role="group" aria-label="보기"><button class="chip" data-tuview="trail" aria-pressed="true">흐름</button><button class="chip" data-tuview="needle" aria-pressed="false">바늘</button></div>
       </div>
       <div class="tu-meter">
         <svg viewBox="45 14 210 146" id="tuGauge" aria-hidden="true"></svg>
+        <canvas id="tuTrail" class="tu-trail" aria-hidden="true"></canvas>
         <div class="tu-note"><span id="tuNote">–</span><small id="tuOct"></small></div>
         <div id="tuCents" class="tu-cents"></div>
         <div class="tu-fine" id="tuFine" aria-hidden="true"><div class="tu-fine-ticks"></div><span class="tu-fl">−10</span><span class="tu-fc">0</span><span class="tu-fr">+10</span><div id="tuFineMark"></div></div>
@@ -1855,9 +1859,9 @@ document.getElementById('blTab').addEventListener('click',e=>{
    ==================================================================== */
 const TUNINGS={std:{n:'표준 (E A D G B E)',o:[0,0,0,0,0,0]},half:{n:'반음 내림 (E♭ A♭ D♭ G♭ B♭ E♭)',o:[-1,-1,-1,-1,-1,-1]},dropD:{n:'드롭 D (D A D G B E)',o:[-2,0,0,0,0,0]},
   openG:{n:'오픈 G (D G D G B D)',o:[-2,-2,0,0,0,-2]},openD:{n:'오픈 D (D A D F♯ A D)',o:[-2,0,0,-1,-2,-2]},dadgad:{n:'DADGAD (D A D G A D)',o:[-2,0,0,0,-2,-2]}};
-const TU={mode:'auto',sel:0,tun:'std',a4:440,on:false,stream:null,src:null,an:null,buf:null,raf:0,hist:[],last:0,cur:null,sc:null,okSince:0,locked:false};
-(function(){try{const u=JSON.parse(store.get('chordcalc-tuner')||'{}');if(u.mode)TU.mode=u.mode;if(TUNINGS[u.tun])TU.tun=u.tun;if(u.a4>=430&&u.a4<=450)TU.a4=u.a4;if(u.sel>=0&&u.sel<6)TU.sel=u.sel}catch(e){}})();
-function tuSave(){store.set('chordcalc-tuner',JSON.stringify({mode:TU.mode,tun:TU.tun,a4:TU.a4,sel:TU.sel}))}
+const TU={view:'trail',trail:[],mode:'auto',sel:0,tun:'std',a4:440,on:false,stream:null,src:null,an:null,buf:null,raf:0,hist:[],last:0,cur:null,sc:null,okSince:0,locked:false};
+(function(){try{const u=JSON.parse(store.get('chordcalc-tuner')||'{}');if(u.mode)TU.mode=u.mode;if(TUNINGS[u.tun])TU.tun=u.tun;if(u.a4>=430&&u.a4<=450)TU.a4=u.a4;if(u.sel>=0&&u.sel<6)TU.sel=u.sel;if(u.view==='needle'||u.view==='trail')TU.view=u.view}catch(e){}})();
+function tuSave(){store.set('chordcalc-tuner',JSON.stringify({mode:TU.mode,tun:TU.tun,a4:TU.a4,sel:TU.sel,view:TU.view}))}
 const tuMidi=i=>TUNE[i]+TUNINGS[TU.tun].o[i];
 const tuHz=m=>TU.a4*Math.pow(2,(m-69)/12);
 const tuName=m=>nn(m)+(Math.floor(m/12)-1);
@@ -1903,7 +1907,7 @@ function tuTick(){
     tuShow(fin,now);
   }else if(now-(TU.atk||0)<100){/* 어택 중: 그대로 */}
   else if(now-TU.last>900){TU.hist=[];TU.hist2=[];if(TU.n1&&TU.fc!==900){TU.fc=900;TU.n1.frequency.value=900;TU.n2.frequency.value=900}tuShow(null,now)}
-  tuStrobe(now);
+  tuStrobe(now);tuTrail(now);
   TU.raf=requestAnimationFrame(tuTick);
 }
 /* 화면: 음 이름 · 센트 바늘 · ±10센트 확대 막대 · 스트로브 · 맞음 고정 */
@@ -1927,6 +1931,8 @@ function tuShow(f,now){
     :lock?'맞았습니다 ✓ (고정)':ok?'거의 맞음 — 그대로 잠깐…':Math.abs(c)<10?(c<0?'아주 조금 낮음 — 살짝 조이세요 ↑':'아주 조금 높음 — 살짝 푸세요 ↓'):(c<0?'낮음 — 줄을 조이세요 ↑':'높음 — 줄을 푸세요 ↓');
   g('tuMsg').className='tu-msg'+(lock?' ok':ok?' near':'');
   tuNeedle(far?(c<0?-50:50):c,ok&&!far);tuFine(far?null:c,lock);
+  if(TU.cur&&TU.cur.si!==si)TU.trail.push({t:now,brk:1});   /* 다른 줄이면 선을 끊음 */
+  TU.trail.push({t:now,c:far?(c<0?-60:60):c,ok:lock,near:ok&&!far,n:nn(near)});
   TU.cur={si,ok:lock,c};tuStrings();
 }
 function tuNeedle(c,ok){const n=document.getElementById('tuNeedle');if(!n)return;const a=Math.max(-50,Math.min(50,c))*0.9;n.setAttribute('transform',`rotate(${a.toFixed(1)} 150 150)`);n.classList.toggle('ok',!!ok)}
@@ -1942,6 +1948,39 @@ function tuStrobe(now){
   const c=TU.cur&&TU.cur.c!=null?Math.max(-60,Math.min(60,TU.cur.c)):0;TU.sx=((TU.sx||0)+c*6*dt)%40;
   el.style.backgroundPositionX=TU.sx.toFixed(2)+'px';el.classList.toggle('idle',!TU.cur);
 }
+/* 흐름 보기: 위 동그라미 = 지금 음 (왼쪽 ♭ 낮음 · 오른쪽 ♯ 높음), 지난 기록은 아래로 흘러감 (초당 60px).
+   가로 = 센트(±50, 가운데 ±10은 2배로 넓게), 초록 = ±3센트(맞음) · 노랑 = ±10 · 주황 = 더 벗어남 */
+function tuX(c,w){const a=Math.abs(c),s=c<0?-1:1,u=a<=10?a*2:20+(Math.min(a,50)-10)*0.75;return w/2+s*u/50*(w/2-18)}
+function tuTrail(now){
+  if(TU.view!=='trail')return;const cv=document.getElementById('tuTrail');if(!cv||!cv.offsetParent)return;
+  const dpr=window.devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;if(!W||!H)return;
+  if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr)}
+  if(!TU.col||now-TU.colAt>2000){const cs=getComputedStyle(document.documentElement),v=k=>cs.getPropertyValue(k).trim();
+    TU.col={ink:v('--ink')||'#222',muted:v('--muted')||'#888',line:v('--line')||'#ccc',acc:v('--accent-fill')||'#d49a2a',ok:'#2f9a5c',mid:'#d9b21f',bad:'#e0692e'};TU.colAt=now}
+  const C=TU.col,x=cv.getContext('2d'),Y0=34,SP=60/1000;x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,W,H);
+  /* 바탕: 가로 시간 칸(0.5초) · 세로 센트 눈금 · 맞음 띠 */
+  x.fillStyle=C.ok;x.globalAlpha=0.12;x.fillRect(tuX(-3,W),0,tuX(3,W)-tuX(-3,W),H);x.globalAlpha=1;
+  x.lineWidth=1;x.strokeStyle=C.line;x.beginPath();
+  for(const c of [-50,-30,-10,-5,5,10,30,50]){const X=Math.round(tuX(c,W))+0.5;x.moveTo(X,Y0);x.lineTo(X,H)}
+  const off=(now*SP)%30;for(let y=Y0+off;y<H;y+=30){x.moveTo(0,Math.round(y)+0.5);x.lineTo(W,Math.round(y)+0.5)}x.stroke();
+  const last=TU.cur;x.strokeStyle=last&&last.ok?C.ok:C.acc;x.lineWidth=2;x.beginPath();x.moveTo(W/2,Y0);x.lineTo(W/2,H);x.stroke();
+  x.fillStyle=C.muted;x.font='600 22px system-ui,sans-serif';x.textBaseline='middle';x.textAlign='left';x.fillText('♭',8,Y0);x.textAlign='right';x.fillText('♯',W-8,Y0);
+  x.font='10px system-ui,sans-serif';x.textAlign='center';x.textBaseline='top';for(const c of [-30,-10,10,30])x.fillText((c>0?'+':'')+c,tuX(c,W),Y0+22);
+  /* 기록: 오래된 것 지우고, 칸마다 색 */
+  const keep=(H-Y0)/SP+200;while(TU.trail.length&&now-TU.trail[0].t>keep)TU.trail.shift();
+  const col=p=>p.ok||p.near?C.ok:Math.abs(p.c)<=10?C.mid:C.bad;
+  x.lineWidth=3;x.lineCap='round';x.lineJoin='round';
+  for(let i=1;i<TU.trail.length;i++){const a=TU.trail[i-1],b=TU.trail[i];if(a.brk||b.brk||b.t-a.t>250)continue;
+    x.strokeStyle=col(b);x.beginPath();x.moveTo(tuX(a.c,W),Y0+(now-a.t)*SP);x.lineTo(tuX(b.c,W),Y0+(now-b.t)*SP);x.stroke()}
+  /* 지금 음 동그라미 */
+  const live=last&&TU.trail.length&&now-TU.trail[TU.trail.length-1].t<300;
+  if(live){const p=TU.trail[TU.trail.length-1],X=tuX(p.c,W),cc=col(p);
+    x.beginPath();x.arc(X,Y0,17,0,Math.PI*2);x.fillStyle=cc;x.fill();x.lineWidth=3;x.strokeStyle='#fff';x.stroke();
+    x.fillStyle='#fff';x.font='700 14px system-ui,sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(p.n||'',X,Y0+1)}
+  else{x.beginPath();x.arc(W/2,Y0,16,0,Math.PI*2);x.lineWidth=3;x.strokeStyle=C.muted;x.stroke();
+    x.fillStyle=C.muted;x.font='13px system-ui,sans-serif';x.textAlign='center';x.textBaseline='top';x.fillText(TU.on?'줄을 하나 튕기세요':'마이크를 켜면 음의 흐름이 보입니다',W/2,Y0+26)}
+}
+function tuView(){const t=document.querySelector('.tuner');if(t)t.dataset.view=TU.view;document.querySelectorAll('[data-tuview]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.tuview===TU.view));tuTrail(performance.now())}
 function tuGauge(){
   let s='<path d="M58.1 58.1 A130 130 0 0 1 241.9 58.1" class="tu-arc"/>';   /* 눈금 범위(±45°)만 */
   for(let c=-50;c<=50;c+=10){const a=(c*0.9-90)*Math.PI/180,r1=c%50===0?112:118,x1=150+Math.cos(a)*r1,y1=150+Math.sin(a)*r1,x2=150+Math.cos(a)*130,y2=150+Math.sin(a)*130;
@@ -1962,7 +2001,7 @@ function tuRender(){
   if(!g('tuGauge').firstChild)tuGauge();
   g('tuTun').innerHTML=Object.entries(TUNINGS).map(([k,t])=>`<option value="${k}"${k===TU.tun?' selected':''}>${t.n}</option>`).join('');
   g('tuA4').textContent=TU.a4;g('tuMic').textContent=TU.on?'■ 마이크 끄기':'🎤 마이크 켜기';
-  tuStrings();if(!TU.on)tuShow(null);
+  tuStrings();if(!TU.on)tuShow(null);tuView();
 }
 /* 휴대폰 · 브라우저 구분 → 마이크가 막혔을 때 그 기기에 맞는 해결 순서 */
 function tuEnv(){
@@ -2035,6 +2074,7 @@ document.getElementById('p-tune').addEventListener('click',e=>{
   if(b.id==='tuMic'){TU.on?tuStop():tuStart();return}
   if(b.dataset.tucopy!=null){const u=location.href.split('#')[0];(navigator.clipboard?navigator.clipboard.writeText(u):Promise.reject()).then(()=>{b.textContent='복사했습니다'},()=>{prompt('이 주소를 복사해 다른 브라우저에 붙여 넣으세요',u)});return}
   if(b.dataset.tumode){TU.mode=b.dataset.tumode;tuSave();TU.hist=[];tuStrings();return}
+  if(b.dataset.tuview){TU.view=b.dataset.tuview;tuSave();tuView();return}
   if(b.dataset.tus!=null){const i=+b.dataset.tus;TU.sel=i;if(TU.mode!=='manual')TU.mode='manual';tuSave();tuRef(i);TU.hist=[];tuStrings();return}
   if(b.dataset.a4!=null){const v=+b.dataset.a4;TU.a4=v===0?440:Math.max(430,Math.min(450,TU.a4+v));tuSave();tuRender();return}
 });
