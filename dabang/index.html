@@ -215,6 +215,9 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 #tuStrobe{height:100%;background:repeating-linear-gradient(90deg,var(--ink) 0 20px,transparent 20px 40px);opacity:.55}
 #tuStrobe.idle{opacity:.12}
 .tu-hz{color:var(--muted);font-size:.82rem;min-height:1.3em}
+.tu-help{margin:10px 0 0;padding:12px 14px;border:1px solid var(--accent-fill);border-radius:12px;background:var(--surface);font-size:.92rem;line-height:1.6}
+.tu-help b{display:block;margin-bottom:4px}.tu-help ol{margin:4px 0 0;padding-left:1.3em}.tu-help li{margin:2px 0}
+.tu-help .btns{margin-top:8px}
 .tu-strings{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:12px 0}
 .tu-s{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:6px 0;font:inherit;font-weight:800;font-size:1.25rem;cursor:pointer;color:var(--ink);display:flex;flex-direction:column;align-items:center;line-height:1.15}
 .tu-s small{font-size:.68rem;font-weight:500;color:var(--muted)}
@@ -476,6 +479,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
         <div id="tuMsg" class="tu-msg" role="status">마이크를 켜고 줄을 하나씩 튕기세요.</div>
         <div id="tuHz" class="tu-hz"></div>
       </div>
+      <div id="tuHelp" class="tu-help" hidden></div>
       <div class="tu-strings" id="tuStrings"></div>
       <div class="tu-opts">
         <div class="field"><label class="flabel" for="tuTun">조율 방식</label><select id="tuTun"></select></div>
@@ -1809,10 +1813,38 @@ function tuRender(){
   g('tuA4').textContent=TU.a4;g('tuMic').textContent=TU.on?'■ 마이크 끄기':'🎤 마이크 켜기';
   tuStrings();if(!TU.on)tuShow(null);
 }
+/* 휴대폰 · 브라우저 구분 → 마이크가 막혔을 때 그 기기에 맞는 해결 순서 */
+function tuEnv(){
+  const u=navigator.userAgent||'';
+  const inapp=/KAKAOTALK/i.test(u)?'카카오톡':/NAVER\(inapp|NAVER\//i.test(u)?'네이버 앱':/Instagram/i.test(u)?'인스타그램':/FBAN|FBAV/i.test(u)?'페이스북':/\bLine\//i.test(u)?'라인':/DaumApps/i.test(u)?'다음 앱':/; wv\)/.test(u)?'앱 안 브라우저':null;
+  const ios=/iPhone|iPad|iPod/i.test(u)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  return {inapp,ios,android:/Android/i.test(u),samsung:/SamsungBrowser/i.test(u),crios:/CriOS/i.test(u)};
+}
+function tuHelp(kind){
+  const el=document.getElementById('tuHelp');if(!kind){el.hidden=true;return}
+  const v=tuEnv();let t='',li=[],copy=false;
+  if(v.inapp){t=`${v.inapp} 안에서 열린 페이지라 마이크를 쓸 수 없습니다.`;copy=true;
+    li=['화면 오른쪽 위(또는 아래)의 ⋮ / ··· 메뉴를 누르세요.',`'다른 브라우저로 열기' (또는 'Chrome으로 열기', 'Safari로 열기')를 고르세요.`,'열린 브라우저에서 조율기 탭 → [마이크 켜기]를 누르고 \'허용\'을 고르세요.','메뉴가 없으면 아래 [주소 복사]를 누른 뒤 Chrome · Safari · 삼성 인터넷 주소창에 붙여 넣으세요.']}
+  else if(kind==='unsupported'){t='이 브라우저는 마이크를 지원하지 않습니다.';copy=true;li=['Chrome · Safari · 삼성 인터넷에서 열어 주세요.']}
+  else if(kind==='busy'){t='다른 앱이 마이크를 쓰고 있습니다.';li=['통화 · 녹음 · 음성 인식 앱을 닫으세요.','이 페이지를 새로고침한 뒤 다시 [마이크 켜기]를 누르세요.']}
+  else if(kind==='nomic'){t='마이크를 찾지 못했습니다.';li=['이어폰 마이크를 쓰고 있다면 빼고 다시 해 보세요.']}
+  else{t='이 사이트의 마이크 권한이 꺼져 있습니다.';
+    if(v.ios&&v.crios)li=['iPhone 설정 앱 → Chrome → 마이크를 켜세요.','Chrome으로 돌아와 페이지를 새로고침 → [마이크 켜기] → \'허용\'.'];
+    else if(v.ios)li=['Safari 주소창 왼쪽의 \'가가\'(또는 aA) 버튼 → 웹 사이트 설정 → 마이크 → \'허용\'.','그래도 안 되면 iPhone 설정 앱 → Safari → 마이크 → \'묻기\' 또는 \'허용\'.','페이지를 새로고침한 뒤 [마이크 켜기]를 누르세요.'];
+    else if(v.samsung)li=['주소창 왼쪽 자물쇠 아이콘 → 권한 → 마이크 → 허용.','그래도 안 되면 휴대폰 설정 → 애플리케이션 → 삼성 인터넷 → 권한 → 마이크 → 허용.','페이지를 새로고침한 뒤 [마이크 켜기]를 누르세요.'];
+    else if(v.android)li=['주소창 왼쪽 아이콘(자물쇠 또는 조절 모양)을 누르세요 → 권한 → 마이크 → \'허용\'. (보이지 않으면 ⋮ → 설정 → 사이트 설정 → 마이크에서 이 사이트를 허용)','그래도 안 되면 휴대폰 설정 → 애플리케이션 → Chrome → 권한 → 마이크 → \'앱 사용 중에만 허용\'.','페이지를 새로고침한 뒤 [마이크 켜기]를 누르세요.'];
+    else li=['주소창 왼쪽 자물쇠 아이콘 → 사이트 설정 → 마이크 → 허용.','Windows 설정 → 개인 정보 → 마이크에서 브라우저가 마이크를 쓸 수 있게 켜세요.','페이지를 새로고침한 뒤 [마이크 켜기]를 누르세요.'];}
+  el.innerHTML=`<b>${esc(t)}</b><ol>${li.map(x=>`<li>${esc(x)}</li>`).join('')}</ol>`+(copy?'<div class="btns left"><button class="ghost sm" data-tucopy>주소 복사</button></div>':'');
+  el.hidden=false;
+}
 async function tuStart(){
+  tuHelp(null);
+  const v=tuEnv();
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.isSecureContext){tuHelp(v.inapp?'denied':'unsupported');document.getElementById('tuMsg').textContent='이 브라우저에서는 마이크를 쓸 수 없습니다.';return}
   try{
-    actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')await actx.resume();
+    actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();   /* 터치 안에서 먼저 깨움 (아이폰) */
     TU.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+    if(actx.state==='suspended')await actx.resume();
     TU.src=actx.createMediaStreamSource(TU.stream);TU.an=actx.createAnalyser();TU.an.fftSize=4096;TU.buf=new Float32Array(TU.an.fftSize);
     /* 높은 배음(실제 줄은 배음이 조금씩 높게 울림)이 기본음 측정을 끌어올리지 않도록 저역 통과 */
     TU.lp=actx.createBiquadFilter();TU.lp.type='lowpass';TU.lp.frequency.value=900;TU.lp.Q.value=0.6;
@@ -1821,8 +1853,10 @@ async function tuStart(){
     TU.n1=actx.createBiquadFilter();TU.n2=actx.createBiquadFilter();[TU.n1,TU.n2].forEach(f=>{f.type='lowpass';f.frequency.value=900;f.Q.value=0.6});
     TU.an2=actx.createAnalyser();TU.an2.fftSize=4096;TU.buf2=new Float32Array(4096);TU.src.connect(TU.n1);TU.n1.connect(TU.n2);TU.n2.connect(TU.an2);TU.hist2=[];TU.fc=900;TU.fcAt=0;
     TU.on=true;TU.hist=[];TU.last=performance.now();tuRender();TU.raf=requestAnimationFrame(tuTick);
-  }catch(e){TU.on=false;tuRender();
-    document.getElementById('tuMsg').textContent=e&&e.name==='NotAllowedError'?'마이크 사용이 거부되었습니다. 브라우저 주소창의 마이크 권한을 허용해 주세요.':'마이크를 열지 못했습니다. (마이크 연결 · 권한을 확인하세요)'}
+  }catch(e){TU.on=false;tuRender();const n=e&&e.name;
+    const kind=n==='NotAllowedError'||n==='SecurityError'||n==='PermissionDeniedError'?'denied':n==='NotFoundError'||n==='OverconstrainedError'?'nomic':n==='NotReadableError'||n==='AbortError'?'busy':'denied';
+    document.getElementById('tuMsg').textContent=kind==='denied'?'마이크가 막혀 있습니다. 아래 순서대로 허용해 주세요.':kind==='busy'?'마이크를 열지 못했습니다 (다른 앱 사용 중).':'마이크를 찾지 못했습니다.';
+    tuHelp(kind)}
 }
 function tuStop(){
   TU.on=false;if(TU.raf)cancelAnimationFrame(TU.raf);TU.raf=0;
@@ -1838,6 +1872,7 @@ function tuRef(i){
 document.getElementById('p-tune').addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
   if(b.id==='tuMic'){TU.on?tuStop():tuStart();return}
+  if(b.dataset.tucopy!=null){const u=location.href.split('#')[0];(navigator.clipboard?navigator.clipboard.writeText(u):Promise.reject()).then(()=>{b.textContent='복사했습니다'},()=>{prompt('이 주소를 복사해 다른 브라우저에 붙여 넣으세요',u)});return}
   if(b.dataset.tumode){TU.mode=b.dataset.tumode;tuSave();TU.hist=[];tuStrings();return}
   if(b.dataset.tus!=null){const i=+b.dataset.tus;TU.sel=i;if(TU.mode!=='manual')TU.mode='manual';tuSave();tuRef(i);TU.hist=[];tuStrings();return}
   if(b.dataset.a4!=null){const v=+b.dataset.a4;TU.a4=v===0?440:Math.max(430,Math.min(450,TU.a4+v));tuSave();tuRender();return}
