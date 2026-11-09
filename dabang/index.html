@@ -1761,6 +1761,11 @@ async function blImport(){
 const blChOrd=ch=>/^기초/.test(ch||'')?0:((String(ch||'').match(/^(\d+)장/)||[])[1]|0)||99;
 /* ---------- 잠긴 예제 파일: AES-256-GCM, 키 = 암호 → PBKDF2-SHA256(31만 번). 암호는 저장하지 않음 ---------- */
 const b64d=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function blDecryptBytes(o,pw){
+  const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
+  const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:b64d(o.salt),iterations:o.iter||310000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['decrypt']);
+  return await crypto.subtle.decrypt({name:'AES-GCM',iv:b64d(o.iv)},key,b64d(o.ct));
+}
 async function blDecrypt(o,pw){
   const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
   const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:b64d(o.salt),iterations:o.iter||310000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['decrypt']);
@@ -2592,9 +2597,20 @@ async function sgDeep(file){
     }
   }catch(e){sgDeepUi('err',null,'PC 정밀 분석 실패: '+(e&&e.message||e)+' (분석 도우미가 켜져 있는지, 브라우저가 "로컬 네트워크 접근"을 허용했는지 확인)')}
 }
+/* PC 분석 도우미 설치 파일: 서버엔 잠긴 파일만 (AES-256-GCM) → 암호를 넣으면 풀어서 zip 으로 저장 */
+async function sgHelperGet(){
+  const pw=prompt('분석 도우미 설치 파일 암호');if(!pw)return;
+  try{
+    const o=await (await fetch('https://crezonfaeteam.github.io/rf-calc/dabang/helper/saygita-helper-setup.enc.json?v='+Date.now(),{cache:'no-store'})).json();
+    let buf;try{buf=await blDecryptBytes(o,pw)}catch(e){alert('암호가 맞지 않습니다.');return}
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([buf],{type:'application/zip'}));a.download=o.name||'쎄이기타 분석 도우미 설치.zip';
+    document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),60000);
+  }catch(e){alert('설치 파일을 받지 못했습니다: '+(e&&e.message||e))}
+}
+document.addEventListener('click',e=>{const a=e.target.closest('[data-sghelper]');if(a){e.preventDefault();sgHelperGet()}});
 function sgDeepUi(kind,pct,msg){
   const e=sgEl('sgDeep');if(!e)return;e.hidden=false;e.className='sg-deep '+kind;
-  if(kind==='off'){e.innerHTML='PC 정밀 분석(트랙 분리 · 가사 · TAB)을 자동으로 하려면 프로젝트 폴더의 <b>"분석 도우미 켜기.bat"</b>을 실행하세요. 도우미가 켜지고 Edge 로 <a href="http://127.0.0.1:52525/" target="_blank" rel="noopener">http://127.0.0.1:52525</a> 이 열립니다 — 그 화면에서 음원을 열면 이어서 자동 진행됩니다.'+(location.protocol==='https:'?' (지금 인터넷 주소에서 도우미가 막혔다면 주소창 왼쪽 자물쇠 → \'로컬 네트워크 액세스\' 허용, 또는 위 주소로 여세요)':'');return}
+  if(kind==='off'){e.innerHTML='PC 정밀 분석(트랙 분리 · 가사 · TAB)을 자동으로 하려면 프로젝트 폴더의 <b>"분석 도우미 켜기.bat"</b>을 실행하세요. 도우미가 켜지고 Edge 로 <a href="http://127.0.0.1:52525/" target="_blank" rel="noopener">http://127.0.0.1:52525</a> 이 열립니다 — 그 화면에서 음원을 열면 이어서 자동 진행됩니다. 이 PC에 도우미가 없으면 → <a href="#" data-sghelper>설치 파일 받기 (암호)</a> (압축 풀고 설치하기.bat, 약 3GB · 10~30분)'+(location.protocol==='https:'?' (지금 인터넷 주소에서 도우미가 막혔다면 주소창 왼쪽 자물쇠 → \'로컬 네트워크 액세스\' 허용, 또는 위 주소로 여세요)':'');return}
   e.innerHTML=esc(msg)+(pct!=null&&kind==='run'?` <progress max="100" value="${Math.round(pct)}"></progress> ${Math.round(pct)}%`:'');
 }
 sgEl('sgZipIn').addEventListener('change',e=>{const fs=e.target.files;sgFiles(fs).finally(()=>{e.target.value=''})});
