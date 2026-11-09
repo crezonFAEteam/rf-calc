@@ -42,7 +42,7 @@ button,select,textarea{font:inherit;color:inherit}
 
 /* 제목: 한 줄로 작게 */
 .top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;flex-wrap:nowrap}
-.top h1{font-family:"Gowun Batang",serif;font-weight:700;font-size:1.1rem;margin:0;letter-spacing:-.01em;white-space:nowrap}
+.top h1{font-family:"Gowun Batang",serif;font-weight:700;font-size:1.65rem;line-height:1.1;margin:0;letter-spacing:-.01em;white-space:nowrap}
 .tops{display:flex;gap:5px;align-items:center;flex-wrap:nowrap;flex:none}
 /* 제목 줄 + 지판 고정. 탭 줄은 그 바로 아래에 붙는다 (--pinH = 고정 영역 높이, 스크립트가 잰다) */
 .pin{position:sticky;top:0;z-index:6;background:var(--bg);margin:0 -20px;padding:0 20px 6px}
@@ -327,7 +327,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
 @media (max-width:640px){
   .wrap{padding:12px 12px 40px}
   .top{margin-bottom:6px;gap:6px}
-  .top h1{font-size:1rem}
+  .top h1{font-size:1.45rem}
   .tops{gap:4px}
   .uiz button{padding:5px 5px}.uiz #uizVal{min-width:2.9em;font-size:.68rem}
   .acc button,.lbl-tg button{padding:5px 7px;font-size:.74rem}
@@ -366,12 +366,12 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
   .songbar select{flex-basis:100%}
 }
 @media (max-width:420px){   /* 좁은 휴대폰: 제목 줄이 한 줄에 들어가게 */
-  .top h1{font-size:.92rem}.tops{gap:3px}
+  .top h1{font-size:1.25rem}.tops{gap:3px}
   .acc button,.lbl-tg button{padding:5px 5px;font-size:.68rem}
   .uiz button{padding:5px 7px}.uiz #uizVal{display:none}   /* 값은 누를 때 잠깐 보여 줌 */
 }
 @media (max-width:340px){
-  .top h1{font-size:.8rem;letter-spacing:-.04em}.acc button,.lbl-tg button{padding:5px 4px}.uiz button{padding:5px 5px}
+  .top h1{font-size:1.05rem;letter-spacing:-.04em}.acc button,.lbl-tg button{padding:5px 4px}.uiz button{padding:5px 5px}
 }
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
