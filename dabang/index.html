@@ -2106,8 +2106,15 @@ function sgPlay(){
   if(SG.seg||SG.from>0||SG.to>=0){const t=m.currentTime,ta=Math.max(0,sgTime(a)),tz=sgTime(z);if(t<ta-0.05||t>=tz)sgSeek(ta)}
   const t=m.currentTime;SG.ids.forEach(i=>{const e=SG.els[i];e.playbackRate=SG.rate;if(Math.abs(e.currentTime-t)>0.03)e.currentTime=t;e.play().catch(()=>{})});
   SG.playing=true;sgEl('sgPlay').textContent='정지';
-  clearInterval(SG.sync);SG.sync=setInterval(()=>{const mt=sgMaster().currentTime;SG.ids.slice(1).forEach(i=>{const e=SG.els[i];if(!e.paused&&Math.abs(e.currentTime-mt)>0.05)e.currentTime=mt})},400);   /* 트랙끼리 어긋나면 맞춤 */
+  clearInterval(SG.sync);SG.sync=setInterval(sgSync,250);   /* 트랙끼리 어긋나면 맞춤 */
   if(!SG.raf)SG.raf=requestAnimationFrame(sgTick);
+}
+/* 어긋남 맞춤: 위치를 건너뛰면(seek) 소리가 '뚝' 끊기므로 → 속도를 살짝(±4%) 바꿔 따라잡게. 0.4초 넘게 벌어졌을 때만 건너뜀 */
+function sgSync(){
+  const m=sgMaster();if(!m||m.paused||m.seeking)return;const mt=m.currentTime;
+  SG.ids.slice(1).forEach(i=>{const e=SG.els[i];if(e.paused||e.seeking)return;const d=e.currentTime-mt,ad=Math.abs(d);
+    let r=SG.rate;if(ad>0.4){e.currentTime=mt}else if(ad>0.025)r=SG.rate*(d>0?0.96:1.04);
+    if(Math.abs(e.playbackRate-r)>1e-4)e.playbackRate=r});
 }
 function sgPause(){
   Object.values(SG.els).forEach(e=>{try{e.pause()}catch(x){}});SG.playing=false;clearInterval(SG.sync);
