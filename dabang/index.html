@@ -316,7 +316,7 @@ body[data-page="tune"] #boardScroll,body[data-page="tune"] .board-bar,body[data-
 .secpat{width:auto!important;font:inherit;font-size:.78rem!important;padding:2px 6px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--muted);max-width:60vw}
 .secbadge{font-size:.72rem;color:var(--ink);border:1px solid var(--accent-fill);border-radius:999px;padding:1px 8px}
 .secpat.set{border-color:var(--accent-fill);color:var(--ink);font-weight:600}
-.follow[aria-pressed="true"],#blLoop[aria-pressed="true"],#adLoop[aria-pressed="true"]{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent);font-weight:600}
+.follow[aria-pressed="true"],#blLoop[aria-pressed="true"],#adLoop[aria-pressed="true"],#sgLoop[aria-pressed="true"]{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent);font-weight:600}
 .pgrp{display:flex;flex-wrap:wrap;gap:6px;align-items:center;width:100%}
 .pgl{font-size:.8rem;color:var(--muted);min-width:4.6em}
 .tab .acc{color:var(--accent);font-weight:700;display:inline;border:0;border-radius:0;overflow:visible}   /* 머리글 버튼 묶음(.acc) 테두리가 붙지 않게 */
@@ -577,7 +577,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
           <div class="sg-sub"><b>이미 분석한 곡</b> → 분석 없이 바로 연습 (2단계 건너뜀)</div>
           <ul>
             <li><b>[분석된 곡 ▼]</b> 목록에서 고르기. 목록에는 <b>이 기기에 저장된 곡</b>(전에 열었던 곡)과, PC 분석 도우미가 켜져 있으면 <b>PC에서 분석한 모든 곡</b>(음악\쎄이기타 분석)이 나옵니다.</li>
-            <li>같은 음원 파일을 [🎵 음원 파일 열기]로 다시 열어도 분석 결과가 바로 나옵니다.</li>
+            <li>같은 곡을 [🎵 음원 파일 열기]로 다시 열면 <b>"새로 분석할지"</b> 물어봅니다. [확인] = 기존 분석을 지우고 최신 분석기로 새로 (분석기가 좋아졌을 때) · [취소] = 기존 결과 바로 열기.</li>
             <li>다른 PC에서 분석한 곡: <b>[📂 분석 결과 열기]</b> → PC는 <b>"… 분석"</b> 폴더, 휴대폰은 <b>"휴대폰용 ….zip"</b> 파일을 고르기. 한 번 열면 [분석된 곡 ▼]에 남습니다.</li>
           </ul>
           <div class="sg-sub"><b>처음 여는 곡</b> → 열면 2단계 분석이 자동으로</div>
@@ -636,7 +636,8 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
           <dt>🎼 키 · 카포</dt><dd><b>조옮김 − +</b> = 악보 코드를 반음씩 올림/내림 (소리는 원곡 그대로).<br>
             <b>[🔊 음원도 같이]</b>를 켜면 소리도 같은 키로 바뀝니다 (빠르기 그대로, 목소리 색 유지). 예) G로 부른 곡을 +2 → A키로 듣고 치기.<br>
             <b>카포 / 쉬운 모양</b> = 카포를 끼우고 쉬운 코드 모양으로 치기. 예) A키 곡을 [G · 카포 2] → 2프렛에 카포, G 모양으로.</dd>
-          <dt>▶ 재생</dt><dd><b>[재생]</b> 또는 <b>스페이스</b> = 재생/정지 · <b>[⏪ 5초]</b> = 조금 뒤로 · 막대를 끌어 원하는 곳으로.<br>
+          <dt>▶ 재생</dt><dd><b>[재생]</b> 또는 <b>스페이스</b> = <b>처음부터</b> 재생 / 정지 (반복할 마디를 골랐으면 그 처음부터).<br>
+                중간부터 들으려면 악보의 그 자리를 누르거나, 멈춘 상태에서 막대를 끌거나 [⏪ 5초]로 옮긴 뒤 [재생].<br>
             <b>속도</b> = 빠르기만 느리게 (음 높이는 그대로) · <b>[⇣ 따라가기]</b> = 지금 위치가 늘 보이게 자동 스크롤 · <b>[가− 가+]</b> = 악보 글자 크기.</dd>
           <dt>⟳ 반복</dt><dd><b>반복할 마디</b>(트랙 아래)에서 시작 · 끝 마디를 고르고 <b>[⟳ 반복]</b>을 켜면 그 구간만 계속 돕니다. [전체] = 곡 전체. 반복을 끄면 구간 끝에서 멈춥니다.</dd>
           <dt>👆 악보 누르기</dt><dd><b>코드 이름</b>을 누르면 그 코드 구간만 재생 · <b>다른 곳</b>(가사 · 빈칸 · 구멍 번호)을 누르면 그 박부터 재생 · 재생 중에 누르면 멈춤.<br>
@@ -2336,6 +2337,11 @@ function sgSync(){
     if(Math.abs(e.playbackRate-r)>1e-4){if(r!==SG.rate)sgDg('nudge');e.playbackRate=r}});
   if(SG.ac&&SG.ac.playoutStats)sgDgShow();
 }
+function sgPlayStart(){   /* [재생] 버튼 · 스페이스 */
+  SG.seg=null;
+  if(!SG.cue)sgSeek(SG.from>0?Math.max(0,sgTime(SG.from*16)):0);
+  SG.cue=false;sgPlay();
+}
 function sgPause(){
   Object.values(SG.els).forEach(e=>{try{e.pause()}catch(x){}});SG.playing=false;clearInterval(SG.sync);
   const b=sgEl('sgPlay');if(b)b.textContent='재생';
@@ -2570,10 +2576,10 @@ document.getElementById('p-song').addEventListener('click',e=>{
   if(b.id==='sgRecent'){sgDB.get('lastDir').then(h=>h?sgOpen(h):sgOpen());return}
   if(b.id==='sgRec')return sgRecord();
   if(!SG.song)return;
-  if(b.id==='sgPlay'){if(SG.playing)return sgPause();SG.seg=null;return sgPlay()}
+  if(b.id==='sgPlay'){if(SG.playing)return sgPause();return sgPlayStart()}
   if(b.id==='sgLoop'){SG.loop=!SG.loop;b.setAttribute('aria-pressed',SG.loop);sgSave();return}
   if(b.id==='sgAll'){SG.from=0;SG.to=-1;sgRender();return}
-  if(b.id==='sgBack'){sgSeek(sgMaster().currentTime-5);return}
+  if(b.id==='sgBack'){sgSeek(sgMaster().currentTime-5);if(!SG.playing)SG.cue=true;return}
   if(ds.sgtr){SG.kc.t=Math.max(-11,Math.min(11,SG.kc.t+(+ds.sgtr)));sgKcSave();SG.lk={};SG._ch=null;sgRender();drawBoard();sgPitchApply();return}
   if(ds.sgsnd){SG.kc.s=!SG.kc.s;sgKcSave();sgRender();sgPitchApply();return}
   if(ds.sgcapo!=null){SG.kc.c=+ds.sgcapo;sgKcSave();SG.lk={};SG._ch=null;sgRender();drawBoard();return}
@@ -2591,7 +2597,7 @@ document.getElementById('p-song').addEventListener('input',e=>{
 });
 document.getElementById('p-song').addEventListener('change',e=>{
   const t=e.target;
-  if(t.id==='sgSeek'){SG.dragging=false;const m=sgMaster();if(m&&m.duration)sgSeek(t.value/1000*m.duration);return}
+  if(t.id==='sgSeek'){SG.dragging=false;const m=sgMaster();if(m&&m.duration)sgSeek(t.value/1000*m.duration);if(!SG.playing)SG.cue=true;return}
   if(t.id==='sgCapo'){SG.kc.c=+t.value;sgKcSave();SG.lk={};SG._ch=null;sgRender();drawBoard();return}
   if(t.id==='sgHarpKey'){SG.harpKey=t.value;store.set('chordcalc-harpkey',SG.harpKey);sgTabView();sgMark(sgMaster().currentTime);return}
   if(t.id==='sgRate'){SG.rate=+t.value;Object.values(SG.els).forEach(a=>a.playbackRate=SG.rate);sgSave();return}
@@ -2599,7 +2605,7 @@ document.getElementById('p-song').addEventListener('change',e=>{
     sgSeek(Math.max(0,sgTime(SG.from*16)));sgRender();return}
 });
 /* 스페이스 = 재생/정지 (곡연습 탭에서, 입력 칸 밖) */
-document.addEventListener('keydown',e=>{if(st.tab!=='song'||!SG.song||e.code!=='Space'||/INPUT|SELECT|TEXTAREA|BUTTON/.test(document.activeElement&&document.activeElement.tagName))return;e.preventDefault();SG.playing?sgPause():sgPlay()});
+document.addEventListener('keydown',e=>{if(st.tab!=='song'||!SG.song||e.code!=='Space'||/INPUT|SELECT|TEXTAREA|BUTTON/.test(document.activeElement&&document.activeElement.tagName))return;e.preventDefault();SG.playing?sgPause():sgPlayStart()});
 sgEl('sgTab').addEventListener('click',e=>{
   if(!SG.song||!SG.song.parts[SG.view]||SG.song.parts[SG.view].kind==='harmonica')return;   /* 하모니카 보기는 칸 누르면 이동 */
   if(SG.playing){sgPause();SG.seg=null;return}
@@ -2735,11 +2741,17 @@ async function sgFiles(fs){
     if(sj){const song=JSON.parse(await sj.text()),urls={};for(const st of song.stems||[]){const f=fs.find(x=>x.name===st.file);if(f)urls[st.id]=URL.createObjectURL(f)}sgLoad(song,urls);return}
     const au=fs.find(f=>/^(audio|video)\//.test(f.type)||/\.(mp3|mp4|m4a|wav|webm|ogg|oga|flac|aac|mov|mkv)$/i.test(f.name));
     if(!au){alert('음원(mp3 · mp4 · m4a · wav …) 또는 분석 결과(.zip / song.json)를 골라 주세요.');return}
-    if(await sgOpenKnown(au.name.replace(/\.[^.]+$/,'')))return;   /* 이미 정밀 분석한 곡이면 그 결과(트랙 · 가사 · TAB)를 바로 */
-    const key='q:'+au.name+'|'+au.size+'|'+au.lastModified;let song=await sgDB.get(key);   /* 같은 파일은 다시 분석하지 않음 */
+    /* 이미 분석한 곡: PC(도우미 켜짐)에서는 '지우고 새로 분석 / 기존 결과 열기'를 물음. 휴대폰 · 도우미 없음은 새로 해도 간이 분석뿐이라 기존 결과를 엶 */
+    const title=au.name.replace(/\.[^.]+$/,''),known=await sgFindKnown(title);let fresh=false;
+    if(known){
+      const canDeep=!matchMedia('(pointer:coarse)').matches&&SG.auto&&SG.helperOn;
+      if(!canDeep||!confirm(`"${title}"은(는) 이미 정밀 분석한 곡입니다.\n\n[확인] 기존 분석을 지우고 최신 분석기로 새로 분석 (곡당 몇 분)\n[취소] 기존 분석 결과 바로 열기`)){await sgOpenKey(known);return}
+      fresh=true;
+    }
+    const key='q:'+au.name+'|'+au.size+'|'+au.lastModified;let song=fresh?null:await sgDB.get(key);   /* 같은 파일은 간이 분석을 다시 하지 않음 (새로 분석이면 다시) */
     if(!song||song.kind!=='saygita-song'){song=await sgAnalyze(au);sgDB.set(key,song)}
     sgLoad(song,{mix:URL.createObjectURL(au)});
-    sgDeep(au);   /* PC 분석 도우미가 켜져 있으면 이어서 정밀 분석 */
+    sgDeep(au,fresh);   /* PC 분석 도우미가 켜져 있으면 이어서 정밀 분석 (fresh = 기존 분석 지우고 새로) */
   }catch(e){sgStat(null);alert('열지 못했습니다: '+(e&&e.message||e)+(/decode/i.test(String(e&&e.message))?'\n(이 기기가 이 형식을 재생하지 못할 수 있습니다. mp3 로 바꿔 보세요)':''))}
 }
 /* 마지막에 고른 음원 · 분석 폴더 위치 (탭을 열 때 미리 읽어 둠: 파일 창을 누르자마자 열려야 해서) */
@@ -2782,15 +2794,15 @@ async function sgListFill(){
   if(!dev.length&&!pcOnly.length&&pcDev)h=`<option value="">분석된 곡 ▼ (0) — ${SG.helperOn?'아직 없음':'PC 분석 도우미가 꺼져 있음'}</option>`;
   sel.innerHTML=h;sel.hidden=!dev.length&&!pcOnly.length&&!pcDev;
 }
-async function sgOpenKnown(title){   /* 같은 이름의 분석 결과: 이 기기 저장본 → PC 도우미 순 */
+async function sgFindKnown(title){   /* 같은 이름의 분석 결과 → 열 값('d:…' 기기 저장본 / 'p:…' PC 도우미, 더 새로운 쪽) 또는 null */
   try{
     const dev=(await sgDB.get('songIndex'))||[],d=dev.find(x=>x.title===title);let x=null;
     if(!matchMedia('(pointer:coarse)').matches&&await sgHelperOn()){
       const pc=(await (await fetch(SG_HELPER+'/songs',{cache:'no-store'})).json()).songs||[];x=pc.find(x=>x.title===title)||null}
-    if(d&&(!x||x.mtime*1000<=d.at)&&await sgDB.get(d.key)){await sgOpenKey('d:'+d.key);return true}   /* 기기 저장본이 최신이면 그것 */
-    if(x){await sgOpenKey('p:'+x.key);return true}
+    if(d&&(!x||x.mtime*1000<=d.at)&&await sgDB.get(d.key))return 'd:'+d.key;   /* 기기 저장본이 최신이면 그것 */
+    if(x)return 'p:'+x.key;
   }catch(e){}
-  return false;
+  return null;
 }
 sgEl('sgList').addEventListener('change',e=>{const v=e.target.value;e.target.value='';if(v)sgOpenKey(v)});
 async function sgOpenKey(v){
@@ -2810,14 +2822,14 @@ sgEl('sgAuto').addEventListener('change',e=>{SG.auto=e.target.checked;store.set(
 const SG_HELPER='http://127.0.0.1:52525';
 SG.auto=store.get('chordcalc-sgauto')!=='0';
 async function sgHelperOn(){try{const r=await fetch(SG_HELPER+'/ping',{cache:'no-store',signal:AbortSignal.timeout(1500)});const j=await r.json();return SG.helperOn=!!(j&&j.app==='saygita')}catch(e){return SG.helperOn=false}}
-async function sgDeep(file){
+async function sgDeep(file,fresh){
   if(matchMedia('(pointer:coarse)').matches)return;                      /* 휴대폰은 간이 분석만 */
   if(!SG.auto)return;
   if(!(await sgHelperOn())){sgDeepUi('off');return}
   const myTitle=SG.song&&SG.song.title;
   try{
-    sgDeepUi('run',2,'PC 정밀 분석: 음원 보내는 중…');
-    const r=await fetch(SG_HELPER+'/analyze',{method:'POST',headers:{'X-File-Name':encodeURIComponent(file.name),'Content-Type':'application/octet-stream'},body:file});
+    sgDeepUi('run',2,fresh?'PC 정밀 분석: 기존 분석을 지우고 새로 — 음원 보내는 중…':'PC 정밀 분석: 음원 보내는 중…');
+    const r=await fetch(SG_HELPER+'/analyze',{method:'POST',headers:{'X-File-Name':encodeURIComponent(file.name),'X-Reanalyze':fresh?'1':'0','Content-Type':'application/octet-stream'},body:file});
     const {id}=await r.json();if(!id)throw new Error('도우미 응답 없음');
     for(;;){
       const j=await (await fetch(SG_HELPER+'/job/'+encodeURIComponent(id),{cache:'no-store'})).json();
