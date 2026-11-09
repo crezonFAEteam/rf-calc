@@ -197,6 +197,9 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .sg-deep{margin:0 0 10px;padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-size:.9rem}.sg-deep progress{width:160px;vertical-align:middle;margin:0 6px}
 .sg-deep.done{border-color:#2f9a5c;color:#2f9a5c;font-weight:600}.sg-deep.err{border-color:#c0392b;color:#c0392b}.sg-deep.off{color:var(--muted)}
 .sg-autochk{margin:0 0 8px}
+.sg-key{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;margin:10px 0 0;font-size:.92rem}.sg-key b{color:var(--accent)}.sg-k0{color:var(--muted);font-size:.82rem;margin-left:4px}
+.sg-kgrp{display:inline-flex;gap:4px;align-items:center}.sg-kv{min-width:2em;text-align:center}.sg-key select{width:auto!important;padding:4px 6px}.sg-shapes button[aria-pressed="true"]{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent)}
+.sg-knote{color:var(--muted);font-size:.8rem}
 .sg-list{width:auto!important;max-width:260px;min-width:0;padding:6px 8px;border-radius:999px}
 .sg-stat{margin:0 0 10px;font-weight:600;color:var(--accent)}.sg-stat progress{width:180px;vertical-align:middle;margin-left:8px}
 .sg-rect{color:#c0392b;font-weight:700}#sgRec.rec{background:#c0392b;border-color:#c0392b;color:#fff}
@@ -579,6 +582,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
         </div>
         <div class="sg-view">
           <div id="sgViews" class="chips"></div>
+          <div id="sgKey"></div>
           <div id="sgSheet" class="sg-sheet"></div>
           <div id="sgTab" class="tab" hidden></div>
           <p class="sdesc">칸 하나가 한 박입니다. 코드 이름을 누르면 그 코드만 재생하고, 다른 곳(가사 · 구멍 번호 · 빈칸)을 누르면 그 박부터 재생합니다. TAB에서는 코드 이름이나 그 코드의 음을 누르면 그 코드만, 빈 곳을 누르면 지금 위치부터 재생합니다. 재생 중에 누르면 멈춥니다. 스페이스 = 재생/정지. 자동 분석이라 틀린 코드 · 음 · 가사가 있을 수 있습니다.</p>
@@ -2082,7 +2086,7 @@ async function sgRecentBtn(){const b=sgEl('sgRecent'),n=await sgDB.get('lastName
 function sgLoad(song,urls){
   if(!song||song.kind!=='saygita-song'){alert('곡 분석 파일(song.json)이 아닙니다.');return}
   sgPause();Object.values(SG.els).forEach(a=>{try{a.pause();URL.revokeObjectURL(a.src)}catch(e){}});
-  SG.song=song;SG.els={};SG.ids=[];SG.mix={};SG.lk={};SG.slot=-1;SG.word=-1;SG.from=0;SG.to=-1;
+  SG.song=song;sgKcLoad();SG._ch=null;SG.els={};SG.ids=[];SG.mix={};SG.lk={};SG.slot=-1;SG.word=-1;SG.from=0;SG.to=-1;
   const hasStems=(song.stems||[]).some(s=>s.id!=='mix'&&urls[s.id]);
   for(const st of song.stems||[]){if(!urls[st.id])continue;
     const a=new Audio(urls[st.id]);a.preload='auto';a.preservesPitch=true;a.mozPreservesPitch=true;a.webkitPreservesPitch=true;a.playbackRate=SG.rate;
@@ -2125,11 +2129,52 @@ function sgShowTime(t,force){
   if(st.tab==='song')drawBoard();
 }
 /* ---------- 화면 ---------- */
-function sgChordAt(sl){const cs=SG.song.chords;let c=null;for(const x of cs){if(x.s<=sl)c=x;else break}return c}
+/* ---------- 키 · 카포: 조옮김(T, 반음) = 악보를 다른 키로, 카포(C) = 코드 이름은 카포 기준 모양 · TAB 숫자는 카포를 0으로 ----------
+   소리(원곡)는 그대로. 곡마다 기억 */
+SG.kc={t:0,c:0};
+function sgKcLoad(){try{const a=JSON.parse(store.get('chordcalc-songkey')||'{}');SG.kc=a[SG.song.title]||{t:0,c:0}}catch(e){SG.kc={t:0,c:0}}}
+function sgKcSave(){try{const a=JSON.parse(store.get('chordcalc-songkey')||'{}');a[SG.song.title]=SG.kc;store.set('chordcalc-songkey',JSON.stringify(a))}catch(e){}}
+function sgTrName(name,n){const c=blChord(name);if(!c||!n)return name;return nn(c.r+n)+c.s+(c.b!=null?'/'+nn(c.b+n):'')}
+function sgCh(){   /* 화면에 보일 코드 (조옮김 + 카포 모양) */
+  const k=SG.kc.t-SG.kc.c,key=SG.song.title+'|'+k+'|'+useFlat;
+  if(SG._ch&&SG._ch.key===key)return SG._ch.list;
+  const list=SG.song.chords.map(c=>({s:c.s,name:sgTrName(c.name,k),orig:c.name}));SG._ch={key,list};return list;
+}
+function sgKey0(){   /* 분석한 코드로 곡의 키(장조 기준) 추정: 그 키의 다이아토닉 코드(I ii iii IV V vi)가 차지하는 시간이 가장 긴 키 */
+  if(SG._k0&&SG._k0.t===SG.song.title)return SG._k0.k;
+  const cs=SG.song.chords,tot=SG.song.bars*16;let best=0,bs=-1;
+  for(let k=0;k<12;k++){let sc=0;cs.forEach((c,i)=>{const d=(i+1<cs.length?cs[i+1].s:tot)-c.s,x=blChord(c.name);if(!x)return;const r=mod(x.r-k),m=/^m(?!aj)/.test(x.s);
+      if((!m&&(r===0||r===5||r===7))||(m&&(r===2||r===4||r===9)))sc+=d*(r===0?1.2:1)});if(sc>bs){bs=sc;best=k}}
+  SG._k0={t:SG.song.title,k:best};return best;
+}
+function sgCapoHint(key){   /* 쉬운 코드 모양(G C D A E)이 되도록 하는 가장 낮은 카포 */
+  for(let c=0;c<=7;c++){const sh=mod(key-c);if([7,0,2,9,4].includes(sh))return {c,sh}}return null;
+}
+function sgShapes(key){   /* 이 키를 쉬운 코드 모양(G C D A E)으로 치는 방법들: 카포 0~7 */
+  const out=[];for(let c=0;c<=7;c++){const sh=mod(key-c);if([7,0,2,9,4].includes(sh))out.push({c,sh})}return out;
+}
+function sgKeyBar(){
+  const k0=sgKey0(),T=SG.kc.t,C=SG.kc.c,key=mod(k0+T),shape=mod(key-C),hint=sgCapoHint(key);
+  return `<div class="sg-key">곡 키 <b>${nn(key)}</b>${T?`<span class="sg-k0">(분석 ${nn(k0)})</span>`:''}
+    <span class="sg-kgrp">조옮김 <button class="ghost sm" data-sgtr="-1" aria-label="반음 내림">−</button><b class="sg-kv">${T>0?'+'+T:T}</b><button class="ghost sm" data-sgtr="1" aria-label="반음 올림">+</button></span>
+    <span class="sg-kgrp">카포 <select id="sgCapo">${Array.from({length:10},(_,i)=>`<option value="${i}"${i===C?' selected':''}>${i?i+'프렛':'없음'}</option>`).join('')}</select></span>
+    ${C?`<span>→ <b>${nn(shape)}</b> 코드 모양으로 연주</span>`:''}
+    <span class="sg-kgrp sg-shapes">쉬운 모양 ${sgShapes(key).map(o=>`<button class="ghost sm" data-sgcapo="${o.c}" aria-pressed="${o.c===C}" title="${o.c?'카포 '+o.c+'프렛에 ':''}${nn(o.sh)} 코드 모양으로 치기">${nn(o.sh)}${o.c?' · 카포 '+o.c:''}</button>`).join('')}</span>
+    ${T||C?`<button class="ghost sm" data-sgkreset="1">원래대로</button>`:''}
+    ${T?`<span class="sg-knote">※ 조옮김은 악보만 바뀌고 소리는 원곡 키 그대로입니다</span>`:''}</div>`;
+}
+/* 기타 음: 조옮김한 음높이를 카포 기준 프렛으로 (같은 줄 우선, 안 되면 가까운 프렛의 다른 줄) */
+function sgFitNote(n,T,C){
+  const p=TUNE[n.i]+n.f+T,f0=n.f+T-C;
+  if(f0>=0&&f0<=15)return {i:n.i,f:f0};
+  let best=null;for(let j=0;j<6;j++){const f=p-TUNE[j]-C;if(f<0||f>15)continue;const d=Math.abs(f-n.f)+Math.abs(j-n.i)*0.5;if(!best||d<best.d)best={i:j,f,d}}
+  return best?{i:best.i,f:best.f}:null;
+}
+function sgChordAt(sl){const cs=sgCh();let c=null;for(const x of cs){if(x.s<=sl)c=x;else break}return c}
 function sgRender(){
   const s=SG.song;sgEl('sgMain').hidden=!s;sgEl('sgHelp').hidden=!!s;if(!s)return;
   sgEl('sgTitle').textContent=s.title;
-  const chs=[...new Set(s.chords.map(c=>c.name))];
+  const chs=[...new Set(sgCh().map(c=>c.name))];
   sgEl('sgMeta').textContent=` · 템포 약 ${s.tempo} BPM · ${s.bars}마디 · 코드 ${chs.slice(0,10).join(' ')}${chs.length>10?' …':''}`+(s.quick?' · 간이 분석(박자 · 코드). 가사 · 트랙 분리 · TAB은 PC 분석에서':'');
   /* 믹서 */
   sgEl('sgMix').innerHTML=SG.ids.map(i=>{const st=s.stems.find(x=>x.id===i),x=SG.mix[i];
@@ -2142,19 +2187,20 @@ function sgRender(){
   const views=[['sheet','코드 · 가사']].concat(Object.entries(s.parts||{}).map(([k,p])=>[k,p.kind==='harmonica'?'하모니카 구멍':p.name.split(' — ')[0]+' TAB']));
   if(!views.some(v=>v[0]===SG.view))SG.view='sheet';
   sgEl('sgViews').innerHTML=views.map(([k,l])=>`<button class="chip" data-sgview="${k}" aria-pressed="${SG.view===k}">${esc(l)}</button>`).join('');
+  sgEl('sgKey').innerHTML=sgKeyBar();
   sgEl('sgSheet').hidden=SG.view!=='sheet';sgEl('sgTab').hidden=SG.view==='sheet';
   if(SG.view==='sheet')sgSheet();else sgTabView();
   SG.slot=-1;sgShowTime(sgMaster()?sgMaster().currentTime:0,true);
 }
 /* 코드 · 가사: 박마다 한 칸 (마디 = 4칸), 코드 이름 위 · 가사 아래 */
 function sgSheet(){
-  const s=SG.song,W=s.lyrics||[],cells=[];let last=null;
+  const s=SG.song,W=s.lyrics||[],cells=[],CH0=sgCh();let last=null;
   /* 단어 → 박 칸: 노래는 박보다 살짝 먼저 들어가는 일이 많아 1/4박(1칸) 안쪽으로 앞서면 다음 박으로 */
   const byBeat={};W.forEach((w,k)=>{const b=Math.max(0,Math.floor((w.s+1)/4));(byBeat[b]=byBeat[b]||[]).push(k)});
   for(let bar=0;bar<s.bars;bar++){
     let h=`<div class="sg-barbox" data-bar="${bar}"><span class="sg-bn">${bar+1}</span>`;
     for(let k=0;k<4;k++){const b=bar*4+k,a=b*4,z=a+4;
-      const ch=s.chords.find(c=>c.s>=a&&c.s<z),cur=sgChordAt(a);
+      const ch=CH0.find(c=>c.s>=a&&c.s<z),cur=sgChordAt(a);
       const ws=(byBeat[b]||[]).map(k=>`<i data-w="${k}">${esc(W[k].w)}</i>`).join(' ');
       const name=ch?ch.name:(k===0&&cur&&cur!==last?cur.name:'');if(ch||name)last=ch||cur;
       h+=`<span class="sg-c" data-b="${b}"><b class="sg-ch">${esc(name)}</b><span class="sg-ly">${ws}</span></span>`}
@@ -2165,11 +2211,12 @@ function sgSheet(){
 function sgLick(pid){
   if(SG.lk[pid])return SG.lk[pid];
   const s=SG.song,total=s.bars*16,W=s.lyrics||[];
-  const segs=s.chords.map((c,k)=>{const z=k+1<s.chords.length?s.chords[k+1].s:total;
+  const CH0=sgCh(),T=SG.kc.t,C=s.parts[pid].kind==='bass'?0:SG.kc.c;
+  const segs=CH0.map((c,k)=>{const z=k+1<CH0.length?CH0[k+1].s:total;
     return {c:blChord(c.name)||blChord('C'),start:c.s,len:z-c.s,ly:W.filter(w=>w.s+1>=c.s&&w.s+1<z).map(w=>w.w).join(' ')}}).filter(x=>x.len>0);
-  const notes=(s.parts[pid].notes||[]).filter(n=>n.s>=0&&n.s<total).map(n=>({t:n.s,dur:n.d||1,i:n.i,f:n.f,p:TUNE[n.i]+n.f})).sort((a,b)=>a.t-b.t);
+  const notes=(s.parts[pid].notes||[]).filter(n=>n.s>=0&&n.s<total).map(n=>{const q=(T||C)?sgFitNote(n,T,C):{i:n.i,f:n.f};return q&&{t:n.s,dur:n.d||1,i:q.i,f:q.f,p:TUNE[q.i]+q.f+C}}).filter(Boolean).sort((a,b)=>a.t-b.t);
   const map={};notes.forEach((n,ni)=>{(map[n.t]=map[n.t]||[]).push(ni)});
-  return SG.lk[pid]={name:s.parts[pid].name,segs,notes,total,bar:16,map};
+  return SG.lk[pid]={name:s.parts[pid].name+(C?` — 카포 ${C}프렛 기준`:''),segs,notes,total,bar:16,map,capo:C};
 }
 /* ---------- 하모니카(10홀 다이아토닉, 리히터 조율) 구멍 번호: 숫자 = 불기, 숫자 위 점 = 마시기, ' = 벤딩(반음씩 내림) ---------- */
 SG.harpKey=store.get('chordcalc-harpkey')||'auto';
@@ -2185,7 +2232,7 @@ function harpAuto(notes){let bk=0,bs=-1;for(let k=0;k<12;k++){const m=harpMap(k)
 function harpKeyNow(notes){return SG.harpKey==='auto'?harpAuto(notes):+SG.harpKey}
 const harpLab=(x,p)=>x?`<span class="hp${x.d?' dr':''}">${x.h}${"'".repeat(x.b)}</span>`:`<span class="hp no" title="이 하모니카로 낼 수 없는 음">${nn(p)}</span>`;
 function sgHarpView(pid){
-  const s=SG.song,notes=s.parts[pid].notes,k=harpKeyNow(notes),m=harpMap(k),auto=harpAuto(notes),byBeat={};
+  const s=SG.song,notes=s.parts[pid].notes.map(n=>({...n,p:n.p+SG.kc.t})),k=harpKeyNow(notes),m=harpMap(k),auto=harpAuto(notes),byBeat={},CH0=sgCh();
   notes.forEach((n,ni)=>{const b=Math.max(0,Math.floor((n.s+1)/4));(byBeat[b]=byBeat[b]||[]).push(ni)});
   const ok=notes.filter(n=>m[n.p]).length;
   let h=`<div class="hp-bar"><label>하모니카 키 <select id="sgHarpKey"><option value="auto"${SG.harpKey==='auto'?' selected':''}>자동 (${NOTE_K(auto)})</option>${SHARP.map((_,i)=>`<option value="${i}"${SG.harpKey===String(i)?' selected':''}>${NOTE_K(i)} 하모니카</option>`).join('')}</select></label>
@@ -2194,7 +2241,7 @@ function sgHarpView(pid){
   for(let bar=first;bar<=last;bar++){
     if(![0,1,2,3].some(q=>byBeat[bar*4+q]))continue;   /* 하모니카가 쉬는 마디는 건너뜀 */
     h+=`<div class="sg-barbox" data-bar="${bar}"><span class="sg-bn">${bar+1}</span>`;
-    for(let q=0;q<4;q++){const b=bar*4+q,c=s.chords.find(x=>x.s>=b*4&&x.s<b*4+4)||(q===0?sgChordAt(b*4):null);
+    for(let q=0;q<4;q++){const b=bar*4+q,c=CH0.find(x=>x.s>=b*4&&x.s<b*4+4)||(q===0?sgChordAt(b*4):null);
       h+=`<span class="sg-c" data-b="${b}"><b class="sg-ch">${c?esc(c.name):''}</b><span class="sg-ly hp-ly">${(byBeat[b]||[]).map(ni=>`<i data-hn="${ni}">${harpLab(m[notes[ni].p],notes[ni].p)}</i>`).join(' ')}</span></span>`}
     h+='</div>'}
   sgEl('sgTab').innerHTML=h+'</div>';
@@ -2221,15 +2268,16 @@ function sgMark(t){
 function sgDots(){
   if(!SG.song)return'';const sl=Math.max(0,SG.slot),c=sgChordAt(sl);let s='';
   const cc=c&&blChord(c.name);
-  if(SG.view==='sheet'||!SG.song.parts[SG.view]||SG.song.parts[SG.view].kind==='harmonica'){const v=cc&&(BLV[c.name]||getV(cc));if(!v)return'';
-    v.forEach((f,i)=>{if(f<0){s+=`<text x="12" y="${sy(i)+8}" class="mute">×</text>`;return}const pc=mod(TUNE[i]+f),x=mod(pc-cc.r),q=Q[cc.qi];
-      s+=dot(i,f,(q.iv.some(y=>mod(y)===x)?role(x,q):'tone')+' on',st.lbl==='deg'?degree(x,q):nn(pc))});return s}
+  const CP=SG.kc.c;
+  if(SG.view==='sheet'||!SG.song.parts[SG.view]||SG.song.parts[SG.view].kind==='harmonica'){const v0=cc&&(BLV[c.name]||getV(cc));if(!v0)return'';const v=v0.map(f=>f<0?f:f+CP);   /* 카포 모양 + 카포 프렛 = 실제 자리 */
+    v.forEach((f,i)=>{if(f<0){s+=`<text x="12" y="${sy(i)+8}" class="mute">×</text>`;return}const pc=mod(TUNE[i]+f-CP),x=mod(pc-cc.r),q=Q[cc.qi];
+      s+=dot(i,f,(q.iv.some(y=>mod(y)===x)?role(x,q):'tone')+' on',st.lbl==='deg'?degree(x,q):nn(mod(TUNE[i]+f)))});return s}
   const lk=sgLick(SG.view);let k=sl;while(k>sl-3&&!lk.map[k])k--;
-  (lk.map[k]||[]).forEach(ni=>{const n=lk.notes[ni],pc=mod(TUNE[n.i]+n.f);let cls='tone';if(cc){const x=mod(pc-cc.r),q=Q[cc.qi];if(q.iv.some(y=>mod(y)===x))cls=role(x,q)}s+=dot(n.i,n.f,cls+' on',nn(pc))});
+  const lc=lk.capo||0;(lk.map[k]||[]).forEach(ni=>{const n=lk.notes[ni],pc=mod(TUNE[n.i]+n.f);let cls='tone';if(cc){const x=mod(pc-cc.r),q=Q[cc.qi];if(q.iv.some(y=>mod(y)===x))cls=role(x,q)}s+=dot(n.i,n.f+lc,cls+' on',nn(pc+lc))});
   return s;
 }
 function sgCap(){if(!SG.song)return'곡연습: [분석 결과 열기]로 곡 분석 폴더를 여세요.';const c=sgChordAt(Math.max(0,SG.slot));
-  return `${SG.song.title} · ${Math.floor(Math.max(0,SG.slot)/16)+1}마디${c?' · '+c.name:''}. `+(SG.view==='sheet'||(SG.song.parts[SG.view]||{}).kind==='harmonica'?'지금 코드의 운지입니다.':'진한 점이 지금 치는 음입니다.')}
+  return `${SG.song.title} · ${Math.floor(Math.max(0,SG.slot)/16)+1}마디${c?' · '+c.name+(SG.kc.c?` (카포 ${SG.kc.c})`:''):''}. `+(SG.view==='sheet'||(SG.song.parts[SG.view]||{}).kind==='harmonica'?'지금 코드의 운지입니다.':'진한 점이 지금 치는 음입니다.')}
 /* ---------- 탭 소리 녹음 (Edge · Chrome 화면 공유의 '탭 오디오') ---------- */
 async function sgRecord(){
   if(SG.rec){SG.rec.mr.stop();return}
@@ -2280,6 +2328,9 @@ document.getElementById('p-song').addEventListener('click',e=>{
   if(b.id==='sgLoop'){SG.loop=!SG.loop;b.setAttribute('aria-pressed',SG.loop);sgSave();return}
   if(b.id==='sgAll'){SG.from=0;SG.to=-1;sgRender();return}
   if(b.id==='sgBack'){sgSeek(sgMaster().currentTime-5);return}
+  if(ds.sgtr){SG.kc.t=Math.max(-11,Math.min(11,SG.kc.t+(+ds.sgtr)));sgKcSave();SG.lk={};SG._ch=null;sgRender();drawBoard();return}
+  if(ds.sgcapo!=null){SG.kc.c=+ds.sgcapo;sgKcSave();SG.lk={};SG._ch=null;sgRender();drawBoard();return}
+  if(ds.sgkreset){SG.kc={t:0,c:0};sgKcSave();SG.lk={};SG._ch=null;sgRender();drawBoard();return}
   if(b.id==='sgZo'){setTabFs(tabFsNow()/1.15);return tabFsDone()}
   if(b.id==='sgZi'){setTabFs(tabFsNow()*1.15);return tabFsDone()}
   if(ds.sgm){const x=SG.mix[ds.sgm];x.mute=!x.mute;sgVol();b.setAttribute('aria-pressed',!x.mute);b.textContent=x.mute?'끔':'켬';return}
@@ -2294,6 +2345,7 @@ document.getElementById('p-song').addEventListener('input',e=>{
 document.getElementById('p-song').addEventListener('change',e=>{
   const t=e.target;
   if(t.id==='sgSeek'){SG.dragging=false;const m=sgMaster();if(m&&m.duration)sgSeek(t.value/1000*m.duration);return}
+  if(t.id==='sgCapo'){SG.kc.c=+t.value;sgKcSave();SG.lk={};SG._ch=null;sgRender();drawBoard();return}
   if(t.id==='sgHarpKey'){SG.harpKey=t.value;store.set('chordcalc-harpkey',SG.harpKey);sgTabView();sgMark(sgMaster().currentTime);return}
   if(t.id==='sgRate'){SG.rate=+t.value;Object.values(SG.els).forEach(a=>a.playbackRate=SG.rate);sgSave();return}
   if(t.id==='sgFrom'||t.id==='sgTo'){SG[t.id==='sgFrom'?'from':'to']=+t.value;const to=SG.to<0?SG.song.bars-1:SG.to;if(SG.from>to){if(t.id==='sgFrom')SG.to=SG.from;else SG.from=SG.to}
