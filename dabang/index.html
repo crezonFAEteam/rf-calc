@@ -197,6 +197,7 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .sg-deep{margin:0 0 10px;padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-size:.9rem}.sg-deep progress{width:160px;vertical-align:middle;margin:0 6px}
 .sg-deep.done{border-color:#2f9a5c;color:#2f9a5c;font-weight:600}.sg-deep.err{border-color:#c0392b;color:#c0392b}.sg-deep.off{color:var(--muted)}
 .sg-autochk{margin:0 0 8px}
+.sg-list{width:auto!important;max-width:260px;min-width:0;padding:6px 8px;border-radius:999px}
 .sg-stat{margin:0 0 10px;font-weight:600;color:var(--accent)}.sg-stat progress{width:180px;vertical-align:middle;margin-left:8px}
 .sg-rect{color:#c0392b;font-weight:700}#sgRec.rec{background:#c0392b;border-color:#c0392b;color:#fff}
 .sg-help{padding:12px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface);line-height:1.65}.sg-help ol{margin:6px 0 0;padding-left:1.3em}.sg-help li{margin:4px 0}
@@ -535,6 +536,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
     <div class="sg-top">
       <button id="sgFileBtn" class="play" title="mp3 · mp4 · m4a · wav 등 이미 있는 음원을 이 기기에서 바로 분석 (박자 · 코드)">🎵 음원 파일 열기</button>
       <button id="sgOpen" class="ghost" title="PC 분석기가 만든 결과 열기 (PC: '… 분석' 폴더, 휴대폰: '휴대폰용 ….zip')">📂 분석 결과 열기</button>
+      <select id="sgList" class="sg-list" aria-label="이미 분석한 곡 고르기"><option value="">분석된 곡 ▼</option></select>
       <button id="sgRecent" class="ghost sm" hidden>최근 곡</button>
       <button id="sgRec" class="ghost" title="Edge · Chrome: 재생 중인 탭(유튜브 등)의 소리를 원음 그대로 녹음">🔴 탭 소리 녹음</button>
       <span id="sgRecT" class="sg-rect" hidden></span>
@@ -2075,7 +2077,7 @@ sgEl('sgDirIn').addEventListener('change',async e=>{
   const song=JSON.parse(await sj.text()),urls={};for(const st of song.stems||[]){const f=fs.find(x=>x.name===st.file);if(f)urls[st.id]=URL.createObjectURL(f)}
   sgLoad(song,urls);
 });
-async function sgRecentBtn(){const b=sgEl('sgRecent'),n=await sgDB.get('lastName');b.hidden=!n||!window.showDirectoryPicker;if(n)b.textContent='최근 곡: '+n.replace(/ 분석$/,'')}
+async function sgRecentBtn(){const b=sgEl('sgRecent'),n=await sgDB.get('lastName');b.hidden=true;if(0)if(n)b.textContent='최근 곡: '+n.replace(/ 분석$/,'')}
 /* ---------- 곡 불러오기 → 트랙 · 화면 ---------- */
 function sgLoad(song,urls){
   if(!song||song.kind!=='saygita-song'){alert('곡 분석 파일(song.json)이 아닙니다.');return}
@@ -2089,6 +2091,7 @@ function sgLoad(song,urls){
   const m=SG.els[SG.ids[0]];m.addEventListener('loadedmetadata',()=>{sgEl('sgDur').textContent=sgFmt(m.duration)});
   m.addEventListener('ended',()=>{if(SG.loop){sgSeek(SG.from?sgTime(SG.from*16):0);sgPlay()}else sgPause()});
   sgVol();sgRender();
+  if(!song.quick&&!SG.keepOff)sgKeep(song,urls);   /* 다음엔 '분석된 곡' 목록에서 바로 */
 }
 function sgMaster(){return SG.els[SG.ids[0]]}
 function sgVol(){const anySolo=SG.ids.some(i=>SG.mix[i].solo);for(const i of SG.ids){const x=SG.mix[i];SG.els[i].volume=(anySolo?x.solo:!x.mute)?Math.max(0,Math.min(1,x.vol)):0}}
@@ -2316,7 +2319,7 @@ sgEl('sgTab').addEventListener('click',e=>{
   el.addEventListener('wheel',e=>{if(!e.ctrlKey)return;e.preventDefault();setTabFs(tabFsNow()*Math.exp(-e.deltaY*0.01));clearTimeout(setTabFs.t);setTabFs.t=setTimeout(tabFsDone,250)},{passive:false});
 });
 window.addEventListener('resize',()=>{clearTimeout(sgShow.t);sgShow.t=setTimeout(()=>{if(st.tab==='song'&&SG.song&&SG.view!=='sheet')sgTabView()},200)});
-function sgShow(){sgApplyZ();sgLoadLast();const pc=!matchMedia('(pointer:coarse)').matches;sgEl('sgAutoL').hidden=!pc;sgEl('sgAuto').checked=SG.auto;sgEl('sgRec').hidden=!(navigator.mediaDevices&&navigator.mediaDevices.getDisplayMedia)||matchMedia('(pointer:coarse)').matches;sgRecentBtn();sgRender();if(!SG.raf&&SG.song)SG.raf=requestAnimationFrame(sgTick)}
+function sgShow(){sgApplyZ();sgListFill();sgLoadLast();const pc=!matchMedia('(pointer:coarse)').matches;sgEl('sgAutoL').hidden=!pc;sgEl('sgAuto').checked=SG.auto;sgEl('sgRec').hidden=!(navigator.mediaDevices&&navigator.mediaDevices.getDisplayMedia)||matchMedia('(pointer:coarse)').matches;sgRecentBtn();sgRender();if(!SG.raf&&SG.song)SG.raf=requestAnimationFrame(sgTick)}
 /* ---------- 이미 있는 음원 파일(mp3 · mp4 · m4a · wav …)을 이 기기에서 바로 분석: 박자 · 마디 · 코드 (PC · 휴대폰 공통) ----------
    PC 분석기(analyze.py)의 박자 · 코드 방법을 그대로 옮긴 간이판. 트랙 분리 · 가사 · TAB 은 PC 분석에서만 */
 function sgStat(msg,pct){const e=sgEl('sgStat');if(msg==null){e.hidden=true;return}e.hidden=false;e.innerHTML=esc(msg)+(pct!=null?` <progress max="100" value="${Math.round(pct)}"></progress>`:'')}
@@ -2451,6 +2454,43 @@ async function sgPickAudio(){
   SG.lastAudio=hs[0];sgDB.set('lastAudio',hs[0]);
   sgFiles(await Promise.all(hs.map(h=>h.getFile())));
 }
+/* ---------- 이미 분석한 곡 목록: 이 기기에 저장된 곡 + PC 분석 도우미의 곡 (음악\쎄이기타 분석) ---------- */
+const SG_KEEP=12;   /* 기기에 저장해 두는 곡 수 (오래된 것부터 지움) */
+async function sgKeep(song,urls){   /* 연 곡을 기기에 저장 (곡 정보 + 트랙 파일) → 다음엔 목록에서 바로 */
+  try{
+    if(!song||song.quick)return;
+    const blobs={};for(const st of song.stems||[])if(urls[st.id])blobs[st.file]=await (await fetch(urls[st.id])).blob();
+    const key='song:'+song.title;await sgDB.set(key,{song,blobs});
+    let idx=(await sgDB.get('songIndex'))||[];idx=idx.filter(x=>x.key!==key);idx.unshift({key,title:song.title,at:Date.now()});
+    for(const old of idx.slice(SG_KEEP))await sgDBdel(old.key);
+    await sgDB.set('songIndex',idx.slice(0,SG_KEEP));sgListFill();
+  }catch(e){}
+}
+async function sgDBdel(k){try{const d=await sgDB.open();d.transaction('kv','readwrite').objectStore('kv').delete(k)}catch(e){}}
+async function sgListFill(){
+  const sel=sgEl('sgList');if(!sel)return;
+  const dev=(await sgDB.get('songIndex'))||[];let pc=[];
+  if(!matchMedia('(pointer:coarse)').matches&&await sgHelperOn()){try{pc=(await (await fetch(SG_HELPER+'/songs',{cache:'no-store'})).json()).songs||[]}catch(e){}}
+  const d2=t=>{const x=new Date(t),p=n=>String(n).padStart(2,'0');return `${p(x.getMonth()+1)}-${p(x.getDate())}`};
+  const devT=new Set(dev.map(x=>x.title));
+  let h=`<option value="">분석된 곡 ▼ (${dev.length+pc.filter(x=>!devT.has(x.title)).length})</option>`;
+  if(dev.length)h+=`<optgroup label="이 기기에 저장된 곡">${dev.map(x=>`<option value="d:${esc(x.key)}">${esc(x.title)} · ${d2(x.at)}</option>`).join('')}</optgroup>`;
+  const pcOnly=pc.filter(x=>!devT.has(x.title));
+  if(pcOnly.length)h+=`<optgroup label="PC 분석 도우미 (음악\\쎄이기타 분석)">${pcOnly.map(x=>`<option value="p:${esc(x.key)}">${esc(x.title)} · ${d2(x.mtime*1000)}${(x.parts||[]).includes('harmonica')?' · 하모니카':''}</option>`).join('')}</optgroup>`;
+  sel.innerHTML=h;sel.hidden=!dev.length&&!pcOnly.length;
+}
+sgEl('sgList').addEventListener('change',async e=>{
+  const v=e.target.value;e.target.value='';if(!v)return;
+  try{
+    if(v.startsWith('d:')){const x=await sgDB.get(v.slice(2));if(!x){alert('저장된 곡을 찾지 못했습니다.');return sgListFill()}
+      const urls={};for(const st of x.song.stems||[])if(x.blobs[st.file])urls[st.id]=URL.createObjectURL(x.blobs[st.file]);
+      SG.keepOff=true;sgLoad(x.song,urls);SG.keepOff=false;return}
+    if(v.startsWith('p:')){sgStat('PC 분석 도우미에서 불러오는 중…');const base=SG_HELPER+'/song/'+v.slice(2).split('/').map(encodeURIComponent).join('/')+'/';
+      const song=await (await fetch(base+'song.json',{cache:'no-store'})).json(),urls={};
+      for(const st of song.stems||[])urls[st.id]=URL.createObjectURL(await (await fetch(base+encodeURIComponent(st.file))).blob());
+      sgStat(null);sgLoad(song,urls)}
+  }catch(err){sgStat(null);alert('불러오지 못했습니다: '+(err&&err.message||err))}
+});
 sgEl('sgAuto').addEventListener('change',e=>{SG.auto=e.target.checked;store.set('chordcalc-sgauto',SG.auto?'1':'0');if(!SG.auto)sgEl('sgDeep').hidden=true});
 /* ---------- PC 분석 도우미(127.0.0.1:52525)가 켜져 있으면: 음원을 열 때 이어서 정밀 분석(트랙 분리 · 가사 · TAB) 자동 진행 ---------- */
 const SG_HELPER='http://127.0.0.1:52525';
