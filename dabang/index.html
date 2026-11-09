@@ -205,7 +205,7 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .sg-rect{color:#c0392b;font-weight:700}#sgRec.rec{background:#c0392b;border-color:#c0392b;color:#fff}
 .sg-h1{font-size:1.05rem}.sg-steps{display:grid;gap:10px;margin:10px 0}.sg-step{display:flex;gap:10px;align-items:flex-start}
 .sg-no{flex:none;width:24px;height:24px;border-radius:50%;background:var(--accent-fill);color:var(--on-accent);display:grid;place-items:center;font-weight:800;font-size:.85rem;margin-top:2px}
-.sg-step ul{margin:4px 0 0;padding-left:1.1em}.sg-step li{margin:3px 0}
+.sg-step ul{margin:4px 0 0;padding-left:1.1em}.sg-sub{margin-top:6px;padding:2px 8px;border-left:3px solid var(--accent-fill);background:var(--bg);border-radius:0 6px 6px 0}.sg-step li{margin:3px 0}
 .sg-cmp{border-collapse:collapse;margin:6px 0 0;font-size:.9rem;width:100%}.sg-cmp th,.sg-cmp td{border:1px solid var(--line);padding:4px 8px;text-align:left;vertical-align:top}.sg-cmp th{background:var(--bg)}.sg-cmp td:first-child{white-space:nowrap;color:var(--muted)}
 .sg-more{margin-top:8px}.sg-more summary,.sg-guide summary{cursor:pointer;font-weight:700}
 .sg-guide{margin:8px 0 10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);line-height:1.6}
@@ -563,19 +563,25 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
     <div id="sgHelp" class="sg-help">
       <b class="sg-h1">곡에 맞춰 코드 · 가사 · TAB을 보며 따라 치기</b>
       <div class="sg-steps">
-        <div class="sg-step"><span class="sg-no">1</span><div><b>곡 열기</b> — 음원 파일을 열거나, 없으면 녹음해서 열기
+        <div class="sg-step"><span class="sg-no">1</span><div><b>곡 열기</b>
+          <div class="sg-sub"><b>이미 분석한 곡</b> → 분석 없이 바로 연습 (2단계 건너뜀)</div>
+          <ul>
+            <li><b>[분석된 곡 ▼]</b> 목록에서 고르기. 목록에는 <b>이 기기에 저장된 곡</b>(전에 열었던 곡)과, PC 분석 도우미가 켜져 있으면 <b>PC에서 분석한 모든 곡</b>(음악\쎄이기타 분석)이 나옵니다.</li>
+            <li>같은 음원 파일을 [🎵 음원 파일 열기]로 다시 열어도 분석 결과가 바로 나옵니다.</li>
+            <li>다른 PC에서 분석한 곡: <b>[📂 분석 결과 열기]</b> → PC는 <b>"… 분석"</b> 폴더, 휴대폰은 <b>"휴대폰용 ….zip"</b> 파일을 고르기. 한 번 열면 [분석된 곡 ▼]에 남습니다.</li>
+          </ul>
+          <div class="sg-sub"><b>처음 여는 곡</b> → 열면 2단계 분석이 자동으로</div>
           <ul>
             <li><b>[🎵 음원 파일 열기]</b>: mp3 · mp4 · m4a · wav 파일을 고릅니다. (PC · 휴대폰)</li>
             <li><b>[🔴 탭 소리 녹음]</b> (PC): 파일이 없으면 유튜브 등에서 재생되는 소리를 녹음합니다.
               연습할 곡을 다른 탭에 열어 두고 → [🔴 탭 소리 녹음] → 공유 창에서 그 <b>탭</b>을 고르고 <b>"탭 오디오도 공유"</b> 켜기 → [공유] → 곡을 처음부터 재생 → 끝나면 <b>[■ 녹음 끝내고 저장]</b> → 저장된 파일을 [🎵 음원 파일 열기]로 엽니다.</li>
-            <li><b>[분석된 곡 ▼]</b>: 전에 분석한 곡은 목록에서 바로 엽니다. 같은 음원 파일을 다시 열어도 분석 결과가 바로 나옵니다.</li>
           </ul></div></div>
         <div class="sg-step"><span class="sg-no">2</span><div><b>분석</b> — 열면 자동으로 진행. PC와 휴대폰은 할 수 있는 것이 다릅니다
           <table class="sg-cmp"><tr><th></th><th>PC (분석 도우미 켜짐)</th><th>휴대폰 · 도우미 없는 PC</th></tr>
             <tr><td>보이는 것</td><td>박자 · 코드 + <b>가사 · 기타 TAB · 베이스 TAB · 하모니카</b><br>+ 트랙 나누기 (노래 · 기타 · 베이스 · 드럼)</td><td>박자 · 코드</td></tr>
             <tr><td>걸리는 시간</td><td>박자 · 코드는 수십 초 만에 먼저 보이고,<br>나머지는 곡당 몇 분 뒤 자동으로 바뀜 (위 진행 표시)</td><td>수십 초</td></tr></table>
           <ul>
-            <li><b>휴대폰에서 정밀 분석 결과 보기</b>: PC에서 분석하면 생기는 <b>"휴대폰용 ….zip"</b> 파일(음악\쎄이기타 분석 폴더)을 휴대폰으로 옮겨 <b>[📂 분석 결과 열기]</b>로 고릅니다. 한 번 열면 휴대폰의 [분석된 곡 ▼]에 남습니다.</li>
+            <li><b>휴대폰에서 정밀 분석 결과 보기</b>: PC에서 분석하면 생기는 <b>"휴대폰용 ….zip"</b> 파일(음악\쎄이기타 분석 폴더 안)을 휴대폰으로 옮겨 1단계의 <b>[📂 분석 결과 열기]</b>로 고릅니다.</li>
             <li><b>도우미가 없는 PC</b>: 도우미가 꺼져 있다는 안내가 뜨면 그 안의 [설치 파일 받기]로 한 번만 설치하세요.</li>
           </ul></div></div>
         <div class="sg-step"><span class="sg-no">3</span><div><b>키 · 카포 맞추기</b> — 악보 위 <b>곡 키</b> 줄에서
