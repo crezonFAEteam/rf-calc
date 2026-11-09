@@ -214,6 +214,7 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .sg-bn{position:absolute;left:4px;top:2px;font-size:.62rem;color:var(--muted)}
 .sg-c{display:block;padding:12px 4px 6px;border-left:1px dashed var(--line);cursor:pointer;min-width:0}.sg-c:first-of-type{border-left:0}
 .sg-c:hover{background:var(--bg)}
+.sg-ch:not(:empty){cursor:pointer}.sg-ch:not(:empty):hover{text-decoration:underline}
 .sg-c.now{background:var(--accent-fill)}.sg-c.now .sg-ch,.sg-c.now .sg-ly{color:var(--on-accent)}
 .sg-ch{display:block;color:var(--accent);font-weight:800;font-size:1.05em;min-height:1.3em;white-space:nowrap}
 .sg-ly{display:block;font-size:.9em;line-height:1.35;word-break:keep-all}.sg-ly i{font-style:normal}
@@ -578,7 +579,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
           <div id="sgViews" class="chips"></div>
           <div id="sgSheet" class="sg-sheet"></div>
           <div id="sgTab" class="tab" hidden></div>
-          <p class="sdesc">칸 하나가 한 박입니다. 코드 · 가사 칸을 누르면 그 박으로 이동합니다. TAB에서는 코드 이름이나 그 코드의 음을 누르면 그 코드만, 빈 곳을 누르면 전체를 재생하고, 재생 중에 누르면 멈춥니다. 스페이스 = 재생/정지. 자동 분석이라 틀린 코드 · 음 · 가사가 있을 수 있습니다.</p>
+          <p class="sdesc">칸 하나가 한 박입니다. 코드 이름을 누르면 그 코드만 재생하고, 다른 곳(가사 · 구멍 번호 · 빈칸)을 누르면 그 박부터 재생합니다. TAB에서는 코드 이름이나 그 코드의 음을 누르면 그 코드만, 빈 곳을 누르면 지금 위치부터 재생합니다. 재생 중에 누르면 멈춥니다. 스페이스 = 재생/정지. 자동 분석이라 틀린 코드 · 음 · 가사가 있을 수 있습니다.</p>
         </div>
       </div>
     </div>
@@ -2256,7 +2257,16 @@ function sgRecUi(){const b=sgEl('sgRec'),t=sgEl('sgRecT');
 /* ---------- 조작 ---------- */
 document.getElementById('p-song').addEventListener('click',e=>{
   const b=e.target.closest('button');
-  if(!b){const c=e.target.closest('.sg-c');if(c&&SG.song){sgSeek(sgTime(+c.dataset.b*4));if(!SG.playing)sgMark(sgMaster().currentTime)}return}   /* 박 칸 누르면 거기로 */
+  if(!b){   /* 코드 · 가사 / 하모니카 칸: 코드 이름 → 그 코드 구간만, 다른 곳 → 그 박부터 재생, 재생 중이면 멈춤 */
+    const c=e.target.closest('.sg-c');if(!c||!SG.song)return;
+    if(SG.playing){sgPause();SG.seg=null;return}
+    const sl=+c.dataset.b*4,chEl=e.target.closest('.sg-ch'),cs=SG.song.chords;
+    if(chEl&&chEl.textContent.trim()){
+      let k=cs.findIndex(x=>x.s>=sl&&x.s<sl+4);if(k<0){for(let i=0;i<cs.length;i++)if(cs[i].s<=sl)k=i}
+      if(k>=0){const a=cs[k].s,z=k+1<cs.length?cs[k+1].s:SG.song.bars*16;SG.seg={a,z};sgSeek(Math.max(0,sgTime(a)));sgPlay();return}
+    }
+    SG.seg=null;sgSeek(Math.max(0,sgTime(sl)));sgPlay();return;
+  }
   const ds=b.dataset;
   if(b.id==='sgOpen')return sgOpen();
   if(b.id==='sgFileBtn')return sgPickAudio();
