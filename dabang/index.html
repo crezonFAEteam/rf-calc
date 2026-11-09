@@ -195,7 +195,9 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .blrange select{width:auto!important;min-width:0;padding:6px 8px}
 .blttl{font-weight:700;font-size:1.05rem;margin:4px 0 2px}
 .blmeta{color:var(--muted);font-size:.82rem;margin:0 0 6px}
-#blTab{touch-action:pan-x pan-y}
+#blTab{touch-action:pan-x pan-y;cursor:pointer}
+#blTab .ch,#blTab [data-n]{cursor:pointer}
+#blTab .ch:hover,#blTab [data-n]:hover{text-decoration:underline}
 #blTab .bar-off{opacity:.35}
 .blpw{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 10px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
 .blpw input{flex:1 1 140px;min-width:0;padding:6px 8px}
@@ -415,7 +417,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
       <div>
         <div class="btns left"><button id="blPlay" class="play">재생</button><button id="blLoop" class="ghost" aria-pressed="false" title="켜면 끝까지 재생한 뒤 처음부터 계속 반복">⟳ 반복</button><button class="ghost follow" data-follow aria-pressed="true" title="재생 중 지금 치는 음이 보이도록 악보를 자동으로 스크롤">⇣ 따라가기</button><button id="blZo" class="ghost pc-only" title="악보 글자 작게 (Ctrl+휠)">가−</button><button id="blZi" class="ghost pc-only" title="악보 글자 크게 (Ctrl+휠)">가+</button></div>
         <div class="tab" id="blTab"></div>
-        <p class="sdesc">칸 하나는 8분음표이고, 셔플을 켜면 둘째 8분음표를 늦게(셋잇단의 셋째) 칩니다. D는 다운, U는 업 스트로크, x는 뮤트입니다. 재생하면 지금 치는 음이 TAB과 지판에 표시되고, 지판의 흐린 점은 그 마디에서 잡는 모양입니다.</p>
+        <p class="sdesc">칸 하나는 8분음표이고, 셔플을 켜면 둘째 8분음표를 늦게(셋잇단의 셋째) 칩니다. D는 다운, U는 업 스트로크, x는 뮤트입니다. 악보에서 코드 이름이나 그 코드의 음을 누르면 그 코드만, 빈 곳을 누르면 전체를 재생하고, 재생 중에 누르면 멈춥니다. 재생하면 지금 치는 음이 TAB과 지판에 표시되고, 지판의 흐린 점은 그 마디에서 잡는 모양입니다.</p>
       </div>
     </div>
   </section>
@@ -1272,7 +1274,7 @@ function tabRender(lk,k,html,perIn){
       lk.segs.filter(s=>s.start>=b*BAR&&s.start<b*BAR+BAR).forEach(s=>{
         const pos=(s.start-b*BAR)*3+1,name=chName(s.c);
         if(pos>col){hs+=' '.repeat(pos-col);col=pos}else if(col>0){hs+=' ';col++}
-        hs+=html?`<span class="ch">${name}</span>`:name;col+=name.length;
+        hs+=html?`<span class="ch" data-sg="${lk.segs.indexOf(s)}">${name}</span>`:name;col+=name.length;
       });
       hs+=' '.repeat(Math.max(1,W+1-col));head+=hs;
       const cells=[0,1,2,3,4,5].map(()=>Array(W).fill('-')),marks=[0,1,2,3,4,5].map(()=>({})),dc=Array(W+1).fill(' '),ac=Array(W+1).fill(' ');
@@ -1480,13 +1482,14 @@ function blStop(){
   const was=BL.playing;BL.playing=false;BL.cur=null;
   if(was){document.getElementById('blPlay').textContent='재생';blMark();drawBoard()}
 }
-function blPlay(){
+function blPlay(range){   /* range={a,z}: 그 칸 범위만 (악보에서 코드 누름). 없으면 고른 마디 범위 */
   const ex=blEx();if(!ex)return;blStop();
   try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume()}catch(e){return}
   const lk=BL.lk||blBuild(ex),G=lk.bar,e=60/blBpm(ex)/(G/4),sw=G===8&&blShuf(ex);   /* 한 칸 = 한 박 ÷ (칸 수/4). 셔플은 8칸 마디만 */
-  let a=BL.from*G;const z=(BL.to+1)*G;
+  let a=range?range.a:BL.from*G;const z=range?range.z:(BL.to+1)*G;
   const inR=lk.notes.filter(n=>n.t>=a&&n.t<z);if(!inR.length)return;
-  if(BL.from===0)a=Math.min(...inR.map(n=>n.t));                  /* 못갖춘마디: 첫 음부터 */
+  if(!range&&BL.from===0)a=Math.min(...inR.map(n=>n.t));
+  BL.playA=a;   /* 첫 음이 들리기 전에도 재생할 곳을 지판 · 안내에 */                  /* 못갖춘마디: 첫 음부터 */
   const out=actx.createGain();out.gain.value=0.34;out.connect(gOut());
   const at=t=>(t-a)*e+(sw&&t%2?e/3:0);                            /* 셔플: 뒤 8분음표를 셋잇단 셋째 자리로 */
   const built=inR.map(n=>{const d=n.mute?0.06:Math.min(2.4,Math.min(n.dur,z-n.t)*e+0.15);
@@ -1507,7 +1510,7 @@ function blPlay(){
       else hlAdd('bl',end+0.2,()=>{BL.playing=false;BL.cur=null;document.getElementById('blPlay').textContent='재생';blMark();drawBoard()});
     },Math.max(0,(end-actx.currentTime-0.4)*1000)));
   }
-  BL.playing=true;document.getElementById('blPlay').textContent='정지';sched(actx.currentTime+0.12);
+  BL.playing=true;document.getElementById('blPlay').textContent='정지';sched(actx.currentTime+0.12);drawBoard();blBoxMark();
 }
 /* 지판: 지금 마디에서 쓰는 음(흐리게) + 지금 치는 음(진하게), 색은 그 순간 코드 기준 */
 function blDots(){
@@ -1523,7 +1526,7 @@ function blDots(){
   });
   return s;
 }
-function blRestT(lk){const b=BL.from===0&&lk.pick&&lk.bars>1?1:BL.from;return b*lk.bar}   /* 멈춰 있을 때 보여 줄 마디 */
+function blRestT(lk){if(BL.playing&&BL.playA!=null)return BL.playA;const b=BL.from===0&&lk.pick&&lk.bars>1?1:BL.from;return b*lk.bar}   /* 멈춰 있을 때 보여 줄 마디 */
 function blCap(){
   const ex=blEx(),lk=BL.lk;if(!ex||!lk)return'블루스 예제 파일을 가져오면 지판에 운지가 표시됩니다.';
   const t=BL.cur?BL.cur.t:blRestT(lk),sg=lk.segs.find(x=>t>=x.start&&t<x.start+x.len)||lk.segs[0];
@@ -1615,6 +1618,15 @@ document.getElementById('p-blues').addEventListener('change',e=>{
   if(id==='blBpm'){const ex=blEx();if(ex){BL.tempo[ex.id]=+e.target.value;blSaveUI()}blStop();blRender();if(was)blPlay()}
 });
 document.getElementById('blBpm').addEventListener('input',e=>{document.getElementById('blBpmOut').textContent=e.target.value});
+/* 악보 누르기: 코드(코드 이름 · 그 코드의 음) → 그 코드 구간만, 빈 곳 → 전체, 재생 중이면 멈춤 */
+document.getElementById('blTab').addEventListener('click',e=>{
+  if(!BL.lk)return;
+  if(BL.playing){blStop();return}
+  const el=e.target.closest('[data-sg],[data-n]');let sg=null;
+  if(el&&el.dataset.sg!=null)sg=BL.lk.segs[+el.dataset.sg];
+  else if(el&&el.dataset.n){const n=BL.lk.notes[+el.dataset.n.split('-')[1]];if(n)sg=BL.lk.segs.find(x=>n.t>=x.start&&n.t<x.start+x.len)}
+  if(sg)blPlay({a:sg.start,z:sg.start+sg.len});else blPlay();
+});
 /* 악보 두 손가락 확대 · Ctrl+휠: 블루스 TAB 에도 */
 (function(){
   const el=document.getElementById('blTab');let pz=null;
