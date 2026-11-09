@@ -189,6 +189,39 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .tabttl .only{font-size:.72rem;font-weight:500;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:1px 8px}
 .tabttl[aria-pressed="true"] .only{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent);font-weight:600}
 .tabsec.off{opacity:.45}
+/* 조율기 */
+.tuner{max-width:620px;margin:0 auto}
+.tu-top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px}
+.tu-meter{text-align:center;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px 14px}
+#tuGauge{display:block;width:100%;max-width:300px;margin:0 auto}
+.tu-arc{fill:none;stroke:var(--line);stroke-width:2}
+.tu-tick{stroke:var(--muted);stroke-width:2}.tu-tick.zero{stroke:var(--accent-fill);stroke-width:4}
+.tu-lab{fill:var(--muted);font-size:12px;text-anchor:middle;font-family:inherit}
+.tu-nd{stroke:var(--ink);stroke-width:3.5;stroke-linecap:round}.tu-nc{fill:var(--ink)}
+#tuNeedle{transition:transform .12s linear}#tuNeedle.ok .tu-nd{stroke:#2f9a5c}#tuNeedle.ok .tu-nc{fill:#2f9a5c}
+.tu-hub{fill:none}
+.tu-note{font-size:3.2rem;font-weight:800;line-height:1;margin-top:4px}
+.tu-note small{font-size:1.2rem;color:var(--muted);margin-left:2px}
+.tu-cents{font-size:1.15rem;font-weight:700;min-height:1.5em}
+.tu-msg{font-weight:600;min-height:1.5em}.tu-msg.ok{color:#2f9a5c}.tu-msg.near{color:var(--accent)}
+.tu-fine{position:relative;height:34px;margin:8px auto 4px;max-width:420px;border:1px solid var(--line);border-radius:8px;background:var(--bg);overflow:hidden}
+.tu-fine-ticks{position:absolute;inset:0 0 12px 0;background:repeating-linear-gradient(90deg,var(--muted) 0 1px,transparent 1px 5%) 0 0/100% 100%;opacity:.35}
+.tu-fine::before{content:'';position:absolute;left:calc(50% - 7.5%);width:15%;top:0;bottom:0;background:#2f9a5c;opacity:.14}
+.tu-fine::after{content:'';position:absolute;left:50%;top:0;bottom:12px;width:2px;margin-left:-1px;background:var(--accent-fill)}
+.tu-fine span{position:absolute;bottom:0;font-size:10px;color:var(--muted);line-height:12px}.tu-fl{left:2px}.tu-fc{left:50%;transform:translateX(-50%)}.tu-fr{right:2px}
+#tuFineMark{position:absolute;top:3px;bottom:14px;width:6px;margin-left:-3px;border-radius:3px;background:var(--ink);opacity:0;transition:left .1s linear}
+.tu-fine.lock #tuFineMark{background:#2f9a5c}.tu-fine.lock{border-color:#2f9a5c}
+.tu-strobe{height:16px;max-width:420px;margin:0 auto 6px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--bg)}
+#tuStrobe{height:100%;background:repeating-linear-gradient(90deg,var(--ink) 0 20px,transparent 20px 40px);opacity:.55}
+#tuStrobe.idle{opacity:.12}
+.tu-hz{color:var(--muted);font-size:.82rem;min-height:1.3em}
+.tu-strings{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:12px 0}
+.tu-s{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:6px 0;font:inherit;font-weight:800;font-size:1.25rem;cursor:pointer;color:var(--ink);display:flex;flex-direction:column;align-items:center;line-height:1.15}
+.tu-s small{font-size:.68rem;font-weight:500;color:var(--muted)}
+.tu-s[aria-pressed="true"]{border-color:var(--accent-fill);box-shadow:inset 0 0 0 1px var(--accent-fill)}
+.tu-s.hit{background:var(--accent-fill);color:var(--on-accent)}.tu-s.hit small{color:inherit}
+.tu-s.hit.ok{background:#2f9a5c;border-color:#2f9a5c;color:#fff}
+.tu-opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:4px 16px}
 /* 블루스 탭 */
 #blSel{flex:1 1 200px;min-width:0;width:auto!important;padding:6px 8px}
 .blrange{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
@@ -306,6 +339,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
     <button role="tab" data-tab="adlib" aria-selected="false">애드리브 · 반주</button>
     <button role="tab" data-tab="blues" aria-selected="false">블루스</button>
     <button role="tab" data-tab="shift" aria-selected="false">조옮김 · 카포</button>
+    <button role="tab" data-tab="tune" aria-selected="false">조율기</button>
   </nav>
 
   <section id="p-find" role="tabpanel">
@@ -424,6 +458,31 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
         <div id="blInfo"></div>   <!-- 예제 제목 · 설명: 악보 아래 -->
         <p class="sdesc">칸 하나는 8분음표이고, 셔플을 켜면 둘째 8분음표를 늦게(셋잇단의 셋째) 칩니다. D는 다운, U는 업 스트로크, x는 뮤트입니다. 악보에서 코드 이름이나 그 코드의 음을 누르면 그 코드만, 빈 곳을 누르면 전체를 재생하고, 재생 중에 누르면 멈춥니다. 재생하면 지금 치는 음이 TAB과 지판에 표시되고, 지판의 흐린 점은 그 마디에서 잡는 모양입니다.</p>
       </div>
+    </div>
+  </section>
+
+  <section id="p-tune" role="tabpanel" hidden>
+    <div class="tuner">
+      <div class="tu-top">
+        <button id="tuMic" class="play">🎤 마이크 켜기</button>
+        <div class="chips"><button class="chip" data-tumode="auto" aria-pressed="true">자동</button><button class="chip" data-tumode="manual" aria-pressed="false">수동</button></div>
+      </div>
+      <div class="tu-meter">
+        <svg viewBox="45 14 210 146" id="tuGauge" aria-hidden="true"></svg>
+        <div class="tu-note"><span id="tuNote">–</span><small id="tuOct"></small></div>
+        <div id="tuCents" class="tu-cents"></div>
+        <div class="tu-fine" id="tuFine" aria-hidden="true"><div class="tu-fine-ticks"></div><span class="tu-fl">−10</span><span class="tu-fc">0</span><span class="tu-fr">+10</span><div id="tuFineMark"></div></div>
+        <div class="tu-strobe" aria-hidden="true"><div id="tuStrobe"></div></div>
+        <div id="tuMsg" class="tu-msg" role="status">마이크를 켜고 줄을 하나씩 튕기세요.</div>
+        <div id="tuHz" class="tu-hz"></div>
+      </div>
+      <div class="tu-strings" id="tuStrings"></div>
+      <div class="tu-opts">
+        <div class="field"><label class="flabel" for="tuTun">조율 방식</label><select id="tuTun"></select></div>
+        <div class="field"><span class="flabel">기준음 A4 = <output id="tuA4">440</output> Hz</span>
+          <div class="btns left"><button class="ghost sm" data-a4="-1">−1</button><button class="ghost sm" data-a4="1">+1</button><button class="ghost sm" data-a4="0">440으로</button></div></div>
+      </div>
+      <p class="sdesc"><b>자동</b>은 튕긴 소리와 가장 가까운 줄을 스스로 찾고, <b>수동</b>은 고른 줄에 맞춥니다. 줄 버튼을 누르면 수동으로 바뀌고 그 줄의 기준음이 납니다. 큰 바늘로 대략 맞춘 뒤, 아래 <b>±10센트 확대 막대</b>(눈금 1칸 = 1센트)와 <b>스트로브 띠</b>로 미세하게 맞추세요. 띠가 오른쪽으로 흐르면 높고 왼쪽이면 낮으며, 멈추면 정확합니다. ±3센트 안에 0.6초 머물면 '맞음(고정)'으로 초록색이 됩니다. 조용한 곳에서 한 줄씩 또렷하게 튕기고, 휴대폰은 마이크 가까이에서 쳐 주세요.</p>
     </div>
   </section>
 
@@ -637,6 +696,9 @@ function drawBoard(){
   }else if(st.tab==='adlib'){
     s+=adDots();
     cap.textContent=adCap();
+  }else if(st.tab==='tune'){
+    s+=tuDots();
+    cap.textContent=tuCap();
   }else if(st.tab==='blues'){
     s+=blDots();
     cap.textContent=blCap();
@@ -1632,6 +1694,164 @@ document.getElementById('blTab').addEventListener('click',e=>{
   else if(el&&el.dataset.n){const n=BL.lk.notes[+el.dataset.n.split('-')[1]];if(n)sg=BL.lk.segs.find(x=>n.t>=x.start&&n.t<x.start+x.len)}
   if(sg)blPlay({a:sg.start,z:sg.start+sg.len});else blPlay();
 });
+/* ====================================================================
+   조율기: 마이크 소리의 음높이(자기상관)를 재서 줄마다 높낮이를 바늘로.
+   자동 = 가장 가까운 줄을 스스로 찾음, 수동 = 고른 줄에 맞춤(누르면 기준음).
+   ==================================================================== */
+const TUNINGS={std:{n:'표준 (E A D G B E)',o:[0,0,0,0,0,0]},half:{n:'반음 내림 (E♭ A♭ D♭ G♭ B♭ E♭)',o:[-1,-1,-1,-1,-1,-1]},dropD:{n:'드롭 D (D A D G B E)',o:[-2,0,0,0,0,0]},
+  openG:{n:'오픈 G (D G D G B D)',o:[-2,-2,0,0,0,-2]},openD:{n:'오픈 D (D A D F♯ A D)',o:[-2,0,0,-1,-2,-2]},dadgad:{n:'DADGAD (D A D G A D)',o:[-2,0,0,0,-2,-2]}};
+const TU={mode:'auto',sel:0,tun:'std',a4:440,on:false,stream:null,src:null,an:null,buf:null,raf:0,hist:[],last:0,cur:null,sc:null,okSince:0,locked:false};
+(function(){try{const u=JSON.parse(store.get('chordcalc-tuner')||'{}');if(u.mode)TU.mode=u.mode;if(TUNINGS[u.tun])TU.tun=u.tun;if(u.a4>=430&&u.a4<=450)TU.a4=u.a4;if(u.sel>=0&&u.sel<6)TU.sel=u.sel}catch(e){}})();
+function tuSave(){store.set('chordcalc-tuner',JSON.stringify({mode:TU.mode,tun:TU.tun,a4:TU.a4,sel:TU.sel}))}
+const tuMidi=i=>TUNE[i]+TUNINGS[TU.tun].o[i];
+const tuHz=m=>TU.a4*Math.pow(2,(m-69)/12);
+const tuName=m=>nn(m)+(Math.floor(m/12)-1);
+/* 음높이 재기: McLeod 방식(정규화 자기상관, NSDF). 옥타브 착오가 적고 소수점까지 정확.
+   반환 {f, clar}: clar(선명도 0~1)가 낮으면 잡음 · 여러 줄 소리로 보고 버림 */
+function tuPitch(b,sr){
+  const N=b.length;let e0=0;for(let i=0;i<N;i++)e0+=b[i]*b[i];if(Math.sqrt(e0/N)<0.004)return null;
+  const maxLag=Math.min(N>>1,Math.floor(sr/62)),minLag=Math.floor(sr/1400),n=new Float32Array(maxLag+2);
+  for(let t=0;t<=maxLag+1;t++){let ac=0,m=0;for(let j=0;j<N-t;j++){const a=b[j],c=b[j+t];ac+=a*c;m+=a*a+c*c}n[t]=m>0?2*ac/m:0}
+  /* 양수 구간마다 가장 큰 봉우리(키 최댓값) → 전체 최댓값의 0.9 이상인 첫 봉우리 */
+  const peaks=[];let pos=false,bi=-1;
+  for(let t=1;t<=maxLag;t++){
+    if(n[t]>0&&n[t-1]<=0){pos=true;bi=t}
+    else if(n[t]<=0&&n[t-1]>0){if(pos&&bi>=minLag)peaks.push(bi);pos=false}
+    if(pos&&n[t]>n[bi])bi=t;
+  }
+  if(pos&&bi>=minLag&&bi<maxLag)peaks.push(bi);
+  if(!peaks.length)return null;
+  const top=Math.max(...peaks.map(t=>n[t])),pk=peaks.find(t=>n[t]>=0.9*top);
+  const y0=n[pk-1],y1=n[pk],y2=n[pk+1],d=y0-2*y1+y2,off=d?0.5*(y0-y2)/d:0;
+  return {f:sr/(pk+off),clar:y1-0.25*(y0-y2)*off};
+}
+/* 목표 줄: 자동 = 가장 가까운 줄, 수동 = 고른 줄 */
+function tuTarget(f){let si=TU.sel;if(TU.mode==='auto'){let best=1e9;for(let i=0;i<6;i++){const c=Math.abs(1200*Math.log2(f/tuHz(tuMidi(i))));if(c<best){best=c;si=i}}}return si}
+function tuTick(){
+  TU.raf=0;if(!TU.on)return;
+  TU.an.getFloatTimeDomainData(TU.buf);
+  const sr=actx.sampleRate,now=performance.now();
+  /* 튕긴 직후(소리 크기가 갑자기 커짐) 0.1초는 건너뜀: 어택 잡음 때문에 값이 튀는 것 방지 */
+  let e=0;for(let i=TU.buf.length-1024;i<TU.buf.length;i++)e+=TU.buf[i]*TU.buf[i];e=Math.sqrt(e/1024);
+  if(e>0.01&&e>(TU.lvl||0)*2.2)TU.atk=now;TU.lvl=TU.lvl?TU.lvl*0.8+e*0.2:e;
+  const r=now-(TU.atk||0)<100?null:tuPitch(TU.buf,sr);
+  if(r&&r.clar>0.85&&r.f>60&&r.f<1400){
+    if(TU.hist.length&&Math.abs(1200*Math.log2(r.f/TU.hist[TU.hist.length-1]))>60){TU.hist=[];TU.hist2=[]}   /* 다른 줄로 바뀌면 새로 */
+    TU.hist.push(r.f);if(TU.hist.length>5)TU.hist.shift();TU.last=now;
+    const med=[...TU.hist].sort((a,b)=>a-b)[TU.hist.length>>1];
+    /* 정밀: 목표 줄 기본음의 1.3배에서 자르고(배음 제거) 다시 측정 → 넓은 측정과 40센트 안이면 이 값 */
+    const fc=Math.min(900,tuHz(tuMidi(tuTarget(med)))*1.3);
+    if(TU.fc!==fc){TU.fc=fc;TU.n1.frequency.setTargetAtTime(fc,actx.currentTime,0.02);TU.n2.frequency.setTargetAtTime(fc,actx.currentTime,0.02);TU.hist2=[];TU.fcAt=now}   /* 줄이 바뀔 때만 */
+    let fin=med;TU.an2.getFloatTimeDomainData(TU.buf2);const r2=tuPitch(TU.buf2,sr);
+    if(r2&&r2.clar>0.8&&now-TU.fcAt>120&&Math.abs(1200*Math.log2(r2.f/med))<40){   /* 필터가 자리 잡은 뒤 */TU.hist2.push(r2.f);if(TU.hist2.length>5)TU.hist2.shift()}
+    if(TU.hist2.length>=2)fin=[...TU.hist2].sort((a,b)=>a-b)[TU.hist2.length>>1];
+    tuShow(fin,now);
+  }else if(now-(TU.atk||0)<100){/* 어택 중: 그대로 */}
+  else if(now-TU.last>900){TU.hist=[];TU.hist2=[];if(TU.n1&&TU.fc!==900){TU.fc=900;TU.n1.frequency.value=900;TU.n2.frequency.value=900}tuShow(null,now)}
+  tuStrobe(now);
+  TU.raf=requestAnimationFrame(tuTick);
+}
+/* 화면: 음 이름 · 센트 바늘 · ±10센트 확대 막대 · 스트로브 · 맞음 고정 */
+function tuShow(f,now){
+  const g=id=>document.getElementById(id);now=now||performance.now();
+  if(!f){g('tuNote').textContent='–';g('tuOct').textContent='';g('tuCents').textContent='';g('tuHz').textContent='';
+    g('tuMsg').textContent=TU.on?'줄을 하나 튕기세요.':'마이크를 켜고 줄을 하나씩 튕기세요.';g('tuMsg').className='tu-msg';
+    tuNeedle(0,false);tuFine(null);TU.cur=null;TU.sc=null;TU.okSince=0;TU.locked=false;tuStrings();return}
+  let si=TU.sel;
+  if(TU.mode==='auto'){let best=1e9;for(let i=0;i<6;i++){const c=Math.abs(1200*Math.log2(f/tuHz(tuMidi(i))));if(c<best){best=c;si=i}}}
+  const target=tuMidi(si),raw=1200*Math.log2(f/tuHz(target));
+  if(TU.sc==null||!TU.cur||TU.cur.si!==si||Math.abs(raw-TU.sc)>30)TU.sc=raw;else TU.sc+=0.5*(raw-TU.sc);   /* 바늘 떨림 줄이기 (반응은 빠르게) */
+  const c=TU.sc,near=Math.round(69+12*Math.log2(f/TU.a4)),far=Math.abs(c)>100,ok=Math.abs(c)<=3;
+  if(ok&&!far){if(!TU.okSince)TU.okSince=now}else{TU.okSince=0;TU.locked=false}
+  const lock=ok&&!far&&now-TU.okSince>600;
+  if(lock&&!TU.locked){TU.locked=true;try{if(navigator.vibrate&&(!navigator.userActivation||navigator.userActivation.hasBeenActive))navigator.vibrate(40)}catch(e){}}
+  g('tuNote').textContent=nn(near);g('tuOct').textContent=String(Math.floor(near/12)-1);
+  g('tuHz').textContent=f.toFixed(2)+' Hz  ·  목표 '+(6-si)+'번 줄 '+tuName(target)+' '+tuHz(target).toFixed(2)+' Hz';
+  g('tuCents').textContent=far?'':((c>=0?'+':'−')+(Math.abs(c)<10?Math.abs(c).toFixed(1):Math.abs(c).toFixed(0))+' 센트');
+  g('tuMsg').textContent=far?(TU.mode==='manual'?`${6-si}번 줄 ${tuName(target)}과 많이 다릅니다 (지금 ${tuName(near)})`:'음이 많이 벗어났습니다')
+    :lock?'맞았습니다 ✓ (고정)':ok?'거의 맞음 — 그대로 잠깐…':Math.abs(c)<10?(c<0?'아주 조금 낮음 — 살짝 조이세요 ↑':'아주 조금 높음 — 살짝 푸세요 ↓'):(c<0?'낮음 — 줄을 조이세요 ↑':'높음 — 줄을 푸세요 ↓');
+  g('tuMsg').className='tu-msg'+(lock?' ok':ok?' near':'');
+  tuNeedle(far?(c<0?-50:50):c,ok&&!far);tuFine(far?null:c,lock);
+  TU.cur={si,ok:lock,c};tuStrings();
+}
+function tuNeedle(c,ok){const n=document.getElementById('tuNeedle');if(!n)return;const a=Math.max(-50,Math.min(50,c))*0.9;n.setAttribute('transform',`rotate(${a.toFixed(1)} 150 150)`);n.classList.toggle('ok',!!ok)}
+/* ±10센트 확대 막대 (1센트 눈금) */
+function tuFine(c,lock){
+  const m=document.getElementById('tuFineMark'),w=document.getElementById('tuFine');if(!m)return;
+  if(c==null){m.style.opacity='0';w.classList.remove('lock');return}
+  const x=Math.max(-10,Math.min(10,c));m.style.opacity=Math.abs(c)>10?'.45':'1';m.style.left=(50+x*5).toFixed(2)+'%';w.classList.toggle('lock',!!lock);
+}
+/* 스트로브: 높으면 오른쪽, 낮으면 왼쪽으로 흐르고 정확하면 멈춤 (1센트 = 초당 6px) */
+function tuStrobe(now){
+  const el=document.getElementById('tuStrobe');if(!el)return;const dt=TU.lt?Math.min(0.1,(now-TU.lt)/1000):0;TU.lt=now;
+  const c=TU.cur&&TU.cur.c!=null?Math.max(-60,Math.min(60,TU.cur.c)):0;TU.sx=((TU.sx||0)+c*6*dt)%40;
+  el.style.backgroundPositionX=TU.sx.toFixed(2)+'px';el.classList.toggle('idle',!TU.cur);
+}
+function tuGauge(){
+  let s='<path d="M58.1 58.1 A130 130 0 0 1 241.9 58.1" class="tu-arc"/>';   /* 눈금 범위(±45°)만 */
+  for(let c=-50;c<=50;c+=10){const a=(c*0.9-90)*Math.PI/180,r1=c%50===0?112:118,x1=150+Math.cos(a)*r1,y1=150+Math.sin(a)*r1,x2=150+Math.cos(a)*130,y2=150+Math.sin(a)*130;
+    s+=`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" class="tu-tick${c===0?' zero':''}"/>`;
+    if(c%25===0&&c!==0)s+=`<text x="${(150+Math.cos(a)*98).toFixed(1)}" y="${(150+Math.sin(a)*98+4).toFixed(1)}" class="tu-lab">${c>0?'+':''}${c}</text>`}
+  s+='<path d="M141 150 A9 9 0 0 1 159 150" class="tu-hub"/><g id="tuNeedle"><line x1="150" y1="150" x2="150" y2="30" class="tu-nd"/><circle cx="150" cy="150" r="7" class="tu-nc"/></g>';
+  document.getElementById('tuGauge').innerHTML=s;
+}
+function tuStrings(){
+  const el=document.getElementById('tuStrings');
+  el.innerHTML=[0,1,2,3,4,5].map(i=>{const m=tuMidi(i),hit=TU.cur&&TU.cur.si===i;
+    return `<button class="tu-s${hit?(TU.cur.ok?' hit ok':' hit'):''}" data-tus="${i}" aria-pressed="${TU.mode==='manual'&&TU.sel===i}" title="${6-i}번 줄 ${tuName(m)} ${tuHz(m).toFixed(1)}Hz — 누르면 기준음"><small>${6-i}번</small>${nn(m)}<small>${Math.floor(m/12)-1}</small></button>`}).join('');
+  document.querySelectorAll('[data-tumode]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.tumode===TU.mode));
+  if(st.tab==='tune')drawBoard();
+}
+function tuRender(){
+  const g=id=>document.getElementById(id);
+  if(!g('tuGauge').firstChild)tuGauge();
+  g('tuTun').innerHTML=Object.entries(TUNINGS).map(([k,t])=>`<option value="${k}"${k===TU.tun?' selected':''}>${t.n}</option>`).join('');
+  g('tuA4').textContent=TU.a4;g('tuMic').textContent=TU.on?'■ 마이크 끄기':'🎤 마이크 켜기';
+  tuStrings();if(!TU.on)tuShow(null);
+}
+async function tuStart(){
+  try{
+    actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')await actx.resume();
+    TU.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+    TU.src=actx.createMediaStreamSource(TU.stream);TU.an=actx.createAnalyser();TU.an.fftSize=4096;TU.buf=new Float32Array(TU.an.fftSize);
+    /* 높은 배음(실제 줄은 배음이 조금씩 높게 울림)이 기본음 측정을 끌어올리지 않도록 저역 통과 */
+    TU.lp=actx.createBiquadFilter();TU.lp.type='lowpass';TU.lp.frequency.value=900;TU.lp.Q.value=0.6;
+    TU.src.connect(TU.lp);TU.lp.connect(TU.an);
+    /* 정밀 측정용: 목표 줄 기본음 바로 위에서 자르는 저역 통과 2단 → 배음 없이 기본음만 */
+    TU.n1=actx.createBiquadFilter();TU.n2=actx.createBiquadFilter();[TU.n1,TU.n2].forEach(f=>{f.type='lowpass';f.frequency.value=900;f.Q.value=0.6});
+    TU.an2=actx.createAnalyser();TU.an2.fftSize=4096;TU.buf2=new Float32Array(4096);TU.src.connect(TU.n1);TU.n1.connect(TU.n2);TU.n2.connect(TU.an2);TU.hist2=[];TU.fc=900;TU.fcAt=0;
+    TU.on=true;TU.hist=[];TU.last=performance.now();tuRender();TU.raf=requestAnimationFrame(tuTick);
+  }catch(e){TU.on=false;tuRender();
+    document.getElementById('tuMsg').textContent=e&&e.name==='NotAllowedError'?'마이크 사용이 거부되었습니다. 브라우저 주소창의 마이크 권한을 허용해 주세요.':'마이크를 열지 못했습니다. (마이크 연결 · 권한을 확인하세요)'}
+}
+function tuStop(){
+  TU.on=false;if(TU.raf)cancelAnimationFrame(TU.raf);TU.raf=0;
+  try{TU.src&&TU.src.disconnect();TU.lp&&TU.lp.disconnect();TU.n1&&TU.n1.disconnect();TU.n2&&TU.n2.disconnect()}catch(e){}if(TU.stream)TU.stream.getTracks().forEach(t=>t.stop());TU.stream=null;TU.src=null;TU.cur=null;
+  if(document.getElementById('tuMic'))tuRender();
+}
+/* 기준음: 기타 소리로 한 번 (A4 기준에 맞춰 음높이 보정) */
+function tuRef(i){
+  try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();
+    const s=actx.createBufferSource(),gn=actx.createGain();gn.gain.value=0.4;s.buffer=makeBuf(tuMidi(i),2.4,0.996,0.9);
+    s.detune.value=1200*Math.log2(TU.a4/440);s.connect(gn);gn.connect(gOut());s.start(actx.currentTime+0.02)}catch(e){}
+}
+document.getElementById('p-tune').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.id==='tuMic'){TU.on?tuStop():tuStart();return}
+  if(b.dataset.tumode){TU.mode=b.dataset.tumode;tuSave();TU.hist=[];tuStrings();return}
+  if(b.dataset.tus!=null){const i=+b.dataset.tus;TU.sel=i;if(TU.mode!=='manual')TU.mode='manual';tuSave();tuRef(i);TU.hist=[];tuStrings();return}
+  if(b.dataset.a4!=null){const v=+b.dataset.a4;TU.a4=v===0?440:Math.max(430,Math.min(450,TU.a4+v));tuSave();tuRender();return}
+});
+document.getElementById('tuTun').addEventListener('change',e=>{TU.tun=e.target.value;tuSave();TU.hist=[];tuRender()});
+/* 지판: 각 줄의 개방현 목표 음, 지금 맞추는 줄은 진하게 */
+function tuDots(){
+  let s='';const on=TU.cur?TU.cur.si:(TU.mode==='manual'?TU.sel:-1);
+  for(let i=0;i<6;i++){const m=tuMidi(i),o=TUNINGS[TU.tun].o[i];
+    if(o<0)s+=`<text x="12" y="${sy(i)+6}" class="mute" style="font-size:13px">${o}</text>`;
+    s+=dot(i,0,(i===on?(TU.cur&&TU.cur.ok?'r3':'root'):'tone')+(on<0||i===on?' on':' dim'),nn(m))}
+  return s;
+}
+function tuCap(){const t=TUNINGS[TU.tun];return `조율기 · ${t.n} · A4=${TU.a4}Hz. `+(TU.cur?`${6-TU.cur.si}번 줄을 맞추는 중입니다.`:'개방현의 목표 음입니다.')}
 /* 악보 두 손가락 확대 · Ctrl+휠: 블루스 TAB 에도 */
 (function(){
   const el=document.getElementById('blTab');let pz=null;
@@ -2019,8 +2239,9 @@ function setTab(t){
   document.querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t));
   if(t!=='adlib'&&ad.playing)adStop();
   if(t!=='blues'&&BL.playing)blStop();
-  ['find','name','scale','adlib','blues','shift'].forEach(p=>document.getElementById('p-'+p).hidden=p!==t);
-  drawBoard();if(t==='name')renderName();if(t==='scale')renderScale();if(t==='shift')renderShift();if(t==='adlib')renderAdTab();if(t==='blues')blRender();
+  if(t!=='tune'&&TU.on)tuStop();   /* 조율기를 떠나면 마이크 끄기 */
+  ['find','name','scale','adlib','blues','shift','tune'].forEach(p=>document.getElementById('p-'+p).hidden=p!==t);
+  drawBoard();if(t==='name')renderName();if(t==='scale')renderScale();if(t==='shift')renderShift();if(t==='adlib')renderAdTab();if(t==='blues')blRender();if(t==='tune')tuRender();
 }
 document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
 document.querySelectorAll('[data-acc]').forEach(b=>b.addEventListener('click',()=>{
@@ -2063,7 +2284,7 @@ if(uiSaved){
   if(!inr(st.qi,0,Q.length-1))st.qi=0;
   if(st.bass!=null&&!inr(st.bass,0,11))st.bass=null;
   if(!Array.isArray(st.nv)||st.nv.length!==6)st.nv=[-1,3,2,0,1,0];
-  if(!['find','name','scale','adlib','blues','shift'].includes(st.tab))st.tab='find';
+  if(!['find','name','scale','adlib','blues','shift','tune'].includes(st.tab))st.tab='find';
   if(st.schShape&&!(inr(st.schShape.r,0,11)&&inr(st.schShape.qi,0,Q.length-1)&&inr(st.schShape.vi,0,20)))st.schShape=null;
   if(!inr(st.semi,-11,11))st.semi=0;
   if(!inr(st.capo,0,12))st.capo=0;
