@@ -207,6 +207,8 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .sg-no{flex:none;width:24px;height:24px;border-radius:50%;background:var(--accent-fill);color:var(--on-accent);display:grid;place-items:center;font-weight:800;font-size:.85rem;margin-top:2px}
 .sg-step ul{margin:4px 0 0;padding-left:1.1em}.sg-sub{margin-top:6px;padding:2px 8px;border-left:3px solid var(--accent-fill);background:var(--bg);border-radius:0 6px 6px 0}.sg-step li{margin:3px 0}
 .sg-cmp{border-collapse:collapse;margin:6px 0 0;font-size:.9rem;width:100%}.sg-cmp th,.sg-cmp td{border:1px solid var(--line);padding:4px 8px;text-align:left;vertical-align:top}.sg-cmp th{background:var(--bg)}.sg-cmp td:first-child{white-space:nowrap;color:var(--muted)}
+.sg-inst td:first-child{color:var(--ink);font-weight:700}.sg-inst.sm{font-size:.85rem;margin:0}
+@media (max-width:560px){.sg-inst,.sg-inst tbody,.sg-inst tr,.sg-inst td{display:block;width:auto}.sg-inst tr:first-child{display:none}.sg-inst tr{border:1px solid var(--line);border-radius:8px;margin:6px 0;padding:4px 0}.sg-inst td{border:0;padding:2px 8px}}
 .sg-more{margin-top:8px}.sg-more summary,.sg-guide summary{cursor:pointer;font-weight:700}
 .sg-guide{margin:8px 0 10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);line-height:1.6}
 .sg-guide dl{margin:8px 0 0;display:grid;grid-template-columns:auto 1fr;gap:6px 12px}.sg-guide dt{font-weight:700;white-space:nowrap}.sg-guide dd{margin:0}
@@ -589,7 +591,22 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
             <li><b>조옮김 − +</b>: 악보 코드를 반음씩 올리거나 내립니다. <b>[🔊 음원도 같이]</b>를 켜면 노래 · 반주 소리도 같은 키로 바뀝니다 (빠르기 그대로). 예) G로 부른 곡을 +2 → A키로 듣고 치기</li>
             <li><b>카포 / 쉬운 모양</b>: 카포를 끼우고 쉬운 코드 모양으로 칩니다. 예) A키 곡 → [G · 카포 2] = 2프렛에 카포, G 모양으로</li>
           </ul></div></div>
-        <div class="sg-step"><span class="sg-no">4</span><div><b>연습</b> — 재생하면 코드 · 가사가 원곡에 맞춰 흘러갑니다. 기타 트랙을 끄고 반주에 맞춰 직접 치거나, 속도를 늦추고 어려운 마디만 반복하세요. 곡을 열면 자세한 사용법(재생 · 반복 · 트랙 · 악보 누르기)이 나옵니다.</div></div>
+        <div class="sg-step"><span class="sg-no">4</span><div><b>연습</b> — 재생하면 코드 · 가사가 원곡에 맞춰 흘러갑니다
+          <div class="sg-sub"><b>악기별 연습</b> — 내 악기 트랙만 끄고, 나머지 반주에 맞춰 연주 (정밀 분석한 곡)</div>
+          <table class="sg-cmp sg-inst"><tr><th>악기</th><th>트랙 (믹서)</th><th>볼 악보</th></tr>
+              <tr><td>🎸 기타</td><td><b>기타 끔</b> → 반주에 맞춰 직접 치기. 기타가 두 대면 기타1(왼쪽) · 기타2(오른쪽)를 따로 끄거나 <b>혼자</b>로 들어 보기</td><td><b>코드 · 가사</b> (코드 반주) 또는 <b>기타 TAB</b> (원곡 연주 그대로)</td></tr>
+              <tr><td>🎸 베이스</td><td><b>베이스 끔</b> → 드럼 · 기타에 맞춰 치기 · <b>베이스 혼자</b>로 라인 익히기</td><td><b>베이스 TAB</b></td></tr>
+              <tr><td>🎤 노래</td><td><b>노래 끔</b> → 반주(MR)에 맞춰 부르기 · <b>노래 혼자</b>로 멜로디 · 가사 익히기</td><td><b>코드 · 가사</b> (가사가 박자에 맞춰 흘러감). 키가 높거나 낮으면 조옮김 + [🔊 음원도 같이]</td></tr>
+              <tr><td>🎵 하모니카</td><td>원곡 하모니카 소리는 <b>나머지</b> 트랙에 들어 있음 → <b>나머지 혼자</b>로 듣고, <b>나머지 끔</b>으로 직접 불기 (나머지 트랙이 없는 곡은 원곡에 맞춰 같이 불기)</td><td><b>하모니카 구멍</b> (숫자 = 구멍, 숫자 위 점 = 들이마시기)</td></tr>
+              <tr><td>🥁 리듬</td><td><b>드럼 혼자</b> → 박자 · 리듬 익히기 (메트로놈 대신)</td><td>칸 하나 = 한 박</td></tr></table>
+          <div class="sg-sub"><b>합주 연습</b> — 여럿이 각자 맡은 악기 트랙을 끄고 같이 연주</div>
+          <ul>
+            <li>예) 기타 · 베이스 · 노래를 맡은 세 사람: 세 트랙을 끄고 <b>드럼 · 나머지</b>만 켜면 원곡 드럼에 맞춰 밴드 합주가 됩니다. 처음엔 기타만 끄고, 익숙해지면 하나씩 더 끄세요.</li>
+            <li>안 맞는 부분은 <b>속도</b>를 70~80%로 늦추고 그 마디만 <b>[⟳ 반복]</b>해서 맞춰 보세요 (음 높이는 그대로).</li>
+            <li>노래하는 사람 키에 맞추려면 조옮김 + [🔊 음원도 같이] → 기타는 <b>쉬운 모양 · 카포</b>로 맞추기.</li>
+            <li>소리는 한 기기에서 재생해 스피커로 크게 트세요. 기기끼리 재생 위치가 맞춰지지는 않으므로, 각자 휴대폰은 악보 보기용으로 쓰세요.</li>
+          </ul>
+          <p class="sdesc" style="margin:4px 0 0">간이 분석한 곡은 트랙이 나뉘지 않아 원곡 전체에 맞춰 코드 반주만 연습할 수 있습니다. 곡을 열면 자세한 사용법(재생 · 반복 · 악보 누르기)이 나옵니다.</p></div></div>
       </div>
       <p class="sdesc" style="margin:8px 0 0">음원과 분석 결과는 이 기기(PC)에만 저장되고 서버에 올라가지 않습니다. 개인 연습용으로만 쓰세요.</p>
     </div>
@@ -605,7 +622,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
         <label class="sg-rate">속도 <select id="sgRate"><option value="0.5">50%</option><option value="0.6">60%</option><option value="0.7">70%</option><option value="0.75">75%</option><option value="0.8">80%</option><option value="0.9">90%</option><option value="1">100%</option></select></label>
       </div>
       <input type="range" id="sgSeek" class="sg-seek" min="0" max="1000" value="0" aria-label="재생 위치">
-      <details class="sg-guide" id="sgGuide" open><summary>❓ 사용법 — 키/카포 · 재생 · 반복 · 악보 누르기 · 트랙</summary>
+      <details class="sg-guide" id="sgGuide" open><summary>❓ 사용법 — 키/카포 · 재생 · 반복 · 악보 누르기 · 트랙 · 악기별 · 합주</summary>
         <dl>
           <dt>🎼 키 · 카포</dt><dd><b>조옮김 − +</b> = 악보 코드를 반음씩 올림/내림 (소리는 원곡 그대로).<br>
             <b>[🔊 음원도 같이]</b>를 켜면 소리도 같은 키로 바뀝니다 (빠르기 그대로, 목소리 색 유지). 예) G로 부른 곡을 +2 → A키로 듣고 치기.<br>
@@ -617,7 +634,16 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
             TAB에서는 코드 이름이나 그 코드의 음 = 그 코드만, 빈 곳 = 지금 위치부터. 칸 하나 = 한 박.</dd>
           <dt>🎚 트랙</dt><dd>트랙마다 <b>[켬/끔]</b> · <b>[혼자]</b>(그 트랙만 듣기) · 볼륨.<br>
             예) <b>기타 끔</b> → 반주에 맞춰 내가 기타 치기 · <b>노래 혼자</b> → 가사 · 멜로디 듣기 · <b>노래 끔</b> → 내가 부르기.</dd>
-          <dt>👁 보기</dt><dd><b>코드 · 가사</b> / <b>기타 TAB</b> / <b>베이스 TAB</b> / <b>하모니카 구멍</b> (숫자 = 구멍, 숫자 위 점 = 들이마시기). 정밀 분석한 곡만 TAB · 하모니카가 있습니다.</dd>
+          <dt>🎸 악기별 연습</dt><dd><table class="sg-cmp sg-inst sm"><tr><th>악기</th><th>트랙 (믹서)</th><th>볼 악보</th></tr>
+              <tr><td>🎸 기타</td><td><b>기타 끔</b> → 반주에 맞춰 직접 치기. 기타가 두 대면 기타1(왼쪽) · 기타2(오른쪽)를 따로 끄거나 <b>혼자</b>로 들어 보기</td><td><b>코드 · 가사</b> (코드 반주) 또는 <b>기타 TAB</b> (원곡 연주 그대로)</td></tr>
+              <tr><td>🎸 베이스</td><td><b>베이스 끔</b> → 드럼 · 기타에 맞춰 치기 · <b>베이스 혼자</b>로 라인 익히기</td><td><b>베이스 TAB</b></td></tr>
+              <tr><td>🎤 노래</td><td><b>노래 끔</b> → 반주(MR)에 맞춰 부르기 · <b>노래 혼자</b>로 멜로디 · 가사 익히기</td><td><b>코드 · 가사</b> (가사가 박자에 맞춰 흘러감). 키가 높거나 낮으면 조옮김 + [🔊 음원도 같이]</td></tr>
+              <tr><td>🎵 하모니카</td><td>원곡 하모니카 소리는 <b>나머지</b> 트랙에 들어 있음 → <b>나머지 혼자</b>로 듣고, <b>나머지 끔</b>으로 직접 불기 (나머지 트랙이 없는 곡은 원곡에 맞춰 같이 불기)</td><td><b>하모니카 구멍</b> (숫자 = 구멍, 숫자 위 점 = 들이마시기)</td></tr>
+              <tr><td>🥁 리듬</td><td><b>드럼 혼자</b> → 박자 · 리듬 익히기 (메트로놈 대신)</td><td>칸 하나 = 한 박</td></tr></table></dd>
+              <dt>👥 합주</dt><dd>각자 맡은 악기 트랙을 끄고 같이 연주. 예) 기타 · 베이스 · 노래 끄고 <b>드럼 · 나머지</b>만 켜면 밴드 합주.<br>
+                안 맞는 곳은 속도 70~80% + 그 마디만 [⟳ 반복] · 노래하는 사람 키에 맞추려면 조옮김 + [🔊 음원도 같이], 기타는 쉬운 모양 · 카포.<br>
+                소리는 한 기기에서 스피커로 (기기끼리 재생 위치는 맞춰지지 않음).</dd>
+              <dt>👁 보기</dt><dd><b>코드 · 가사</b> / <b>기타 TAB</b> / <b>베이스 TAB</b> / <b>하모니카 구멍</b> (숫자 = 구멍, 숫자 위 점 = 들이마시기). 정밀 분석한 곡만 TAB · 하모니카가 있습니다.</dd>
         </dl>
         <p class="sdesc" style="margin:4px 0 0">자동 분석이라 틀린 코드 · 음 · 가사가 있을 수 있습니다. 귀로 확인하며 쓰세요.</p>
       </details>
