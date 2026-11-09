@@ -55,6 +55,9 @@ html{scroll-padding-top:var(--pinH,0px)}
 .board-scroll{overflow-x:auto;border-radius:6px;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y}   /* 두 손가락 확대는 스크립트가 지판만 키운다 */
 #board,#board2{display:block;width:100%;height:auto;user-select:none;-webkit-user-select:none;max-width:none}
 #board2{margin-top:6px}
+.uiz button{padding:2px 6px;font-variant-numeric:tabular-nums}
+#uizToast{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:12px;font-weight:700;font-size:1.1rem;z-index:50;pointer-events:none;opacity:0;transition:opacity .2s}
+#uizToast.on{opacity:.92}.uiz #uizVal{min-width:3.2em}
 .lbl-tg.zm button{min-width:2.4em;font-variant-numeric:tabular-nums}
 /* 크기 버튼: 마우스가 있는 화면(PC)에서만. 휴대폰은 두 손가락으로 */
 .pc-only{display:none!important}
@@ -271,6 +274,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
   .top{margin-bottom:6px;gap:6px}
   .top h1{font-size:1rem}
   .tops{gap:4px}
+  .uiz button{padding:5px 5px}.uiz #uizVal{min-width:2.9em;font-size:.68rem}
   .acc button,.lbl-tg button{padding:5px 7px;font-size:.74rem}
   .board-bar .board-cap{font-size:.72rem}
   /* 탭: 화면 위에 붙어 있게 (스크롤해도 바로 바꿀 수 있게) */
@@ -305,6 +309,14 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
   .songbar .ghost.sm{min-height:38px;padding:4px 10px}
   .songbar select{flex-basis:100%}
 }
+@media (max-width:420px){   /* 좁은 휴대폰: 제목 줄이 한 줄에 들어가게 */
+  .top h1{font-size:.92rem}.tops{gap:3px}
+  .acc button,.lbl-tg button{padding:5px 5px;font-size:.68rem}
+  .uiz button{padding:5px 7px}.uiz #uizVal{display:none}   /* 값은 누를 때 잠깐 보여 줌 */
+}
+@media (max-width:340px){
+  .top h1{font-size:.8rem;letter-spacing:-.04em}.acc button,.lbl-tg button{padding:5px 4px}.uiz button{padding:5px 5px}
+}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -331,6 +343,11 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
     <div class="acc" role="group" aria-label="샵·플랫 표기">
       <button data-acc="sharp" aria-pressed="true" aria-label="샵으로 표기">♯</button>
       <button data-acc="flat" aria-pressed="false" aria-label="플랫으로 표기">♭</button>
+    </div>
+    <div class="acc uiz" role="group" aria-label="화면 전체 크기">
+      <button data-uiz="-1" aria-label="화면 전체 작게" title="화면 전체 작게">－</button>
+      <button data-uiz="0" id="uizVal" title="화면 전체 크기 (누르면 100%)">100%</button>
+      <button data-uiz="1" aria-label="화면 전체 크게" title="화면 전체 크게">＋</button>
     </div>
     </div>
   </header>
@@ -826,15 +843,30 @@ bs.addEventListener('wheel',e=>{                      /* PC: Ctrl+휠, 노트북
 window.addEventListener('resize',()=>{clearTimeout(boardLayout.t);boardLayout.t=setTimeout(boardLayout,120)});
 
 /* 고정 영역 높이 → 탭 줄 위치. 지판이 화면 높이의 62%를 넘으면(가로 모드 · 크게 확대) 고정을 푼다 — 아래 내용을 볼 수 없게 되므로 */
+let uiz=+store.get('chordcalc-uiz')||1;if(!(uiz>=0.5&&uiz<=1.3))uiz=1;
 const pin=document.getElementById('pin');
 function pinFit(){
   pin.classList.remove('off');
   const h=pin.getBoundingClientRect().height;
   const off=h>window.innerHeight*0.62;
   pin.classList.toggle('off',off);
-  document.documentElement.style.setProperty('--pinH',off?'0px':Math.round(h)+'px');
+  document.documentElement.style.setProperty('--pinH',off?'0px':Math.round(h/uiz)+'px');
 }
 if(window.ResizeObserver)new ResizeObserver(()=>{clearTimeout(pinFit.t);pinFit.t=setTimeout(pinFit,60)}).observe(pin);
+/* ---------- 화면 전체 크기 (50~130%): 휴대폰은 페이지가 화면 폭에 맞으면 두 손가락으로 더 줄여지지 않아 앱에서 직접 ---------- */
+function uizApply(){
+  document.body.style.zoom=uiz===1?'':String(uiz);
+  const v=document.getElementById('uizVal');if(v)v.textContent=Math.round(uiz*100)+'%';
+}
+function setUiz(z){
+  uiz=Math.round(Math.max(0.5,Math.min(1.3,z))*20)/20;store.set('chordcalc-uiz',String(uiz));uizApply();
+  boardLayout();pinFit();
+  let t=document.getElementById('uizToast');if(!t){t=document.createElement('div');t.id='uizToast';document.body.appendChild(t)}
+  t.textContent='화면 '+Math.round(uiz*100)+'%';t.style.zoom=String(1/uiz);t.classList.add('on');clearTimeout(setUiz.t);setUiz.t=setTimeout(()=>t.classList.remove('on'),900);
+  try{if(st.tab==='adlib')renderAdTab();if(st.tab==='blues')blRender()}catch(e){}   /* 한 줄 마디 수 다시 */
+}
+uizApply();
+document.querySelectorAll('[data-uiz]').forEach(b=>b.addEventListener('click',()=>{const d=+b.dataset.uiz;setUiz(d===0?1:uiz+d*0.1)}));
 window.addEventListener('resize',()=>{clearTimeout(pinFit.r);pinFit.r=setTimeout(pinFit,150)});
 
 /* ---------- 코드 박스 ---------- */
