@@ -192,6 +192,30 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .tabttl .only{font-size:.72rem;font-weight:500;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:1px 8px}
 .tabttl[aria-pressed="true"] .only{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent);font-weight:600}
 .tabsec.off{opacity:.45}
+/* 곡연습 */
+.sg-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.sg-rect{color:#c0392b;font-weight:700}#sgRec.rec{background:#c0392b;border-color:#c0392b;color:#fff}
+.sg-help{padding:12px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface);line-height:1.65}.sg-help ol{margin:6px 0 0;padding-left:1.3em}.sg-help li{margin:4px 0}
+.sg-head{margin:4px 0 8px}.sg-head b{font-size:1.15rem}.sg-meta{color:var(--muted);font-size:.85rem}
+.sg-tr{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sg-time{font-variant-numeric:tabular-nums;color:var(--muted);font-weight:600}.sg-rate{color:var(--muted);font-size:.9rem}.sg-rate select{width:auto!important;padding:4px 6px}
+.sg-seek{width:100%;margin:10px 0 14px}
+.sg-grid{display:grid;grid-template-columns:minmax(220px,300px) minmax(0,1fr);gap:18px;align-items:start}
+.sg-mx{display:grid;grid-template-columns:minmax(0,1fr) auto auto 80px;gap:6px;align-items:center;margin:4px 0}
+.sg-mxn{font-weight:600;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sg-mx button[aria-pressed="true"]{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent)}
+.sg-mx [data-sgm][aria-pressed="false"]{opacity:.6}
+.sg-sheet{margin-top:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px}
+.sg-barbox{position:relative;display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);border-radius:10px;background:var(--surface);min-height:66px;overflow:hidden}
+.sg-bn{position:absolute;left:4px;top:2px;font-size:.62rem;color:var(--muted)}
+.sg-c{display:block;padding:12px 4px 6px;border-left:1px dashed var(--line);cursor:pointer;min-width:0}.sg-c:first-of-type{border-left:0}
+.sg-c:hover{background:var(--bg)}
+.sg-c.now{background:var(--accent-fill)}.sg-c.now .sg-ch,.sg-c.now .sg-ly{color:var(--on-accent)}
+.sg-ch{display:block;color:var(--accent);font-weight:800;font-size:1.05rem;min-height:1.3em;white-space:nowrap}
+.sg-ly{display:block;font-size:.9rem;line-height:1.35;word-break:keep-all}.sg-ly i{font-style:normal}
+.sg-ly i.now{background:var(--ink);color:var(--bg);border-radius:4px;padding:0 2px}
+#sgTab{touch-action:pan-x pan-y}
+@media (max-width:900px){.sg-grid{grid-template-columns:minmax(0,1fr)}}
 /* 조율기: 위에 고정된 지판 · 지판 안내를 숨겨 한 화면에 (줄 버튼이 따로 있음) */
 body[data-page="tune"] #boardScroll,body[data-page="tune"] .board-bar,body[data-page="tune"] .legend,body[data-page="tune"] .lbl-tg{display:none}
 /* 조율기 */
@@ -368,6 +392,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
     <button role="tab" data-tab="scale" aria-selected="false" title="펜타토닉 · 다이아토닉">펜타토닉</button>
     <button role="tab" data-tab="adlib" aria-selected="false" title="애드리브 · 반주">애드립</button>
     <button role="tab" data-tab="blues" aria-selected="false">블루스</button>
+    <button role="tab" data-tab="song" aria-selected="false" title="분석한 곡에 맞춰 코드 · 가사 · TAB 따라 치기 (PC)">곡연습</button>
     <button role="tab" data-tab="shift" aria-selected="false" hidden>조옮김 · 카포</button><!-- 우선 숨김 (hidden 지우면 다시 보임) -->
     <button role="tab" data-tab="tune" aria-selected="false">조율기</button>
   </nav>
@@ -487,6 +512,51 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
         </div>
         <div id="blInfo"></div>   <!-- 예제 제목 · 설명: 악보 아래 -->
         <p class="sdesc">칸 하나는 8분음표이고, 셔플을 켜면 둘째 8분음표를 늦게(셋잇단의 셋째) 칩니다. D는 다운, U는 업 스트로크, x는 뮤트입니다. 악보에서 코드 이름이나 그 코드의 음을 누르면 그 코드만, 빈 곳을 누르면 전체를 재생하고, 재생 중에 누르면 멈춥니다. 재생하면 지금 치는 음이 TAB과 지판에 표시되고, 지판의 흐린 점은 그 마디에서 잡는 모양입니다.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="p-song" role="tabpanel" hidden>
+    <div class="sg-top">
+      <button id="sgOpen" class="play">📂 분석 결과 열기</button>
+      <button id="sgRecent" class="ghost sm" hidden>최근 곡</button>
+      <button id="sgRec" class="ghost" title="Edge · Chrome: 재생 중인 탭(유튜브 등)의 소리를 원음 그대로 녹음">🔴 탭 소리 녹음</button>
+      <span id="sgRecT" class="sg-rect" hidden></span>
+      <input type="file" id="sgDirIn" webkitdirectory multiple hidden>
+    </div>
+    <div id="sgHelp" class="sg-help">
+      <b>곡에 맞춰 코드 · 가사 · TAB을 보며 따라 치기 (PC · Edge 기준)</b>
+      <ol>
+        <li><b>소리 녹음:</b> 유튜브 등 연습할 곡을 다른 탭에서 재생할 준비를 하고 [🔴 탭 소리 녹음] → 공유 창에서 그 <b>탭</b>을 고르고 <b>"탭 오디오도 공유"</b>를 켠 뒤 [공유] → 곡을 처음부터 재생 → 끝나면 [■ 녹음 끝내고 저장]. (음원 파일이 있으면 녹음 없이 그 파일을 써도 됩니다)</li>
+        <li><b>분석:</b> 저장한 파일을 프로젝트 폴더의 <b>"곡 분석하기.bat"</b> 위에 끌어다 놓으세요. 노래 · 기타 · 베이스 · 드럼으로 나누고 박자 · 코드 · TAB · 가사를 찾습니다 (4분 곡에 몇 분).</li>
+        <li><b>연습:</b> [📂 분석 결과 열기] → 만들어진 <b>"… 분석"</b> 폴더를 고르면 원음에 맞춰 코드 · 가사가 흘러갑니다. 기타 트랙을 끄면 반주에 맞춰 직접 칠 수 있고, 속도를 줄이거나 마디를 반복할 수 있습니다.</li>
+      </ol>
+      <p class="sdesc" style="margin:6px 0 0">녹음 · 분석 결과는 이 PC에만 저장되고 서버에 올라가지 않습니다. 개인 연습용으로만 쓰세요.</p>
+    </div>
+    <div id="sgMain" hidden>
+      <div class="sg-head"><b id="sgTitle"></b><span id="sgMeta" class="sg-meta"></span></div>
+      <div class="sg-tr">
+        <button id="sgPlay" class="play">재생</button>
+        <button id="sgBack" class="ghost sm" title="5초 뒤로">⏪ 5초</button>
+        <button id="sgLoop" class="ghost" aria-pressed="false" title="끝까지(또는 고른 마디 끝까지) 가면 처음부터 반복">⟳ 반복</button>
+        <button class="ghost follow" data-follow aria-pressed="true" title="재생 중 지금 위치가 보이도록 자동 스크롤">⇣ 따라가기</button>
+        <span class="sg-time"><output id="sgCur">0:00</output> / <output id="sgDur">0:00</output></span>
+        <label class="sg-rate">속도 <select id="sgRate"><option value="0.5">50%</option><option value="0.6">60%</option><option value="0.7">70%</option><option value="0.75">75%</option><option value="0.8">80%</option><option value="0.9">90%</option><option value="1">100%</option></select></label>
+      </div>
+      <input type="range" id="sgSeek" class="sg-seek" min="0" max="1000" value="0" aria-label="재생 위치">
+      <div class="sg-grid">
+        <div class="sg-side">
+          <span class="flabel">트랙 (믹서) — 기타를 끄면 반주에 맞춰 직접 치기</span>
+          <div id="sgMix"></div>
+          <span class="flabel" style="margin-top:12px">반복할 마디</span>
+          <div class="blrange"><select id="sgFrom" aria-label="시작 마디"></select><span>~</span><select id="sgTo" aria-label="끝 마디"></select><button id="sgAll" class="ghost sm">전체</button></div>
+        </div>
+        <div class="sg-view">
+          <div id="sgViews" class="chips"></div>
+          <div id="sgSheet" class="sg-sheet"></div>
+          <div id="sgTab" class="tab" hidden></div>
+          <p class="sdesc">칸 하나가 한 박입니다. 코드 · 가사 칸을 누르면 그 박으로 이동합니다. 스페이스 = 재생/정지. 자동 분석이라 틀린 코드 · 음 · 가사가 있을 수 있습니다.</p>
+        </div>
       </div>
     </div>
   </section>
@@ -727,6 +797,9 @@ function drawBoard(){
   }else if(st.tab==='adlib'){
     s+=adDots();
     cap.textContent=adCap();
+  }else if(st.tab==='song'){
+    s+=sgDots();
+    cap.textContent=sgCap();
   }else if(st.tab==='tune'){
     s+=tuDots();
     cap.textContent=tuCap();
@@ -864,7 +937,7 @@ function setUiz(z){
   boardLayout();pinFit();
   let t=document.getElementById('uizToast');if(!t){t=document.createElement('div');t.id='uizToast';document.body.appendChild(t)}
   t.textContent='화면 '+Math.round(uiz*100)+'%';t.style.zoom=String(1/uiz);t.classList.add('on');clearTimeout(setUiz.t);setUiz.t=setTimeout(()=>t.classList.remove('on'),900);
-  try{if(st.tab==='adlib')renderAdTab();if(st.tab==='blues')blRender()}catch(e){}   /* 한 줄 마디 수 다시 */
+  try{if(st.tab==='adlib')renderAdTab();if(st.tab==='blues')blRender();if(st.tab==='song')sgRender()}catch(e){}   /* 한 줄 마디 수 다시 */
 }
 uizApply();
 document.querySelectorAll('[data-uiz]').forEach(b=>b.addEventListener('click',()=>{const d=+b.dataset.uiz;setUiz(d===0?1:uiz+d*0.1)}));
@@ -1450,8 +1523,8 @@ function tabPer(bar,id){
 let tabFs=+store.get('chordcalc-tabfs')||0;             /* 0 = 기본 (PC 13px, 휴대폰 12px) */
 const tabFsDef=()=>matchMedia('(max-width:640px)').matches?12:13;
 const tabFsNow=()=>tabFs||tabFsDef();
-function setTabFs(v){tabFs=Math.round(Math.max(4,Math.min(28,v))*2)/2;   /* 가장 작게: 4px (예전 최소 8px의 절반) */['adTab','blTab'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.setProperty('--tabfs',tabFs+'px')})}
-function tabFsDone(){store.set('chordcalc-tabfs',String(tabFs));renderAdTab();if(st.tab==='blues')blRender()}   /* 다 바꾼 뒤 한 줄 마디 수 다시 계산 */
+function setTabFs(v){tabFs=Math.round(Math.max(4,Math.min(28,v))*2)/2;   /* 가장 작게: 4px (예전 최소 8px의 절반) */['adTab','blTab','sgTab'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.setProperty('--tabfs',tabFs+'px')})}
+function tabFsDone(){store.set('chordcalc-tabfs',String(tabFs));renderAdTab();if(st.tab==='blues')blRender();if(st.tab==='song'&&SG.song&&SG.view!=='sheet')sgTabView()}   /* 다 바꾼 뒤 한 줄 마디 수 다시 계산 */
 if(tabFs)setTabFs(tabFs);
 (function(){
   const el=document.getElementById('adTab');let pz=null;
@@ -1939,6 +2012,223 @@ function tuDots(){
   return s;
 }
 function tuCap(){const t=TUNINGS[TU.tun];return `조율기 · ${t.n} · A4=${TU.a4}Hz. `+(TU.cur?`${6-TU.cur.si}번 줄을 맞추는 중입니다.`:'개방현의 목표 음입니다.')}
+/* ====================================================================
+   곡연습: PC 분석기(곡 분석하기.bat)가 만든 폴더(song.json + 트랙 mp3)를 열어
+   원음에 맞춰 코드 · 가사 · 기타/베이스 TAB을 따라가며 연습. 트랙별 음량 · 끄기 · 혼자 듣기, 느리게, 마디 반복.
+   [탭 소리 녹음]: Edge/Chrome 화면 공유의 '탭 오디오'로 재생 중인 소리를 원음 그대로 녹음 → 분석기에 넣을 파일
+   곡 데이터 · 녹음은 이 PC에만 (서버에 올리지 않음)
+   ==================================================================== */
+const SG={song:null,els:{},ids:[],mix:{},view:'sheet',rate:1,loop:false,from:0,to:-1,raf:0,sync:0,slot:-1,word:-1,lk:{},slotNotes:{},rec:null,dragging:false};
+(function(){try{const u=JSON.parse(store.get('chordcalc-song')||'{}');if(u.rate)SG.rate=u.rate;if(u.view)SG.view=u.view;if(u.loop!=null)SG.loop=!!u.loop}catch(e){}})();
+function sgSave(){store.set('chordcalc-song',JSON.stringify({rate:SG.rate,view:SG.view,loop:SG.loop}))}
+const sgEl=id=>document.getElementById(id);
+const sgFmt=t=>{t=Math.max(0,t||0);return Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0')};
+/* 시각 ↔ 칸 (한 박 = 4칸, 박 사이는 직선) */
+function sgSlot(t){const b=SG.song.beats;let lo=0,hi=b.length-1;if(t<=b[0])return (t-b[0])/(b[1]-b[0])*4;if(t>=b[hi])return hi*4+(t-b[hi])/(b[hi]-b[hi-1])*4;
+  while(hi-lo>1){const m=(lo+hi)>>1;if(b[m]<=t)lo=m;else hi=m}return (lo+(t-b[lo])/(b[lo+1]-b[lo]))*4}
+function sgTime(slot){const b=SG.song.beats,i=Math.max(0,Math.min(b.length-2,Math.floor(slot/4)));return b[i]+(slot/4-i)*(b[i+1]-b[i])}
+/* 최근에 연 폴더 기억 (IndexedDB, 이 PC에만) */
+const sgDB={open(){return new Promise((ok,no)=>{const r=indexedDB.open('saygita-song',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)})},
+  async get(k){try{const d=await this.open();return await new Promise(ok=>{const q=d.transaction('kv').objectStore('kv').get(k);q.onsuccess=()=>ok(q.result);q.onerror=()=>ok(null)})}catch(e){return null}},
+  async set(k,v){try{const d=await this.open();d.transaction('kv','readwrite').objectStore('kv').put(v,k)}catch(e){}}};
+/* ---------- 폴더 열기 ---------- */
+async function sgOpen(handle){
+  try{
+    let dir=handle;
+    if(!dir){if(!window.showDirectoryPicker){sgEl('sgDirIn').click();return}dir=await window.showDirectoryPicker({id:'saygita-song',mode:'read'})}
+    if(dir.queryPermission&&(await dir.queryPermission({mode:'read'}))!=='granted'&&(await dir.requestPermission({mode:'read'}))!=='granted')return;
+    const files={};for await(const [n,h] of dir.entries())if(h.kind==='file')files[n]=h;
+    if(!files['song.json']){alert('이 폴더에 song.json 이 없습니다. "○○ 분석" 폴더를 골라 주세요.');return}
+    const song=JSON.parse(await (await files['song.json'].getFile()).text());
+    const urls={};for(const st of song.stems||[])if(files[st.file])urls[st.id]=URL.createObjectURL(await files[st.file].getFile());
+    sgLoad(song,urls);sgDB.set('lastDir',dir);sgDB.set('lastName',dir.name);sgRecentBtn();
+  }catch(e){if(!(e&&e.name==='AbortError'))alert('폴더를 열지 못했습니다: '+(e&&e.message||e))}
+}
+sgEl('sgDirIn').addEventListener('change',async e=>{
+  const fs=[...e.target.files],sj=fs.find(f=>f.name==='song.json');e.target.value='';
+  if(!sj){alert('song.json 이 들어 있는 "○○ 분석" 폴더를 골라 주세요.');return}
+  const song=JSON.parse(await sj.text()),urls={};for(const st of song.stems||[]){const f=fs.find(x=>x.name===st.file);if(f)urls[st.id]=URL.createObjectURL(f)}
+  sgLoad(song,urls);
+});
+async function sgRecentBtn(){const b=sgEl('sgRecent'),n=await sgDB.get('lastName');b.hidden=!n||!window.showDirectoryPicker;if(n)b.textContent='최근 곡: '+n.replace(/ 분석$/,'')}
+/* ---------- 곡 불러오기 → 트랙 · 화면 ---------- */
+function sgLoad(song,urls){
+  if(!song||song.kind!=='saygita-song'){alert('곡 분석 파일(song.json)이 아닙니다.');return}
+  sgPause();Object.values(SG.els).forEach(a=>{try{a.pause();URL.revokeObjectURL(a.src)}catch(e){}});
+  SG.song=song;SG.els={};SG.ids=[];SG.mix={};SG.lk={};SG.slot=-1;SG.word=-1;SG.from=0;SG.to=-1;
+  const hasStems=(song.stems||[]).some(s=>s.id!=='mix'&&urls[s.id]);
+  for(const st of song.stems||[]){if(!urls[st.id])continue;
+    const a=new Audio(urls[st.id]);a.preload='auto';a.preservesPitch=true;a.mozPreservesPitch=true;a.webkitPreservesPitch=true;a.playbackRate=SG.rate;
+    SG.els[st.id]=a;SG.ids.push(st.id);SG.mix[st.id]={vol:st.id==='vocals'?0.9:1,mute:st.id==='mix'&&hasStems,solo:false}}
+  if(!SG.ids.length){alert('트랙 파일(mp3)을 찾지 못했습니다.');return}
+  const m=SG.els[SG.ids[0]];m.addEventListener('loadedmetadata',()=>{sgEl('sgDur').textContent=sgFmt(m.duration)});
+  m.addEventListener('ended',()=>{if(SG.loop){sgSeek(SG.from?sgTime(SG.from*16):0);sgPlay()}else sgPause()});
+  sgVol();sgRender();
+}
+function sgMaster(){return SG.els[SG.ids[0]]}
+function sgVol(){const anySolo=SG.ids.some(i=>SG.mix[i].solo);for(const i of SG.ids){const x=SG.mix[i];SG.els[i].volume=(anySolo?x.solo:!x.mute)?Math.max(0,Math.min(1,x.vol)):0}}
+/* ---------- 재생 · 동기 ---------- */
+function sgPlay(){
+  const m=sgMaster();if(!m)return;if(BL.playing)blStop();if(ad.playing)adStop();
+  const nb=SG.song.bars,a=SG.from*16,z=(SG.to<0?nb:SG.to+1)*16;
+  if(SG.from>0||SG.to>=0){const t=m.currentTime,ta=Math.max(0,sgTime(a)),tz=sgTime(z);if(t<ta-0.05||t>=tz)sgSeek(ta)}
+  const t=m.currentTime;SG.ids.forEach(i=>{const e=SG.els[i];e.playbackRate=SG.rate;if(Math.abs(e.currentTime-t)>0.03)e.currentTime=t;e.play().catch(()=>{})});
+  SG.playing=true;sgEl('sgPlay').textContent='정지';
+  clearInterval(SG.sync);SG.sync=setInterval(()=>{const mt=sgMaster().currentTime;SG.ids.slice(1).forEach(i=>{const e=SG.els[i];if(!e.paused&&Math.abs(e.currentTime-mt)>0.05)e.currentTime=mt})},400);   /* 트랙끼리 어긋나면 맞춤 */
+  if(!SG.raf)SG.raf=requestAnimationFrame(sgTick);
+}
+function sgPause(){
+  Object.values(SG.els).forEach(e=>{try{e.pause()}catch(x){}});SG.playing=false;clearInterval(SG.sync);
+  const b=sgEl('sgPlay');if(b)b.textContent='재생';
+}
+function sgSeek(t){const m=sgMaster();if(!m)return;t=Math.max(0,Math.min((m.duration||1e9)-0.05,t));SG.ids.forEach(i=>{try{SG.els[i].currentTime=t}catch(e){}});sgShowTime(t,true)}
+function sgTick(){
+  SG.raf=0;const m=sgMaster();if(!m||!SG.song)return;
+  const t=m.currentTime;
+  if(SG.playing&&(SG.from>0||SG.to>=0)){const tz=sgTime((SG.to<0?SG.song.bars:SG.to+1)*16);if(t>=tz){if(SG.loop)sgSeek(Math.max(0,sgTime(SG.from*16)));else{sgPause();sgSeek(Math.max(0,sgTime(SG.from*16)))}}}
+  sgShowTime(t,false);
+  if(SG.playing||document.getElementById('p-song').offsetParent)SG.raf=requestAnimationFrame(sgTick);
+}
+function sgShowTime(t,force){
+  const m=sgMaster();sgEl('sgCur').textContent=sgFmt(t);
+  if(!SG.dragging&&m&&m.duration)sgEl('sgSeek').value=Math.round(t/m.duration*1000);
+  const sl=Math.floor(sgSlot(t));if(sl===SG.slot&&!force)return;SG.slot=sl;sgMark(t);
+  if(st.tab==='song')drawBoard();
+}
+/* ---------- 화면 ---------- */
+function sgChordAt(sl){const cs=SG.song.chords;let c=null;for(const x of cs){if(x.s<=sl)c=x;else break}return c}
+function sgRender(){
+  const s=SG.song;sgEl('sgMain').hidden=!s;sgEl('sgHelp').hidden=!!s;if(!s)return;
+  sgEl('sgTitle').textContent=s.title;
+  const chs=[...new Set(s.chords.map(c=>c.name))];
+  sgEl('sgMeta').textContent=` · 템포 약 ${s.tempo} BPM · ${s.bars}마디 · 코드 ${chs.slice(0,10).join(' ')}${chs.length>10?' …':''}`;
+  /* 믹서 */
+  sgEl('sgMix').innerHTML=SG.ids.map(i=>{const st=s.stems.find(x=>x.id===i),x=SG.mix[i];
+    return `<div class="sg-mx"><span class="sg-mxn">${esc(st.name)}</span><button class="ghost sm" data-sgm="${i}" aria-pressed="${!x.mute}" title="켜기/끄기">${x.mute?'끔':'켬'}</button><button class="ghost sm" data-sgs="${i}" aria-pressed="${x.solo}" title="이 트랙만 듣기">혼자</button><input type="range" min="0" max="100" value="${Math.round(x.vol*100)}" data-sgv="${i}" aria-label="${esc(st.name)} 음량"></div>`}).join('');
+  /* 마디 반복 · 속도 · 반복 */
+  const opt=sel=>Array.from({length:s.bars},(_,b)=>`<option value="${b}"${b===sel?' selected':''}>${b+1}마디 (${sgFmt(Math.max(0,sgTime(b*16)))})</option>`).join('');
+  sgEl('sgFrom').innerHTML=opt(SG.from);sgEl('sgTo').innerHTML=opt(SG.to<0?s.bars-1:SG.to);
+  sgEl('sgRate').value=String(SG.rate);sgEl('sgLoop').setAttribute('aria-pressed',SG.loop);
+  /* 보기 고르기: 코드 · 가사 / 각 TAB */
+  const views=[['sheet','코드 · 가사']].concat(Object.entries(s.parts||{}).map(([k,p])=>[k,p.name.split(' — ')[0]+' TAB']));
+  if(!views.some(v=>v[0]===SG.view))SG.view='sheet';
+  sgEl('sgViews').innerHTML=views.map(([k,l])=>`<button class="chip" data-sgview="${k}" aria-pressed="${SG.view===k}">${esc(l)}</button>`).join('');
+  sgEl('sgSheet').hidden=SG.view!=='sheet';sgEl('sgTab').hidden=SG.view==='sheet';
+  if(SG.view==='sheet')sgSheet();else sgTabView();
+  SG.slot=-1;sgShowTime(sgMaster()?sgMaster().currentTime:0,true);
+}
+/* 코드 · 가사: 박마다 한 칸 (마디 = 4칸), 코드 이름 위 · 가사 아래 */
+function sgSheet(){
+  const s=SG.song,W=s.lyrics||[],cells=[];let last=null;
+  /* 단어 → 박 칸: 노래는 박보다 살짝 먼저 들어가는 일이 많아 1/4박(1칸) 안쪽으로 앞서면 다음 박으로 */
+  const byBeat={};W.forEach((w,k)=>{const b=Math.max(0,Math.floor((w.s+1)/4));(byBeat[b]=byBeat[b]||[]).push(k)});
+  for(let bar=0;bar<s.bars;bar++){
+    let h=`<div class="sg-barbox" data-bar="${bar}"><span class="sg-bn">${bar+1}</span>`;
+    for(let k=0;k<4;k++){const b=bar*4+k,a=b*4,z=a+4;
+      const ch=s.chords.find(c=>c.s>=a&&c.s<z),cur=sgChordAt(a);
+      const ws=(byBeat[b]||[]).map(k=>`<i data-w="${k}">${esc(W[k].w)}</i>`).join(' ');
+      const name=ch?ch.name:(k===0&&cur&&cur!==last?cur.name:'');if(ch||name)last=ch||cur;
+      h+=`<span class="sg-c" data-b="${b}"><b class="sg-ch">${esc(name)}</b><span class="sg-ly">${ws}</span></span>`}
+    cells.push(h+'</div>')}
+  sgEl('sgSheet').innerHTML=cells.join('');
+}
+/* TAB: 블루스 탭과 같은 렌더러, 코드 구간 아래에 가사 */
+function sgLick(pid){
+  if(SG.lk[pid])return SG.lk[pid];
+  const s=SG.song,total=s.bars*16,W=s.lyrics||[];
+  const segs=s.chords.map((c,k)=>{const z=k+1<s.chords.length?s.chords[k+1].s:total;
+    return {c:blChord(c.name)||blChord('C'),start:c.s,len:z-c.s,ly:W.filter(w=>w.s+1>=c.s&&w.s+1<z).map(w=>w.w).join(' ')}}).filter(x=>x.len>0);
+  const notes=(s.parts[pid].notes||[]).filter(n=>n.s>=0&&n.s<total).map(n=>({t:n.s,dur:n.d||1,i:n.i,f:n.f,p:TUNE[n.i]+n.f})).sort((a,b)=>a.t-b.t);
+  const map={};notes.forEach((n,ni)=>{(map[n.t]=map[n.t]||[]).push(ni)});
+  return SG.lk[pid]={name:s.parts[pid].name,segs,notes,total,bar:16,map};
+}
+function sgTabView(){const lk=sgLick(SG.view);sgEl('sgTab').innerHTML=`<div class="tabttl" style="cursor:default">${esc(lk.name)}</div><pre>${tabRender(lk,'g',true,tabPer(16,'sgTab'))}</pre>`}
+function sgMark(t){
+  const s=SG.song,sl=SG.slot;
+  document.querySelectorAll('#p-song .now').forEach(x=>x.classList.remove('now'));
+  if(SG.view==='sheet'){
+    const c=document.querySelector(`#sgSheet .sg-c[data-b="${Math.floor(sl/4)}"]`);if(c)c.classList.add('now');
+    const W=s.lyrics||[];let wi=-1;for(let k=0;k<W.length;k++){if(W[k].t<=t+0.05)wi=k;else break}
+    if(wi>=0&&t<=W[wi].e+0.6){const w=document.querySelector(`#sgSheet i[data-w="${wi}"]`);if(w)w.classList.add('now')}
+  }else{
+    const lk=sgLick(SG.view);let k=sl;while(k>sl-3&&!lk.map[k])k--;
+    (lk.map[k]||[]).forEach(ni=>{const e=document.querySelector(`#sgTab [data-n="g-${ni}"]`);if(e)e.classList.add('now')});
+  }
+  if(SG.playing)followNow(SG.view==='sheet'?'sgSheet':'sgTab');
+}
+/* 지판: 코드 · 가사 보기 = 지금 코드 운지, TAB 보기 = 지금 치는 음 */
+function sgDots(){
+  if(!SG.song)return'';const sl=Math.max(0,SG.slot),c=sgChordAt(sl);let s='';
+  const cc=c&&blChord(c.name);
+  if(SG.view==='sheet'||!SG.song.parts[SG.view]){const v=cc&&(BLV[c.name]||getV(cc));if(!v)return'';
+    v.forEach((f,i)=>{if(f<0){s+=`<text x="12" y="${sy(i)+8}" class="mute">×</text>`;return}const pc=mod(TUNE[i]+f),x=mod(pc-cc.r),q=Q[cc.qi];
+      s+=dot(i,f,(q.iv.some(y=>mod(y)===x)?role(x,q):'tone')+' on',st.lbl==='deg'?degree(x,q):nn(pc))});return s}
+  const lk=sgLick(SG.view);let k=sl;while(k>sl-3&&!lk.map[k])k--;
+  (lk.map[k]||[]).forEach(ni=>{const n=lk.notes[ni],pc=mod(TUNE[n.i]+n.f);let cls='tone';if(cc){const x=mod(pc-cc.r),q=Q[cc.qi];if(q.iv.some(y=>mod(y)===x))cls=role(x,q)}s+=dot(n.i,n.f,cls+' on',nn(pc))});
+  return s;
+}
+function sgCap(){if(!SG.song)return'곡연습: [분석 결과 열기]로 곡 분석 폴더를 여세요.';const c=sgChordAt(Math.max(0,SG.slot));
+  return `${SG.song.title} · ${Math.floor(Math.max(0,SG.slot)/16)+1}마디${c?' · '+c.name:''}. `+(SG.view==='sheet'?'지금 코드의 운지입니다.':'진한 점이 지금 치는 음입니다.')}
+/* ---------- 탭 소리 녹음 (Edge · Chrome 화면 공유의 '탭 오디오') ---------- */
+async function sgRecord(){
+  if(SG.rec){SG.rec.mr.stop();return}
+  let stream;
+  try{stream=await navigator.mediaDevices.getDisplayMedia({video:true,audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false},systemAudio:'include',selfBrowserSurface:'exclude',surfaceSwitching:'include'})}
+  catch(e){if(e&&e.name!=='NotAllowedError')alert('화면 공유를 시작하지 못했습니다: '+(e.message||e));return}
+  const at=stream.getAudioTracks();
+  if(!at.length){stream.getTracks().forEach(t=>t.stop());alert('소리가 공유되지 않았습니다.\n공유 창에서 [Microsoft Edge 탭]을 고르고, 아래의 "탭 오디오도 공유"를 켠 뒤 [공유]를 누르세요.\n(전체 화면을 고를 때는 "시스템 오디오 공유"를 켜세요)');return}
+  const mt=MediaRecorder.isTypeSupported('audio/webm;codecs=opus')?'audio/webm;codecs=opus':'audio/webm';
+  const mr=new MediaRecorder(new MediaStream(at),{mimeType:mt,audioBitsPerSecond:256000}),chunks=[],t0=Date.now();
+  mr.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
+  mr.onstop=async()=>{
+    stream.getTracks().forEach(t=>t.stop());clearInterval(SG.rec.tm);SG.rec=null;sgRecUi();
+    const blob=new Blob(chunks,{type:'audio/webm'}),d=new Date(),p=n=>String(n).padStart(2,'0');
+    const name=`녹음 ${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}.webm`;
+    try{
+      if(window.showSaveFilePicker){const h=await window.showSaveFilePicker({id:'saygita-rec',suggestedName:name,types:[{description:'녹음 (webm)',accept:{'audio/webm':['.webm']}}]});const w=await h.createWritable();await w.write(blob);await w.close()}
+      else{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click()}
+      alert('녹음을 저장했습니다.\n저장한 파일을 프로젝트 폴더의 "곡 분석하기.bat" 위에 끌어다 놓으면 분석이 시작됩니다.\n끝나면 [분석 결과 열기]로 "… 분석" 폴더를 여세요.');
+    }catch(e){if(!(e&&e.name==='AbortError'))alert('저장하지 못했습니다: '+(e.message||e))}
+  };
+  at[0].addEventListener('ended',()=>{if(mr.state!=='inactive')mr.stop()});   /* 브라우저의 '공유 중지'를 눌러도 저장 */
+  mr.start(1000);SG.rec={mr,t0,tm:setInterval(sgRecUi,500)};sgRecUi();
+}
+function sgRecUi(){const b=sgEl('sgRec'),t=sgEl('sgRecT');
+  if(SG.rec){b.textContent='■ 녹음 끝내고 저장';b.classList.add('rec');t.hidden=false;t.textContent='녹음 중 '+sgFmt((Date.now()-SG.rec.t0)/1000)}
+  else{b.textContent='🔴 탭 소리 녹음';b.classList.remove('rec');t.hidden=true}}
+/* ---------- 조작 ---------- */
+document.getElementById('p-song').addEventListener('click',e=>{
+  const b=e.target.closest('button');
+  if(!b){const c=e.target.closest('.sg-c');if(c&&SG.song){sgSeek(sgTime(+c.dataset.b*4));if(!SG.playing)sgMark(sgMaster().currentTime)}return}   /* 박 칸 누르면 거기로 */
+  const ds=b.dataset;
+  if(b.id==='sgOpen')return sgOpen();
+  if(b.id==='sgRecent'){sgDB.get('lastDir').then(h=>h?sgOpen(h):sgOpen());return}
+  if(b.id==='sgRec')return sgRecord();
+  if(!SG.song)return;
+  if(b.id==='sgPlay')return SG.playing?sgPause():sgPlay();
+  if(b.id==='sgLoop'){SG.loop=!SG.loop;b.setAttribute('aria-pressed',SG.loop);sgSave();return}
+  if(b.id==='sgAll'){SG.from=0;SG.to=-1;sgRender();return}
+  if(b.id==='sgBack'){sgSeek(sgMaster().currentTime-5);return}
+  if(ds.sgm){const x=SG.mix[ds.sgm];x.mute=!x.mute;sgVol();b.setAttribute('aria-pressed',!x.mute);b.textContent=x.mute?'끔':'켬';return}
+  if(ds.sgs){const x=SG.mix[ds.sgs];x.solo=!x.solo;sgVol();b.setAttribute('aria-pressed',x.solo);return}
+  if(ds.sgview){SG.view=ds.sgview;sgSave();sgRender();return}
+});
+document.getElementById('p-song').addEventListener('input',e=>{
+  const t=e.target;
+  if(t.dataset.sgv){SG.mix[t.dataset.sgv].vol=t.value/100;sgVol();return}
+  if(t.id==='sgSeek'){SG.dragging=true;const m=sgMaster();if(m&&m.duration)sgEl('sgCur').textContent=sgFmt(t.value/1000*m.duration)}
+});
+document.getElementById('p-song').addEventListener('change',e=>{
+  const t=e.target;
+  if(t.id==='sgSeek'){SG.dragging=false;const m=sgMaster();if(m&&m.duration)sgSeek(t.value/1000*m.duration);return}
+  if(t.id==='sgRate'){SG.rate=+t.value;Object.values(SG.els).forEach(a=>a.playbackRate=SG.rate);sgSave();return}
+  if(t.id==='sgFrom'||t.id==='sgTo'){SG[t.id==='sgFrom'?'from':'to']=+t.value;const to=SG.to<0?SG.song.bars-1:SG.to;if(SG.from>to){if(t.id==='sgFrom')SG.to=SG.from;else SG.from=SG.to}
+    sgSeek(Math.max(0,sgTime(SG.from*16)));sgRender();return}
+});
+/* 스페이스 = 재생/정지 (곡연습 탭에서, 입력 칸 밖) */
+document.addEventListener('keydown',e=>{if(st.tab!=='song'||!SG.song||e.code!=='Space'||/INPUT|SELECT|TEXTAREA|BUTTON/.test(document.activeElement&&document.activeElement.tagName))return;e.preventDefault();SG.playing?sgPause():sgPlay()});
+window.addEventListener('resize',()=>{clearTimeout(sgShow.t);sgShow.t=setTimeout(()=>{if(st.tab==='song'&&SG.song&&SG.view!=='sheet')sgTabView()},200)});
+function sgShow(){sgRecentBtn();sgRender();if(!SG.raf&&SG.song)SG.raf=requestAnimationFrame(sgTick)}
 /* 악보 두 손가락 확대 · Ctrl+휠: 블루스 TAB 에도 */
 (function(){
   const el=document.getElementById('blTab');let pz=null;
@@ -2327,8 +2617,9 @@ function setTab(t){
   if(t!=='adlib'&&ad.playing)adStop();
   if(t!=='blues'&&BL.playing)blStop();
   if(t!=='tune'&&TU.on)tuStop();   /* 조율기를 떠나면 마이크 끄기 */
-  ['find','name','scale','adlib','blues','shift','tune'].forEach(p=>document.getElementById('p-'+p).hidden=p!==t);
-  drawBoard();if(t==='name')renderName();if(t==='scale')renderScale();if(t==='shift')renderShift();if(t==='adlib')renderAdTab();if(t==='blues')blRender();if(t==='tune'){tuRender();if(!TU.on)tuStart()}   /* 조율기 탭 → 마이크 자동 켜기 */
+  if(t!=='song'&&SG.playing)sgPause();
+  ['find','name','scale','adlib','blues','song','shift','tune'].forEach(p=>document.getElementById('p-'+p).hidden=p!==t);
+  drawBoard();if(t==='name')renderName();if(t==='scale')renderScale();if(t==='shift')renderShift();if(t==='adlib')renderAdTab();if(t==='blues')blRender();if(t==='song')sgShow();if(t==='tune'){tuRender();if(!TU.on)tuStart()}   /* 조율기 탭 → 마이크 자동 켜기 */
 }
 document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
 document.querySelectorAll('[data-acc]').forEach(b=>b.addEventListener('click',()=>{
@@ -2371,7 +2662,7 @@ if(uiSaved){
   if(!inr(st.qi,0,Q.length-1))st.qi=0;
   if(st.bass!=null&&!inr(st.bass,0,11))st.bass=null;
   if(!Array.isArray(st.nv)||st.nv.length!==6)st.nv=[-1,3,2,0,1,0];
-  if(!['find','name','scale','adlib','blues','tune'].includes(st.tab))   /* 조옮김 탭은 숨김 → 저장돼 있으면 첫 탭으로 */
+  if(!['find','name','scale','adlib','blues','song','tune'].includes(st.tab))   /* 조옮김 탭은 숨김 → 저장돼 있으면 첫 탭으로 */
   st.tab='find';
   if(st.schShape&&!(inr(st.schShape.r,0,11)&&inr(st.schShape.qi,0,Q.length-1)&&inr(st.schShape.vi,0,20)))st.schShape=null;
   if(!inr(st.semi,-11,11))st.semi=0;
