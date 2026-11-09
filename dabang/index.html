@@ -2829,7 +2829,7 @@ async function sgDeep(file,fresh){
   const myTitle=SG.song&&SG.song.title;
   try{
     sgDeepUi('run',2,fresh?'PC 정밀 분석: 기존 분석을 지우고 새로 — 음원 보내는 중…':'PC 정밀 분석: 음원 보내는 중…');
-    const r=await fetch(SG_HELPER+'/analyze',{method:'POST',headers:{'X-File-Name':encodeURIComponent(file.name),'X-Reanalyze':fresh?'1':'0','Content-Type':'application/octet-stream'},body:file});
+    const r=await fetch(SG_HELPER+'/analyze'+(fresh?'?fresh=1':''),{method:'POST',headers:{'X-File-Name':encodeURIComponent(file.name),'Content-Type':'application/octet-stream'},body:file});   /* 새로 분석 = 주소에 표시 (새 머리글은 다른 주소의 화면에서 막힘) */
     const {id}=await r.json();if(!id)throw new Error('도우미 응답 없음');
     for(;;){
       const j=await (await fetch(SG_HELPER+'/job/'+encodeURIComponent(id),{cache:'no-store'})).json();
