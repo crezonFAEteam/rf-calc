@@ -203,6 +203,14 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .sg-list{width:auto!important;max-width:260px;min-width:0;padding:6px 8px;border-radius:999px}
 .sg-stat{margin:0 0 10px;font-weight:600;color:var(--accent)}.sg-stat progress{width:180px;vertical-align:middle;margin-left:8px}
 .sg-rect{color:#c0392b;font-weight:700}#sgRec.rec{background:#c0392b;border-color:#c0392b;color:#fff}
+.sg-h1{font-size:1.05rem}.sg-steps{display:grid;gap:10px;margin:10px 0}.sg-step{display:flex;gap:10px;align-items:flex-start}
+.sg-no{flex:none;width:24px;height:24px;border-radius:50%;background:var(--accent-fill);color:var(--on-accent);display:grid;place-items:center;font-weight:800;font-size:.85rem;margin-top:2px}
+.sg-step ul{margin:4px 0 0;padding-left:1.1em}.sg-step li{margin:3px 0}
+.sg-cmp{border-collapse:collapse;margin:6px 0 0;font-size:.9rem;width:100%}.sg-cmp th,.sg-cmp td{border:1px solid var(--line);padding:4px 8px;text-align:left;vertical-align:top}.sg-cmp th{background:var(--bg)}.sg-cmp td:first-child{white-space:nowrap;color:var(--muted)}
+.sg-more{margin-top:8px}.sg-more summary,.sg-guide summary{cursor:pointer;font-weight:700}
+.sg-guide{margin:8px 0 10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);line-height:1.6}
+.sg-guide dl{margin:8px 0 0;display:grid;grid-template-columns:auto 1fr;gap:6px 12px}.sg-guide dt{font-weight:700;white-space:nowrap}.sg-guide dd{margin:0}
+@media (max-width:560px){.sg-guide dl{grid-template-columns:1fr}.sg-guide dt{margin-top:4px}}
 .sg-help{padding:12px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface);line-height:1.65}.sg-help ol{margin:6px 0 0;padding-left:1.3em}.sg-help li{margin:4px 0}
 .sg-head{margin:4px 0 8px}.sg-head b{font-size:1.15rem}.sg-meta{color:var(--muted);font-size:.85rem}
 .sg-tr{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -553,15 +561,31 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
     <div id="sgStat" class="sg-stat" hidden></div>
     <div id="sgDeep" class="sg-deep" hidden></div>
     <div id="sgHelp" class="sg-help">
-      <b>곡에 맞춰 코드 · 가사 · TAB을 보며 따라 치기</b>
-      <p style="margin:6px 0"><b>이미 음원 파일이 있으면 (PC · 휴대폰):</b> [🎵 음원 파일 열기] → mp3 · mp4 · m4a · wav 파일을 고르면 이 기기에서 바로 <b>박자 · 코드</b>를 찾아 원곡과 함께 보여 줍니다 (4분 곡에 수십 초). 같은 파일은 다음부터 바로 열립니다.</p>
-      <p style="margin:6px 0"><b>가사 · 트랙 분리(노래 · 기타 · 베이스 · 드럼) · 기타 TAB까지 (PC):</b> 프로젝트 폴더의 <b>"분석 도우미 켜기.bat"</b>을 실행해 두면 [🎵 음원 파일 열기]만으로 이어서 자동 분석됩니다. 도우미 없이 하려면:</p>
-      <ol>
-        <li><b>소리 녹음:</b> 유튜브 등 연습할 곡을 다른 탭에서 재생할 준비를 하고 [🔴 탭 소리 녹음] → 공유 창에서 그 <b>탭</b>을 고르고 <b>"탭 오디오도 공유"</b>를 켠 뒤 [공유] → 곡을 처음부터 재생 → 끝나면 [■ 녹음 끝내고 저장]. (음원 파일이 있으면 녹음 없이 그 파일을 써도 됩니다)</li>
-        <li><b>분석:</b> 저장한 파일을 프로젝트 폴더의 <b>"곡 분석하기.bat"</b> 위에 끌어다 놓으세요. 노래 · 기타 · 베이스 · 드럼으로 나누고 박자 · 코드 · TAB · 가사를 찾습니다 (4분 곡에 몇 분).</li>
-        <li><b>연습:</b> [📂 분석 결과 열기] → 만들어진 <b>"… 분석"</b> 폴더를 고르면 (휴대폰에서는 그 폴더 안의 <b>"휴대폰용 ….zip"</b> 파일 하나를 휴대폰으로 옮겨 고르면) 원음에 맞춰 코드 · 가사가 흘러갑니다. 기타 트랙을 끄면 반주에 맞춰 직접 칠 수 있고, 속도를 줄이거나 마디를 반복할 수 있습니다.</li>
-      </ol>
-      <p class="sdesc" style="margin:6px 0 0">녹음 · 분석 결과는 이 PC에만 저장되고 서버에 올라가지 않습니다. 개인 연습용으로만 쓰세요.</p>
+      <b class="sg-h1">곡에 맞춰 코드 · 가사 · TAB을 보며 따라 치기</b>
+      <div class="sg-steps">
+        <div class="sg-step"><span class="sg-no">1</span><div><b>곡 열기</b> — 음원 파일을 열거나, 없으면 녹음해서 열기
+          <ul>
+            <li><b>[🎵 음원 파일 열기]</b>: mp3 · mp4 · m4a · wav 파일을 고릅니다. (PC · 휴대폰)</li>
+            <li><b>[🔴 탭 소리 녹음]</b> (PC): 파일이 없으면 유튜브 등에서 재생되는 소리를 녹음합니다.
+              연습할 곡을 다른 탭에 열어 두고 → [🔴 탭 소리 녹음] → 공유 창에서 그 <b>탭</b>을 고르고 <b>"탭 오디오도 공유"</b> 켜기 → [공유] → 곡을 처음부터 재생 → 끝나면 <b>[■ 녹음 끝내고 저장]</b> → 저장된 파일을 [🎵 음원 파일 열기]로 엽니다.</li>
+            <li><b>[분석된 곡 ▼]</b>: 전에 분석한 곡은 목록에서 바로 엽니다. 같은 음원 파일을 다시 열어도 분석 결과가 바로 나옵니다.</li>
+          </ul></div></div>
+        <div class="sg-step"><span class="sg-no">2</span><div><b>분석</b> — 열면 자동으로 진행. PC와 휴대폰은 할 수 있는 것이 다릅니다
+          <table class="sg-cmp"><tr><th></th><th>PC (분석 도우미 켜짐)</th><th>휴대폰 · 도우미 없는 PC</th></tr>
+            <tr><td>보이는 것</td><td>박자 · 코드 + <b>가사 · 기타 TAB · 베이스 TAB · 하모니카</b><br>+ 트랙 나누기 (노래 · 기타 · 베이스 · 드럼)</td><td>박자 · 코드</td></tr>
+            <tr><td>걸리는 시간</td><td>박자 · 코드는 수십 초 만에 먼저 보이고,<br>나머지는 곡당 몇 분 뒤 자동으로 바뀜 (위 진행 표시)</td><td>수십 초</td></tr></table>
+          <ul>
+            <li><b>휴대폰에서 정밀 분석 결과 보기</b>: PC에서 분석하면 생기는 <b>"휴대폰용 ….zip"</b> 파일(음악\쎄이기타 분석 폴더)을 휴대폰으로 옮겨 <b>[📂 분석 결과 열기]</b>로 고릅니다. 한 번 열면 휴대폰의 [분석된 곡 ▼]에 남습니다.</li>
+            <li><b>도우미가 없는 PC</b>: 도우미가 꺼져 있다는 안내가 뜨면 그 안의 [설치 파일 받기]로 한 번만 설치하세요.</li>
+          </ul></div></div>
+        <div class="sg-step"><span class="sg-no">3</span><div><b>키 · 카포 맞추기</b> — 악보 위 <b>곡 키</b> 줄에서
+          <ul>
+            <li><b>조옮김 − +</b>: 악보 코드를 반음씩 올리거나 내립니다. <b>[🔊 음원도 같이]</b>를 켜면 노래 · 반주 소리도 같은 키로 바뀝니다 (빠르기 그대로). 예) G로 부른 곡을 +2 → A키로 듣고 치기</li>
+            <li><b>카포 / 쉬운 모양</b>: 카포를 끼우고 쉬운 코드 모양으로 칩니다. 예) A키 곡 → [G · 카포 2] = 2프렛에 카포, G 모양으로</li>
+          </ul></div></div>
+        <div class="sg-step"><span class="sg-no">4</span><div><b>연습</b> — 재생하면 코드 · 가사가 원곡에 맞춰 흘러갑니다. 기타 트랙을 끄고 반주에 맞춰 직접 치거나, 속도를 늦추고 어려운 마디만 반복하세요. 곡을 열면 자세한 사용법(재생 · 반복 · 트랙 · 악보 누르기)이 나옵니다.</div></div>
+      </div>
+      <p class="sdesc" style="margin:8px 0 0">음원과 분석 결과는 이 기기(PC)에만 저장되고 서버에 올라가지 않습니다. 개인 연습용으로만 쓰세요.</p>
     </div>
     <div id="sgMain" hidden>
       <div class="sg-head"><b id="sgTitle"></b><span id="sgMeta" class="sg-meta"></span></div>
@@ -575,6 +599,22 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
         <label class="sg-rate">속도 <select id="sgRate"><option value="0.5">50%</option><option value="0.6">60%</option><option value="0.7">70%</option><option value="0.75">75%</option><option value="0.8">80%</option><option value="0.9">90%</option><option value="1">100%</option></select></label>
       </div>
       <input type="range" id="sgSeek" class="sg-seek" min="0" max="1000" value="0" aria-label="재생 위치">
+      <details class="sg-guide" id="sgGuide" open><summary>❓ 사용법 — 키/카포 · 재생 · 반복 · 악보 누르기 · 트랙</summary>
+        <dl>
+          <dt>🎼 키 · 카포</dt><dd><b>조옮김 − +</b> = 악보 코드를 반음씩 올림/내림 (소리는 원곡 그대로).<br>
+            <b>[🔊 음원도 같이]</b>를 켜면 소리도 같은 키로 바뀝니다 (빠르기 그대로, 목소리 색 유지). 예) G로 부른 곡을 +2 → A키로 듣고 치기.<br>
+            <b>카포 / 쉬운 모양</b> = 카포를 끼우고 쉬운 코드 모양으로 치기. 예) A키 곡을 [G · 카포 2] → 2프렛에 카포, G 모양으로.</dd>
+          <dt>▶ 재생</dt><dd><b>[재생]</b> 또는 <b>스페이스</b> = 재생/정지 · <b>[⏪ 5초]</b> = 조금 뒤로 · 막대를 끌어 원하는 곳으로.<br>
+            <b>속도</b> = 빠르기만 느리게 (음 높이는 그대로) · <b>[⇣ 따라가기]</b> = 지금 위치가 늘 보이게 자동 스크롤 · <b>[가− 가+]</b> = 악보 글자 크기.</dd>
+          <dt>⟳ 반복</dt><dd><b>반복할 마디</b>(트랙 아래)에서 시작 · 끝 마디를 고르고 <b>[⟳ 반복]</b>을 켜면 그 구간만 계속 돕니다. [전체] = 곡 전체. 반복을 끄면 구간 끝에서 멈춥니다.</dd>
+          <dt>👆 악보 누르기</dt><dd><b>코드 이름</b>을 누르면 그 코드 구간만 재생 · <b>다른 곳</b>(가사 · 빈칸 · 구멍 번호)을 누르면 그 박부터 재생 · 재생 중에 누르면 멈춤.<br>
+            TAB에서는 코드 이름이나 그 코드의 음 = 그 코드만, 빈 곳 = 지금 위치부터. 칸 하나 = 한 박.</dd>
+          <dt>🎚 트랙</dt><dd>트랙마다 <b>[켬/끔]</b> · <b>[혼자]</b>(그 트랙만 듣기) · 볼륨.<br>
+            예) <b>기타 끔</b> → 반주에 맞춰 내가 기타 치기 · <b>노래 혼자</b> → 가사 · 멜로디 듣기 · <b>노래 끔</b> → 내가 부르기.</dd>
+          <dt>👁 보기</dt><dd><b>코드 · 가사</b> / <b>기타 TAB</b> / <b>베이스 TAB</b> / <b>하모니카 구멍</b> (숫자 = 구멍, 숫자 위 점 = 들이마시기). 정밀 분석한 곡만 TAB · 하모니카가 있습니다.</dd>
+        </dl>
+        <p class="sdesc" style="margin:4px 0 0">자동 분석이라 틀린 코드 · 음 · 가사가 있을 수 있습니다. 귀로 확인하며 쓰세요.</p>
+      </details>
       <div class="sg-grid">
         <div class="sg-side">
           <span class="flabel">트랙 (믹서) — 기타를 끄면 반주에 맞춰 직접 치기</span>
@@ -587,7 +627,6 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
           <div id="sgKey"></div>
           <div id="sgSheet" class="sg-sheet"></div>
           <div id="sgTab" class="tab" hidden></div>
-          <p class="sdesc">칸 하나가 한 박입니다. 코드 이름을 누르면 그 코드만 재생하고, 다른 곳(가사 · 구멍 번호 · 빈칸)을 누르면 그 박부터 재생합니다. TAB에서는 코드 이름이나 그 코드의 음을 누르면 그 코드만, 빈 곳을 누르면 지금 위치부터 재생합니다. 재생 중에 누르면 멈춥니다. 스페이스 = 재생/정지. 자동 분석이라 틀린 코드 · 음 · 가사가 있을 수 있습니다.</p>
         </div>
       </div>
     </div>
@@ -2696,6 +2735,7 @@ async function sgOpenKey(v){
       sgStat(null);sgLoad(song,urls)}
   }catch(err){sgStat(null);alert('불러오지 못했습니다: '+(err&&err.message||err))}
 }
+(function(){const g=sgEl('sgGuide');if(!g)return;if(store.get('chordcalc-sgguide')==='0')g.open=false;g.addEventListener('toggle',()=>store.set('chordcalc-sgguide',g.open?'1':'0'))})();
 sgEl('sgAuto').addEventListener('change',e=>{SG.auto=e.target.checked;store.set('chordcalc-sgauto',SG.auto?'1':'0');if(!SG.auto)sgEl('sgDeep').hidden=true});
 /* ---------- PC 분석 도우미(127.0.0.1:52525)가 켜져 있으면: 음원을 열 때 이어서 정밀 분석(트랙 분리 · 가사 · TAB) 자동 진행 ---------- */
 const SG_HELPER='http://127.0.0.1:52525';
@@ -2738,7 +2778,7 @@ async function sgHelperGet(){
 document.addEventListener('click',e=>{const a=e.target.closest('[data-sghelper]');if(a){e.preventDefault();sgHelperGet()}});
 function sgDeepUi(kind,pct,msg){
   const e=sgEl('sgDeep');if(!e)return;e.hidden=false;e.className='sg-deep '+kind;
-  if(kind==='off'){e.innerHTML='PC 정밀 분석(트랙 분리 · 가사 · TAB)을 자동으로 하려면 프로젝트 폴더의 <b>"분석 도우미 켜기.bat"</b>을 실행하세요. 도우미가 켜지고 Edge 로 <a href="http://127.0.0.1:52525/" target="_blank" rel="noopener">http://127.0.0.1:52525</a> 이 열립니다 — 그 화면에서 음원을 열면 이어서 자동 진행됩니다. 이 PC에 도우미가 없으면 → <a href="#" data-sghelper>설치 파일 받기 (암호)</a> (압축 풀고 설치하기.bat, 약 3GB · 10~30분)'+(location.protocol==='https:'?' (지금 인터넷 주소에서 도우미가 막혔다면 주소창 왼쪽 자물쇠 → \'로컬 네트워크 액세스\' 허용, 또는 위 주소로 여세요)':'');return}
+  if(kind==='off'){e.innerHTML='PC 정밀 분석(트랙 분리 · 가사 · TAB)을 자동으로 하려면 바탕화면의 <b>[쎄이기타 분석 도우미]</b>(또는 프로젝트 폴더의 "분석 도우미 켜기.bat")를 실행하세요. 도우미가 켜지고 Edge 로 <a href="http://127.0.0.1:52525/" target="_blank" rel="noopener">http://127.0.0.1:52525</a> 이 열립니다 — 그 화면에서 음원을 열면 이어서 자동 진행됩니다. 이 PC에 도우미가 없으면 → <a href="#" data-sghelper>설치 파일 받기 (암호)</a> (압축 풀고 설치하기.bat, 약 3GB · 10~30분)'+(location.protocol==='https:'?' (지금 인터넷 주소에서 도우미가 막혔다면 주소창 왼쪽 자물쇠 → \'로컬 네트워크 액세스\' 허용, 또는 위 주소로 여세요)':'');return}
   e.innerHTML=esc(msg)+(pct!=null&&kind==='run'?` <progress max="100" value="${Math.round(pct)}"></progress> ${Math.round(pct)}%`:'');
 }
 sgEl('sgZipIn').addEventListener('change',e=>{const fs=e.target.files;sgFiles(fs).finally(()=>{e.target.value=''})});
