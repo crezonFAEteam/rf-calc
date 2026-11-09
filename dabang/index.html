@@ -1818,7 +1818,8 @@ function tuEnv(){
   const u=navigator.userAgent||'';
   const inapp=/KAKAOTALK/i.test(u)?'카카오톡':/NAVER\(inapp|NAVER\//i.test(u)?'네이버 앱':/Instagram/i.test(u)?'인스타그램':/FBAN|FBAV/i.test(u)?'페이스북':/\bLine\//i.test(u)?'라인':/DaumApps/i.test(u)?'다음 앱':/; wv\)/.test(u)?'앱 안 브라우저':null;
   const ios=/iPhone|iPad|iPod/i.test(u)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-  return {inapp,ios,android:/Android/i.test(u),samsung:/SamsungBrowser/i.test(u),crios:/CriOS/i.test(u)};
+  const edge=/EdgA|EdgiOS|Edg\//.test(u);
+  return {inapp,ios,android:/Android/i.test(u),samsung:/SamsungBrowser/i.test(u),crios:/CriOS/i.test(u),edge,fxios:/FxiOS/i.test(u)};
 }
 function tuHelp(kind){
   const el=document.getElementById('tuHelp');if(!kind){el.hidden=true;return}
@@ -1829,7 +1830,9 @@ function tuHelp(kind){
   else if(kind==='busy'){t='다른 앱이 마이크를 쓰고 있습니다.';li=['통화 · 녹음 · 음성 인식 앱을 닫으세요.','이 페이지를 새로고침한 뒤 다시 [마이크 켜기]를 누르세요.']}
   else if(kind==='nomic'){t='마이크를 찾지 못했습니다.';li=['이어폰 마이크를 쓰고 있다면 빼고 다시 해 보세요.']}
   else{t='이 사이트의 마이크 권한이 꺼져 있습니다.';
-    if(v.ios&&v.crios)li=['iPhone 설정 앱 → Chrome → 마이크를 켜세요.','Chrome으로 돌아와 페이지를 새로고침 → [마이크 켜기] → \'허용\'.'];
+    if(v.ios&&(v.crios||v.edge||v.fxios)){const app=v.edge?'Edge':v.crios?'Chrome':'Firefox';li=[`iPhone 설정 앱 → ${app} → 마이크를 켜세요.`,`${app}(으)로 돌아와 페이지를 새로고침 → [마이크 켜기] → '허용'.`]}
+    else if(v.edge&&v.android)li=['주소창 왼쪽 자물쇠 아이콘 → 권한(사이트 권한) → 마이크 → \'허용\'. (보이지 않으면 ··· → 설정 → 개인 정보, 검색 및 서비스 → 사이트 권한 → 마이크에서 이 사이트를 허용)','그래도 안 되면 휴대폰 설정 → 애플리케이션 → Edge → 권한 → 마이크 → \'앱 사용 중에만 허용\'.','페이지를 새로고침한 뒤 [마이크 켜기]를 누르세요.'];
+    else if(v.edge)li=['주소창 왼쪽 자물쇠 아이콘 → 이 사이트에 대한 권한 → 마이크 → \'허용\'. (또는 주소창에 edge://settings/content/microphone 입력 → \'차단\' 목록에서 이 사이트 삭제)','마이크가 여러 개면 같은 설정 화면 위쪽에서 쓸 마이크를 고르세요.','Windows 설정 → 개인 정보 및 보안 → 마이크에서 \'앱이 마이크에 액세스하도록 허용\'과 \'데스크톱 앱이 마이크에 액세스하도록 허용\'을 켜세요.','페이지를 새로고침한 뒤 [마이크 켜기]를 누르세요.'];
     else if(v.ios)li=['Safari 주소창 왼쪽의 \'가가\'(또는 aA) 버튼 → 웹 사이트 설정 → 마이크 → \'허용\'.','그래도 안 되면 iPhone 설정 앱 → Safari → 마이크 → \'묻기\' 또는 \'허용\'.','페이지를 새로고침한 뒤 [마이크 켜기]를 누르세요.'];
     else if(v.samsung)li=['주소창 왼쪽 자물쇠 아이콘 → 권한 → 마이크 → 허용.','그래도 안 되면 휴대폰 설정 → 애플리케이션 → 삼성 인터넷 → 권한 → 마이크 → 허용.','페이지를 새로고침한 뒤 [마이크 켜기]를 누르세요.'];
     else if(v.android)li=['주소창 왼쪽 아이콘(자물쇠 또는 조절 모양)을 누르세요 → 권한 → 마이크 → \'허용\'. (보이지 않으면 ⋮ → 설정 → 사이트 설정 → 마이크에서 이 사이트를 허용)','그래도 안 되면 휴대폰 설정 → 애플리케이션 → Chrome → 권한 → 마이크 → \'앱 사용 중에만 허용\'.','페이지를 새로고침한 뒤 [마이크 켜기]를 누르세요.'];
