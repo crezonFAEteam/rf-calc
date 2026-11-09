@@ -2405,7 +2405,7 @@ async function sgDeep(file){
 }
 function sgDeepUi(kind,pct,msg){
   const e=sgEl('sgDeep');if(!e)return;e.hidden=false;e.className='sg-deep '+kind;
-  if(kind==='off'){e.innerHTML='PC 정밀 분석(트랙 분리 · 가사 · TAB)을 자동으로 하려면 프로젝트 폴더의 <b>"분석 도우미 켜기.bat"</b>을 실행해 두세요. 켜 둔 뒤 음원을 다시 열면 이어서 자동 진행됩니다.';return}
+  if(kind==='off'){e.innerHTML='PC 정밀 분석(트랙 분리 · 가사 · TAB)을 자동으로 하려면 프로젝트 폴더의 <b>"분석 도우미 켜기.bat"</b>을 실행하세요. 도우미가 켜지고 Edge 로 <a href="http://127.0.0.1:52525/" target="_blank" rel="noopener">http://127.0.0.1:52525</a> 이 열립니다 — 그 화면에서 음원을 열면 이어서 자동 진행됩니다.'+(location.protocol==='https:'?' (지금 인터넷 주소에서 도우미가 막혔다면 주소창 왼쪽 자물쇠 → \'로컬 네트워크 액세스\' 허용, 또는 위 주소로 여세요)':'');return}
   e.innerHTML=esc(msg)+(pct!=null&&kind==='run'?` <progress max="100" value="${Math.round(pct)}"></progress> ${Math.round(pct)}%`:'');
 }
 sgEl('sgFileIn').addEventListener('change',e=>{const fs=e.target.files;sgFiles(fs).finally(()=>{e.target.value=''})});
