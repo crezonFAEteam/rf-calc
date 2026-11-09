@@ -210,6 +210,7 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .sg-inst td:first-child{color:var(--ink);font-weight:700}.sg-inst.sm{font-size:.85rem;margin:0}
 @media (max-width:560px){.sg-inst,.sg-inst tbody,.sg-inst tr,.sg-inst td{display:block;width:auto}.sg-inst tr:first-child{display:none}.sg-inst tr{border:1px solid var(--line);border-radius:8px;margin:6px 0;padding:4px 0}.sg-inst td{border:0;padding:2px 8px}}
 .sg-more{margin-top:8px}.sg-more summary,.sg-guide summary{cursor:pointer;font-weight:700}
+.sg-diag{margin:4px 0 0;padding:4px 10px;border-radius:8px;background:var(--bg);border:1px dashed var(--line);font-size:.82rem;color:var(--muted)}
 .sg-guide{margin:8px 0 10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);line-height:1.6}
 .sg-guide dl{margin:8px 0 0;display:grid;grid-template-columns:auto 1fr;gap:6px 12px}.sg-guide dt{font-weight:700;white-space:nowrap}.sg-guide dd{margin:0}
 @media (max-width:560px){.sg-guide dl{grid-template-columns:1fr}.sg-guide dt{margin-top:4px}}
@@ -629,6 +630,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
         <label class="sg-rate">속도 <select id="sgRate"><option value="0.5">50%</option><option value="0.6">60%</option><option value="0.7">70%</option><option value="0.75">75%</option><option value="0.8">80%</option><option value="0.9">90%</option><option value="1">100%</option></select></label>
       </div>
       <input type="range" id="sgSeek" class="sg-seek" min="0" max="1000" value="0" aria-label="재생 위치">
+      <div id="sgDiag" class="sg-diag" role="status" hidden></div>
       <details class="sg-guide" id="sgGuide" open><summary>❓ 사용법 — 키/카포 · 재생 · 반복 · 악보 누르기 · 트랙 · 악기별 · 합주</summary>
         <dl>
           <dt>🎼 키 · 카포</dt><dd><b>조옮김 − +</b> = 악보 코드를 반음씩 올림/내림 (소리는 원곡 그대로).<br>
@@ -2213,14 +2215,23 @@ function sgLoad(song,urls){
   const hasStems=(song.stems||[]).some(s=>s.id!=='mix'&&urls[s.id]);
   for(const st of song.stems||[]){if(!urls[st.id])continue;
     const a=new Audio(urls[st.id]);a.preload='auto';a.preservesPitch=true;a.mozPreservesPitch=true;a.webkitPreservesPitch=true;a.playbackRate=SG.rate;
+    a.addEventListener('waiting',()=>sgDg('wait',st.name));a.addEventListener('stalled',()=>sgDg('wait',st.name));
     SG.els[st.id]=a;SG.ids.push(st.id);SG.mix[st.id]={vol:st.id==='vocals'?0.9:1,mute:st.id==='mix'&&hasStems,solo:false}}
   if(!SG.ids.length){alert('트랙 파일(mp3)을 찾지 못했습니다.');return}
   const m=SG.els[SG.ids[0]];m.addEventListener('loadedmetadata',()=>{sgEl('sgDur').textContent=sgFmt(m.duration)});
   m.addEventListener('ended',()=>{if(SG.loop){sgSeek(SG.from?sgTime(SG.from*16):0);sgPlay()}else sgPause()});
-  sgVol();sgRender();if(SG.ps||sgPitchSemi())sgPitchApply();
+  sgVol();sgRender();sgDgReset();if(SG.ps||sgPitchSemi())sgPitchApply();
   if(!song.quick&&!SG.keepOff)sgKeep(song,urls);   /* 다음엔 '분석된 곡' 목록에서 바로 */
 }
 function sgMaster(){return SG.els[SG.ids[0]]}
+/* 재생 점검: 끊김 원인을 이 기기에서 바로 셈 → 문제가 있을 때만 재생 막대 아래에 표시 */
+function sgDgReset(){SG.dg={wait:0,who:{},nudge:0,seek:0,eng:0,eng0:null};sgDgShow()}
+function sgDg(k,who){if(!SG.playing||!SG.dg)return;SG.dg[k]++;if(who)SG.dg.who[who]=(SG.dg.who[who]||0)+1;sgDgShow()}
+function sgDgShow(){const e=sgEl('sgDiag'),d=SG.dg;if(!e||!d)return;
+  const ps=SG.ac&&SG.ac.playoutStats;if(ps&&SG.playing){if(d.eng0==null)d.eng0=ps.fallbackFramesEvents;d.eng=ps.fallbackFramesEvents-d.eng0}
+  const who=Object.entries(d.who).sort((a,b)=>b[1]-a[1]).map(([n,c])=>n+' '+c).join(', ');
+  const parts=[];if(d.wait)parts.push(`트랙 멈칫 ${d.wait}번 (${who})`);if(d.eng)parts.push(`키 바꾸기 엔진 끊김 ${d.eng}번`);if(d.seek)parts.push(`트랙 위치 맞춤 ${d.seek}번`);if(d.nudge>8)parts.push(`트랙 속도 맞춤 ${d.nudge}번`);
+  e.hidden=!parts.length;if(parts.length)e.textContent='재생 점검: '+parts.join(' · ')+' — 소리가 끊기면 이 내용을 알려 주세요';}
 /* ---------- 음원 키 바꾸기: 모든 트랙 → 피치 시프터(AudioWorklet) → 스피커. 빠르기는 그대로 · 한 번도 안 쓰면 기본 재생 경로 그대로 ---------- */
 const SG_PS_SRC=String.raw`/* 음높이만 바꾸기(빠르기 그대로): 위상 보코더 피치 시프트 + 위상 고정(같은 음의 이웃 성분은 봉우리와 위상을 맞춤) + 포먼트 보존(목소리 색 = 스펙트럼 윤곽은 원래대로). FFT 2048, 8배 겹침 */
 class SgPitch extends AudioWorkletProcessor{
@@ -2248,7 +2259,7 @@ class SgPitch extends AudioWorkletProcessor{
     for(let k=0;k<N;k++){re[k]=S.inF[k]*w[k];im[k]=0}
     this.fft(false);
     for(let k=0;k<=H;k++){const p=Math.atan2(im[k],re[k]);let d=p-S.lp[k];S.lp[k]=p;ph[k]=p;d-=k*ex;
-      d-=2*Math.PI*Math.round(d/(2*Math.PI));aF[k]=k+os*d/(2*Math.PI);aM[k]=2*Math.hypot(re[k],im[k])}
+      d-=2*Math.PI*Math.round(d/(2*Math.PI));aF[k]=k+os*d/(2*Math.PI);aM[k]=2*Math.sqrt(re[k]*re[k]+im[k]*im[k])}
     /* 포먼트(목소리 색) 윤곽: 켑스트럼 — log 크기 → 역FFT → 1.5ms 이하만 남김 → FFT */
     const E=this.E,fm=this.fm&&r!==1;
     if(fm){for(let k=0;k<N;k++){re[k]=Math.log(aM[k<=H?k:N-k]+1e-9);im[k]=0}
@@ -2321,8 +2332,9 @@ function sgPlay(){
 function sgSync(){
   const m=sgMaster();if(!m||m.paused||m.seeking)return;const mt=m.currentTime;
   SG.ids.slice(1).forEach(i=>{const e=SG.els[i];if(e.paused||e.seeking)return;const d=e.currentTime-mt,ad=Math.abs(d);
-    let r=SG.rate;if(ad>0.4){e.currentTime=mt}else if(ad>0.025)r=SG.rate*(d>0?0.96:1.04);
-    if(Math.abs(e.playbackRate-r)>1e-4)e.playbackRate=r});
+    let r=SG.rate;if(ad>0.4){e.currentTime=mt;sgDg('seek')}else if(ad>0.025)r=SG.rate*(d>0?0.96:1.04);
+    if(Math.abs(e.playbackRate-r)>1e-4){if(r!==SG.rate)sgDg('nudge');e.playbackRate=r}});
+  if(SG.ac&&SG.ac.playoutStats)sgDgShow();
 }
 function sgPause(){
   Object.values(SG.els).forEach(e=>{try{e.pause()}catch(x){}});SG.playing=false;clearInterval(SG.sync);
