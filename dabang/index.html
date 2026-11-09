@@ -193,6 +193,7 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 #blSel{flex:1 1 200px;min-width:0;width:auto!important;padding:6px 8px}
 .blrange{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .blrange select{width:auto!important;min-width:0;padding:6px 8px}
+#blInfo{margin-top:12px}
 .blttl{font-weight:700;font-size:1.05rem;margin:4px 0 2px}
 .blmeta{color:var(--muted);font-size:.82rem;margin:0 0 6px}
 #blTab{touch-action:pan-x pan-y;cursor:pointer}
@@ -407,7 +408,6 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
           <input type="password" id="blPw" placeholder="암호" autocomplete="off" aria-label="예제 파일 암호">
           <button id="blPwOk" class="ghost sm">열기</button><button id="blPwNo" class="ghost sm">취소</button>
         </div>
-        <div id="blInfo"></div>
         <div class="field" id="blBoxField" style="margin-top:14px" hidden><span class="flabel" id="blBoxLbl">운지표</span><div id="blBox" class="blbox"></div></div>
         <div class="field" style="margin-top:14px"><span class="flabel">반복할 마디</span>
           <div class="blrange"><select id="blFrom" aria-label="시작 마디"></select><span>~</span><select id="blTo" aria-label="끝 마디"></select><button id="blAll" class="ghost sm">전체</button></div></div>
@@ -417,6 +417,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
       <div>
         <div class="btns left"><button id="blPlay" class="play">재생</button><button id="blLoop" class="ghost" aria-pressed="false" title="켜면 끝까지 재생한 뒤 처음부터 계속 반복">⟳ 반복</button><button class="ghost follow" data-follow aria-pressed="true" title="재생 중 지금 치는 음이 보이도록 악보를 자동으로 스크롤">⇣ 따라가기</button><button id="blZo" class="ghost pc-only" title="악보 글자 작게 (Ctrl+휠)">가−</button><button id="blZi" class="ghost pc-only" title="악보 글자 크게 (Ctrl+휠)">가+</button></div>
         <div class="tab" id="blTab"></div>
+        <div id="blInfo"></div>   <!-- 예제 제목 · 설명: 악보 아래 -->
         <p class="sdesc">칸 하나는 8분음표이고, 셔플을 켜면 둘째 8분음표를 늦게(셋잇단의 셋째) 칩니다. D는 다운, U는 업 스트로크, x는 뮤트입니다. 악보에서 코드 이름이나 그 코드의 음을 누르면 그 코드만, 빈 곳을 누르면 전체를 재생하고, 재생 중에 누르면 멈춥니다. 재생하면 지금 치는 음이 TAB과 지판에 표시되고, 지판의 흐린 점은 그 마디에서 잡는 모양입니다.</p>
       </div>
     </div>
