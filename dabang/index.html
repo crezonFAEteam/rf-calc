@@ -223,18 +223,16 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .sg-mxn{font-weight:600;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sg-mx button[aria-pressed="true"]{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent)}
 .sg-mx [data-sgm][aria-pressed="false"]{opacity:.6}
-.sg-sheet{margin-top:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(calc(240px*var(--sgz,1)),100%),1fr));gap:calc(14px*var(--sgz,1)) 0;font-size:calc(16px*var(--sgz,1))}   /* --sgz = 악보 크기 배율 */
-.sg-brk{grid-column:1/-1;height:0;margin:calc(-8px*var(--sgz,1)) 0}   /* 가사 새 줄 · 노래 ↔ 간주 바뀜 = 새 행 */
-.sg-barbox{position:relative;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:auto auto;border-left:2px solid var(--line);min-height:calc(52px*var(--sgz,1))}
+.sg-sheet{margin-top:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(calc(160px*var(--sgz,1)),100%),1fr));gap:0;font-size:calc(16px*var(--sgz,1))}   /* --sgz = 악보 크기 배율 */
+#sgSheet{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}   /* TAB처럼 흰 바탕 상자 */
+.sg-barbox{position:relative;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:auto auto;border-right:1px solid var(--line);border-bottom:1px solid var(--line);margin:0 -1px -1px 0;min-height:calc(58px*var(--sgz,1))}   /* 마디선 · 줄 구분선 (바깥쪽 선은 상자 테두리와 겹침) */
 .sg-barbox .sg-c{grid-row:1/3}
 .sg-lyr{grid-row:2;grid-column:1/-1;display:grid;grid-template-columns:repeat(16,minmax(0,1fr));row-gap:2px;padding:0 0 4px;pointer-events:none;z-index:1;align-self:end}
 .sg-lyr i{font-style:normal;justify-self:start;white-space:nowrap;padding-left:4px;font-size:1em;line-height:1.35;color:var(--ink);grid-row:1}
 .sg-lyr i.now{background:var(--ink);color:var(--bg);border-radius:4px;padding:0 3px}
 .sg-barbox:not(.inst) .sg-c{padding-bottom:calc(1.5em + 4px)}
-.sg-barbox.inst{min-height:0}.sg-barbox.inst .sg-ch{font-size:.95em}
-.sg-run{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(calc(92px*var(--sgz,1)),1fr));row-gap:calc(16px*var(--sgz,1))}   /* 간주: 마디를 작게 모아서 */
-.sg-run .sg-c{padding-left:2px;padding-right:0;overflow:visible}
-.sg-bn{position:absolute;left:4px;top:calc(-13px*var(--sgz,1));font-size:calc(10px*var(--sgz,1));color:var(--muted);opacity:.7;line-height:1}
+.sg-barbox.inst .sg-ch{font-size:.95em}
+.sg-bn{position:absolute;left:4px;top:3px;font-size:calc(10px*var(--sgz,1));color:var(--muted);opacity:.75;line-height:1;pointer-events:none}
 .sg-c{display:block;padding:2px 4px 4px;cursor:pointer;min-width:0;border-radius:6px}
 .sg-c:hover{background:var(--bg)}
 .sg-ch:not(:empty){cursor:pointer}.sg-ch:not(:empty):hover{text-decoration:underline}
@@ -250,8 +248,7 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .hp.dr[data-b]::before{margin-left:-5px}
 .hp.no{font-size:.8rem;font-weight:500;color:var(--muted)}
 .hp-leg .hp{font-size:.95rem}
-.sg-sheet .sg-c{padding:calc(2px*var(--sgz,1)) 4px calc(4px*var(--sgz,1))}
-#sgTab .sg-barbox{margin-top:calc(14px*var(--sgz,1))}
+.sg-sheet .sg-c{padding:calc(14px*var(--sgz,1)) 4px calc(4px*var(--sgz,1))}
 .hp-ly{line-height:1.9}.hp-ly i.now .hp{color:var(--bg)}
 .sg-c.now .hp{color:var(--on-accent)}
 @media (max-width:900px){.sg-grid{grid-template-columns:minmax(0,1fr)}}
@@ -2413,19 +2410,14 @@ function sgRender(){
   SG.slot=-1;sgShowTime(sgMaster()?sgMaster().currentTime:0,true);
 }
 /* 코드 · 가사: 박마다 한 칸 (마디 = 4칸), 코드 이름 위 · 가사 아래 */
-function sgSheet(){   /* 노래 악보처럼: 마디 = 얇은 세로선, 코드는 바뀌는 곳에만, 가사 한 줄마다 새 행, 간주(가사 없음)는 코드만 작게 모아서
+function sgSheet(){   /* TAB처럼: 흰 바탕 상자 안에 마디를 선으로 나눔 (한 줄에 같은 수의 마디). 코드는 바뀌는 곳에만,
      가사는 마디마다 16칸(16분음표) 줄에 부른 시간 자리에 놓음 → 겹치면 sgLyFit 이 뒤로 밀거나 둘째 줄로 */
-  const s=SG.song,W=s.lyrics||[],out=[],CH0=sgCh();let last=null,run=false;
+  const s=SG.song,W=s.lyrics||[],out=[],CH0=sgCh();let last=null;
   const adj=s.lyricsVer>=2?0.5:1,byBar={};   /* 옛 분석(시간 맞춤 전)은 노래가 살짝 먼저 들어가는 걸 감안해 1칸 당겨 셈 */
   W.forEach((w,k)=>{const q=Math.max(0,Math.floor(w.s+adj));(byBar[q>>4]=byBar[q>>4]||[]).push({k,c:q&15})});
-  const lineBar=new Set((s.lines||[]).map(l=>Math.max(0,Math.floor((l.s+adj)/16))));
-  const sung=bar=>!!byBar[bar];
   for(let bar=0;bar<s.bars;bar++){
-    const v=sung(bar),brk=bar>0&&(lineBar.has(bar)||v!==sung(bar-1));
-    if(run&&(v||brk)){out.push('</div>');run=false}
-    if(brk)out.push('<div class="sg-brk"></div>');
-    if(!v&&!run){out.push('<div class="sg-run">');run=true}
-    let h=`<div class="sg-barbox${v?'':' inst'}" data-bar="${bar}">${bar===0||brk||(v&&bar%8===0)?`<span class="sg-bn">${bar+1}</span>`:''}`;
+    const v=!!byBar[bar];
+    let h=`<div class="sg-barbox${v?'':' inst'}" data-bar="${bar}"><span class="sg-bn">${bar+1}</span>`;
     for(let k=0;k<4;k++){const b=bar*4+k,a=b*4,z=a+4;
       const ch=CH0.find(c=>c.s>=a&&c.s<z),cur=sgChordAt(a);
       const name=ch?ch.name:(k===0&&cur&&cur!==last?cur.name:'');if(ch||name)last=ch||cur;
@@ -2433,11 +2425,9 @@ function sgSheet(){   /* 노래 악보처럼: 마디 = 얇은 세로선, 코드�
       h+=`<span class="sg-c" data-b="${b}" style="grid-column:${k+1}"><b class="sg-ch"${cf?` style="padding-left:${cf*25}%"`:''}>${esc(name)}</b></span>`}
     if(v)h+=`<div class="sg-lyr">${byBar[bar].map(x=>`<i data-w="${x.k}" data-c="${x.c}" style="grid-column:${x.c+1}">${esc(W[x.k].w)}</i>`).join('')}</div>`;
     out.push(h+'</div>')}
-  if(run)out.push('</div>');
   sgEl('sgSheet').innerHTML=out.join('');
   sgLyFit();
 }
-/* 가사 자리 다듬기: 마디 안 16칸에서 앞 단어와 겹치면 뒤로 밀고, 마디 끝을 넘으면 앞으로 당기거나 둘째 줄로 (글자는 절대 쪼개지 않음) */
 window.addEventListener('resize',()=>{if(SG.song&&SG.view==='sheet'){clearTimeout(SG.fitT);SG.fitT=setTimeout(sgLyFit,150)}});
 function sgLyFit(){
   const el=sgEl('sgSheet');if(!el||!el.offsetParent)return;
