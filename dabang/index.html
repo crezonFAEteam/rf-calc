@@ -503,7 +503,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
         <div id="tuCents" class="tu-cents"></div>
         <div class="tu-fine" id="tuFine" aria-hidden="true"><div class="tu-fine-ticks"></div><span class="tu-fl">−10</span><span class="tu-fc">0</span><span class="tu-fr">+10</span><div id="tuFineMark"></div></div>
         <div class="tu-strobe" aria-hidden="true"><div id="tuStrobe"></div></div>
-        <div id="tuMsg" class="tu-msg" role="status">마이크를 켜고 줄을 하나씩 튕기세요.</div>
+        <div id="tuMsg" class="tu-msg" role="status">줄을 하나씩 튕기세요. (조율기 탭을 열면 마이크가 켜지고, 다른 탭으로 가면 꺼집니다)</div>
         <div id="tuHz" class="tu-hz"></div>
       </div>
       <div id="tuHelp" class="tu-help" hidden></div>
@@ -1903,6 +1903,13 @@ async function tuStart(){
     document.getElementById('tuMsg').textContent=kind==='denied'?'마이크가 막혀 있습니다. 아래 순서대로 허용해 주세요.':kind==='busy'?'마이크를 열지 못했습니다 (다른 앱 사용 중).':'마이크를 찾지 못했습니다.';
     tuHelp(kind)}
 }
+/* 화면을 끄거나 다른 앱으로 가면 마이크 끄기, 조율기 탭으로 돌아오면 다시 켜기 */
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){if(TU.on){tuStop();TU.resume=true}}
+  else if(TU.resume&&st.tab==='tune'){TU.resume=false;tuStart()}
+});
+/* 페이지를 다시 열 때 바로 조율기 탭이면: 첫 터치에서 소리 엔진을 깨움 (휴대폰은 터치 전 소리 엔진이 잠겨 있음) */
+document.addEventListener('pointerdown',()=>{try{if(actx&&actx.state==='suspended')actx.resume()}catch(e){}},{passive:true});
 function tuStop(){
   TU.on=false;if(TU.raf)cancelAnimationFrame(TU.raf);TU.raf=0;
   try{TU.src&&TU.src.disconnect();TU.lp&&TU.lp.disconnect();TU.n1&&TU.n1.disconnect();TU.n2&&TU.n2.disconnect()}catch(e){}if(TU.stream)TU.stream.getTracks().forEach(t=>t.stop());TU.stream=null;TU.src=null;TU.cur=null;
@@ -2321,7 +2328,7 @@ function setTab(t){
   if(t!=='blues'&&BL.playing)blStop();
   if(t!=='tune'&&TU.on)tuStop();   /* 조율기를 떠나면 마이크 끄기 */
   ['find','name','scale','adlib','blues','shift','tune'].forEach(p=>document.getElementById('p-'+p).hidden=p!==t);
-  drawBoard();if(t==='name')renderName();if(t==='scale')renderScale();if(t==='shift')renderShift();if(t==='adlib')renderAdTab();if(t==='blues')blRender();if(t==='tune')tuRender();
+  drawBoard();if(t==='name')renderName();if(t==='scale')renderScale();if(t==='shift')renderShift();if(t==='adlib')renderAdTab();if(t==='blues')blRender();if(t==='tune'){tuRender();if(!TU.on)tuStart()}   /* 조율기 탭 → 마이크 자동 켜기 */
 }
 document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
 document.querySelectorAll('[data-acc]').forEach(b=>b.addEventListener('click',()=>{
