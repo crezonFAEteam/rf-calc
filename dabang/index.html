@@ -915,7 +915,7 @@ const fx=n=>X0+SCALE*(1-Math.pow(2,-n/12));
 const sy=i=>32+(5-i)*30;
 const cx=f=>f===0?36:(fx(f-1)+fx(f))/2;
 /* 점은 줄 간격(30)에 거의 꽉 차게(반지름 14), 글자는 점 안에서 최대한 크게. 세 글자(♭13 등)는 조금 줄임 */
-function dot(i,f,cls,label){const L=String(label).replace(/<[^>]*>/g,'').length,fs=L>=3?12:L===2?14.5:16.5;return `<g class="dot ${cls}"><circle cx="${cx(f).toFixed(1)}" cy="${sy(i)}" r="14"/><text x="${cx(f).toFixed(1)}" y="${(sy(i)+fs*0.36).toFixed(1)}" style="font-size:${fs}px">${label}</text></g>`}
+function dot(i,f,cls,label){const L=String(label).replace(/<[^>]*>/g,'').length,fs=L>=3?12:L===2?14.5:16.5;return `<g class="dot ${cls}" data-i="${i}" data-fr="${f}"><circle cx="${cx(f).toFixed(1)}" cy="${sy(i)}" r="14"/><text x="${cx(f).toFixed(1)}" y="${(sy(i)+fs*0.36).toFixed(1)}" style="font-size:${fs}px">${label}</text></g>`}
 function drawBoard(){
   let s=`<rect x="${X0}" y="14" width="${(fx(FR)-X0+8).toFixed(1)}" height="186" rx="3" class="wood"/>`;
   [3,5,7,9,15].forEach(n=>s+=`<circle cx="${cx(n).toFixed(1)}" cy="107" r="7" class="inlay"/>`);
@@ -3358,10 +3358,24 @@ function adInit(){
 }
 
 /* ---------- 탭 · 표기 ---------- */
+/* 지금 지판에 진하게 표시된 점 → 줄마다 한 프렛 (여러 개면 가장 낮은 프렛, 점 없는 줄은 뮤트). 점이 하나도 없으면 null */
+function boardV(){
+  const v=[-1,-1,-1,-1,-1,-1],c=[0,0,0,0,0,0];let n=0;
+  document.querySelectorAll('#board g.dot.on').forEach(g=>{const i=+g.dataset.i,f=+g.dataset.fr;if(!(i>=0&&i<6&&f>=0))return;c[i]++;if(v[i]<0||f<v[i]){if(v[i]<0)n++;v[i]=f}});
+  return n&&Math.max(...c)<=2?v:null;   /* 한 줄에 3개 넘으면 음계 화면 → 코드 아님 */
+}
+/* (점이 없을 때) 각 탭에서 지금 보고 있는 코드의 운지 (블루스 · 애드립 · 곡연습은 지금 마디의 코드, 곡연습은 카포 자리까지) */
+function tabChordV(tab){
+  if(tab==='find')return st.voicings[st.vi];
+  if(tab==='scale')return st.schShape?shapeV():st.schSel?findVoicings(st.schSel.r,st.schSel.qi,null)[0]:null;
+  if(tab==='blues'){const lk=BL.lk;if(!lk)return null;const t=BL.cur?BL.cur.t:blRestT(lk),sg=lk.segs.find(x=>t>=x.start&&t<x.start+x.len)||lk.segs[0];return sg&&(BLV[sg.c.name]||getV(sg.c))}
+  if(tab==='adlib'){if(!ad.licks.length)return null;const lk=ad.licks[ad.cur?ad.cur.k:0],n=ad.cur?lk.notes[ad.cur.n]:null,sg=n?lk.segs.find(x=>n.t>=x.start&&n.t<x.start+x.len):lk.segs[0];return sg&&getV(sg.c)}
+  if(tab==='song'){if(!SG.song)return null;const c=sgChordAt(Math.max(0,SG.slot)),cc=c&&blChord(c.name),v=cc&&(BLV[c.name]||getV(cc));const CP=SG.kc.c||0;return v&&v.map(f=>f<0?f:f+CP)}
+  return null;
+}
 function setTab(t){
   /* 코드명 탭으로 올 때: 앞 탭에서 보던 운지(운지법 탭의 선택 운지, 펜타토닉 탭의 코드 모양)를 그대로 가져와 이름을 보여 줌 */
-  if(t==='name'&&st.tab!=='name'){let v=null;
-    if(st.tab==='find')v=st.voicings[st.vi];else if(st.tab==='scale'&&st.schShape)v=shapeV();
+  if(t==='name'&&st.tab!=='name'){let v=null;try{v=boardV()||tabChordV(st.tab)}catch(e){}
     if(Array.isArray(v)&&v.length===6)st.nv=v.slice()}
   st.tab=t;document.body.dataset.page=t;
   document.querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t));
