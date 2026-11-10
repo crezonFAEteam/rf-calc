@@ -783,7 +783,7 @@ table#wf-list tbody tr.sel td{background:var(--accent-soft)}
         </div>
         <div class="card lp-upd" id="lp-upd">
           <div class="lp-upd-h"><b>최신 업데이트</b><span id="lp-upd-st" class="lp-upd-st"></span>
-            <span class="lp-upd-b"><button class="btn sm" id="lp-upd-go">최신 업데이트</button><button class="btn gh sm" id="lp-upd-xl" hidden>업데이트 엑셀 받기</button><button class="btn gh sm" id="lp-upd-undo" hidden>엑셀 기준으로 되돌리기</button></span></div>
+            <span class="lp-upd-b"><button class="btn sm" id="lp-upd-go">최신 업데이트</button><button class="btn gh sm" id="lp-upd-xl" hidden>엑셀 받기 (가격 포함)</button><button class="btn gh sm" id="lp-upd-undo" hidden>엑셀 기준으로 되돌리기</button></span></div>
           <div id="lp-upd-box"></div>
         </div>
         <div id="lp-view"></div>
@@ -2589,14 +2589,14 @@ function lpuShow(d){
     '<div class="btns"><button class="btn sm" id="lp-upd-ok">반영</button><button class="btn gh sm" id="lp-upd-no">취소</button></div>';
 }
 function lpuHow(){
-  return '<ol class="lp-upd-how"><li>LitePoint Partner 포털에 로그인한 브라우저(크롬 · 엣지)에 <b>LP 수집기</b> 확장이 있어야 한다 (설치: 확장 관리 → 개발자 모드 → 압축 풀린 확장 로드 → <code>Salesforce검토\\LP수집기_확장</code>). 고친 뒤에는 확장 관리에서 [새로 고침].</li>' +
+  return '<ol class="lp-upd-how"><li>LitePoint Partner 포털에 로그인한 브라우저(크롬 · 엣지)에 <b>LP 수집기</b> 확장이 있어야 한다 (설치: 확장 관리 → 개발자 모드 → 압축 풀린 확장 로드 → <code>RF 계측 계산기\\LP제품\\LP수집기_확장</code>). 고친 뒤에는 확장 관리에서 [새로 고침].</li>' +
     '<li>포털 <b>Product Selection</b> 화면 → 오른쪽 아래 <b>[목록 전체 담기]</b> · 본체의 <b>Configure Products</b> 화면을 열면 옵션이 자동으로 담긴다.</li>' +
     '<li>이 계산기를 <b>같은 브라우저</b>로 열고 [최신 업데이트]. (파일로 열었다면 확장 관리에서 \'파일 URL에 대한 액세스 허용\'을 켤 것)</li></ol>';
 }
 window.addEventListener('message', function(e){
   if(e.source !== window || !e.data || e.data.src !== 'lpc-ext') return;
   if(e.data.type === 'lpc-ready'){ LPU_EXT = e.data; if(!lpuSaved()) lpuStatus(); }
-  if(e.data.type === 'lpc-data') lpuShow(e.data.data || {});
+  if(e.data.type === 'lpc-data' && e.data.req !== 'xl') lpuShow(e.data.data || {});
 });
 $('lp-upd-go').addEventListener('click', function(){
   $('lp-upd-box').innerHTML = '<div class="note">LP 수집기에서 받는 중…</div>';
@@ -2618,7 +2618,7 @@ $('lp-upd-box').addEventListener('click', function(ev){
 });
 var LPU_OK = false;
 window.addEventListener('message', function(e){
-  if(!LPU_OK || e.source !== window || !e.data || e.data.src !== 'lpc-ext' || e.data.type !== 'lpc-data') return;
+  if(!LPU_OK || e.source !== window || !e.data || e.data.src !== 'lpc-ext' || e.data.type !== 'lpc-data' || e.data.req === 'xl') return;
   LPU_OK = false;
   var d = e.data.data || {}, P = lpuPlan(d);
   var oc = P.opt.filter(function(o){ return o.add.length || o.del.length || o.hit.isNew; }).length;
@@ -2659,6 +2659,7 @@ function lpxSheet(rows, widths, bold){   /* bold = 굵게(머리줄) 할 행 번
     widths.map(function(w, i){ return '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + w + '" customWidth="1"/>'; }).join('') + '</cols><sheetData>' +
     rows.map(function(r, ri){ var b = bold.indexOf(ri) >= 0;
       return '<row r="' + (ri + 1) + '">' + r.map(function(v, ci){ if(v === null || v === undefined || v === '') return '';
+        if(typeof v === 'number' && isFinite(v)) return '<c r="' + lpxCol(ci) + (ri + 1) + '" s="3"><v>' + v + '</v></c>';
         return '<c r="' + lpxCol(ci) + (ri + 1) + '" t="inlineStr"' + (b ? ' s="1"' : ci === 3 || ci === 5 ? ' s="2"' : '') + '><is><t xml:space="preserve">' + lpxEsc(v) + '</t></is></c>'; }).join('') + '</row>'; }).join('') +
     '</sheetData></worksheet>';
 }
@@ -2676,32 +2677,46 @@ function lpxBook(sheets){
       '<Relationship Id="rId' + (sheets.length + 1) + '" Type="' + R + 'officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'],
     ['xl/styles.xml', H + '<styleSheet xmlns="' + R + 'spreadsheetml/2006/main"><fonts count="2"><font><sz val="10"/><name val="Arial"/></font><font><b/><sz val="10"/><name val="Arial"/></font></fonts>' +
       '<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFDDEBF7"/></patternFill></fill></fills>' +
-      '<borders count="1"><border/></borders><cellStyleXfs count="1"><xf/></cellStyleXfs><cellXfs count="3"><xf/><xf fontId="1" fillId="2" applyFont="1" applyFill="1"/><xf applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf></cellXfs></styleSheet>']
+      '<borders count="1"><border/></borders><cellStyleXfs count="1"><xf/></cellStyleXfs><cellXfs count="4"><xf/><xf fontId="1" fillId="2" applyFont="1" applyFill="1"/><xf applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf><xf numFmtId="3" applyNumberFormat="1"/></cellXfs></styleSheet>']
   ].concat(sheets.map(function(s, i){ return ['xl/worksheets/sheet' + (i + 1) + '.xml', lpxSheet(s.rows, s.widths, s.bold)]; })));
 }
 function lpuXlsx(){
   var sv = lpuSaved(); if(!sv) return;
+  var done = false, t = setTimeout(function(){ if(done) return; done = true; window.removeEventListener('message', on);
+    if(confirm('LP 수집기가 응답하지 않아 가격을 넣을 수 없다. 가격 없이 엑셀을 받을까요?')) lpuXlsxMake(sv, null); }, 1500);
+  function on(e){
+    if(done || e.source !== window || !e.data || e.data.src !== 'lpc-ext' || e.data.type !== 'lpc-data' || e.data.req !== 'xl') return;
+    done = true; clearTimeout(t); window.removeEventListener('message', on); lpuXlsxMake(sv, e.data.data || {});
+  }
+  window.addEventListener('message', on);
+  window.postMessage({src:'rfcalc', type:'lpc-get', req:'xl', price:true}, LPU_TO());
+}
+function lpuXlsxMake(sv, pd){   /* pd = 가격이 든 수집 내용 (엑셀에만 쓰고 버림) */
+  var price = {}, optPrice = {};
+  if(pd){ Object.keys(pd.list || {}).forEach(function(k){ if(pd.list[k].price != null) price[k] = pd.list[k].price; });
+    Object.keys(pd.opts || {}).forEach(function(b){ (pd.opts[b].rows || []).forEach(function(r){ if(r.price != null) optPrice[lpuNorm(b) + '|' + r.pn] = r.price; }); }); }
+  var num = function(v){ return v == null || v === '' ? '' : Number(v); };
   var day = sv.on.slice(0, 10), CAT = {Hardware:1, Software:1, Services:1, Warranty:1}, used = {};
   var sheets = LP.lines.map(function(l){
     var m = LP_META[l.id] || {}, rows = [['Product Selection'], [l.spec || ''], ], bold = [];
     l.why.forEach(function(w){ rows.push(['▸ ' + w]); });
     rows.push([]); bold.push(rows.length);
-    rows.push(['PART NUMBER', 'PRODUCT NAME', 'PRODUCT FAMILY', 'PRODUCT DESCRIPTION', '구분', '핵심 내용 요약', '상태']);
-    l.items.forEach(function(it){ rows.push([it[0], it[1], it[2], it[3], it[4], it[5], LPU_GONE[it[0]] ? '포털 목록에 없음 (' + day + ')' : '']); });
+    rows.push(['PART NUMBER', 'PRODUCT NAME', 'PRODUCT FAMILY', 'PRODUCT DESCRIPTION', '구분', '핵심 내용 요약', '상태', '정가']);
+    l.items.forEach(function(it){ rows.push([it[0], it[1], it[2], it[3], it[4], it[5], LPU_GONE[it[0]] ? '포털 목록에 없음 (' + day + ')' : '', num(price[it[0]])]); });
     Object.keys(l.opts || {}).forEach(function(b){
       rows.push([]); rows.push(['', b]); bold.push(rows.length - 1);
       var by = {}; l.opts[b].forEach(function(x){ var c = CAT[x[2]] ? x[2] : /serv|warr|cal/i.test(x[2] || '') ? 'Services' : 'Hardware'; (by[c] = by[c] || []).push(x); });
       ['Hardware', 'Software', 'Services', 'Warranty'].forEach(function(c){ if(!by[c]) return;
-        rows.push(['', c]); rows.push(['', 'QTY', 'PART NUMBER', 'PRODUCT NAME']);
-        by[c].forEach(function(x){ rows.push(['', '1', x[0], x[1] || '']); }); });
+        rows.push(['', c]); rows.push(['', 'QTY', 'PART NUMBER', 'PRODUCT NAME', '단가']);
+        by[c].forEach(function(x){ var pr = optPrice[lpuNorm(b) + '|' + x[0]]; rows.push(['', '1', x[0], x[1] || '', num(pr != null ? pr : price[x[0]])]); }); });
     });
     var name = String(l.id).replace(/[\[\]:*?\/\\]/g, '_').slice(0, 31), k = name, n = 2; while(used[k]) k = name.slice(0, 28) + '_' + n++; used[k] = 1;
-    return {name:k, rows:rows, widths:[16, 34, 12, 70, 16, 50, 22], bold:bold};
+    return {name:k, rows:rows, widths:[16, 34, 12, 70, 16, 50, 22, 12], bold:bold};
   });
   sheets.push({name:'변경 내역', rows:[['날짜', '구분', 'Part No', '이전 / 본체 · 라인', '이후 / 내용']].concat(sv.log || []), widths:[17, 16, 16, 40, 70], bold:[0]});
   var a = document.createElement('a');
   a.href = URL.createObjectURL(lpxBook(sheets));
-  a.download = 'Product_List & Option_Summey (' + day + ' 업데이트).xlsx';
+  a.download = 'SalesforceProductList_' + day + (pd ? '' : '_가격없음') + '.xlsx';
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(a.href); }, 60000);
 }
 $('lp-upd-xl').addEventListener('click', lpuXlsx);
@@ -2765,7 +2780,7 @@ function lpSyncCombos(){
 }
 function lpRender(){
   $('lp-view').innerHTML = LP.lines.length ? (LP_CUR ? lpDetail(LP_CUR) : lpOverview())
-    : '<div class="note w">제품 데이터가 없다 — 같은 폴더에서 <code>python make_lp_data.py</code> 를 실행할 것.</div>';
+    : '<div class="note w">제품 데이터가 없다 — <code>LP제품</code> 폴더에서 <code>python make_lp_data.py</code> 를 실행할 것.</div>';
   lpSyncCombos();
 }
 function lpOpen(id, body){
