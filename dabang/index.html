@@ -363,12 +363,16 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
   textarea,select,input{font-size:16px}   /* 16px 미만이면 아이폰이 입력할 때 확대한다 */
   select{width:100%}
   .tab pre{font-size:var(--tabfs,12px)}
-  .tu-top{margin-bottom:8px}.tu-top .play{min-height:40px;padding:6px 16px}.tu-top .chip{min-height:38px;padding:6px 12px}
-  .tu-meter{padding:6px 8px 8px}#tuGauge{max-width:230px}.tu-trail{height:210px}
-  .tu-note{font-size:2.5rem;margin-top:0}.tu-note small{font-size:1rem}.tu-cents{font-size:1rem;min-height:1.3em}
-  .tu-fine{height:30px;margin:6px auto 3px}.tu-strobe{height:13px;margin-bottom:4px}
-  .tu-msg{font-size:.92rem;min-height:1.3em}.tu-hz{font-size:.74rem}
-  .tu-strings{margin:8px 0;gap:4px}.tu-s{font-size:1.05rem;padding:4px 0}
+  /* 폰: 위 버튼 한 줄, 화면 높이에 맞춰 흐름 칸 · 글자 줄임 → 줄 버튼까지 한 화면에 */
+  .tu-top{flex-wrap:nowrap;gap:6px;margin-bottom:6px}.tu-top .chips{flex-wrap:nowrap;gap:4px}
+  .tu-top .play{min-height:36px;padding:4px 10px;white-space:nowrap;font-size:.9rem}.tu-top .chip{min-height:34px;padding:4px 9px;font-size:.88rem}
+  .tu-mtx{display:none}
+  .tu-meter{padding:4px 6px 6px}#tuGauge{max-width:min(200px,26vh)}.tu-trail{height:clamp(110px,24vh,190px)}
+  .tu-note{font-size:2rem;margin-top:2px}.tu-note small{font-size:.9rem}.tu-cents{font-size:.95rem;min-height:1.25em}
+  .tu-fine{height:26px;margin:4px auto 2px}.tu-fine span{font-size:9px;line-height:10px}.tu-fine-ticks{bottom:10px}.tu-fine::after{bottom:10px}#tuFineMark{bottom:12px}
+  .tu-strobe{height:10px;margin-bottom:3px}
+  .tu-msg{font-size:.86rem;min-height:1.25em}.tu-hz{font-size:.7rem;min-height:1.2em}
+  .tu-strings{margin:6px 0;gap:4px}.tu-s{font-size:1rem;padding:3px 0}
   #p-tune .tu-opts .field{margin-bottom:8px}
   .songbar .ghost.sm{min-height:38px;padding:4px 10px}
   .songbar select{flex-basis:100%}
@@ -677,7 +681,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
   <section id="p-tune" role="tabpanel" hidden>
     <div class="tuner">
       <div class="tu-top">
-        <button id="tuMic" class="play">🎤 마이크 켜기</button>
+        <button id="tuMic" class="play">🎤 <span class="tu-mtx">마이크 </span>켜기</button>
         <div class="chips"><button class="chip" data-tumode="auto" aria-pressed="true">자동</button><button class="chip" data-tumode="manual" aria-pressed="false">수동</button></div>
         <div class="chips" role="group" aria-label="보기"><button class="chip" data-tuview="trail" aria-pressed="true">흐름</button><button class="chip" data-tuview="needle" aria-pressed="false">바늘</button></div>
       </div>
@@ -2163,7 +2167,7 @@ function tuRender(){
   const g=id=>document.getElementById(id);
   if(!g('tuGauge').firstChild)tuGauge();
   g('tuTun').innerHTML=Object.entries(TUNINGS).map(([k,t])=>`<option value="${k}"${k===TU.tun?' selected':''}>${t.n}</option>`).join('');
-  g('tuA4').textContent=TU.a4;g('tuMic').textContent=TU.on?'■ 마이크 끄기':'🎤 마이크 켜기';
+  g('tuA4').textContent=TU.a4;g('tuMic').innerHTML=TU.on?'■ <span class="tu-mtx">마이크 </span>끄기':'🎤 <span class="tu-mtx">마이크 </span>켜기';   /* 폰에선 "마이크" 글자 숨김 */
   tuStrings();if(!TU.on)tuShow(null);tuView();
 }
 /* 휴대폰 · 브라우저 구분 → 마이크가 막혔을 때 그 기기에 맞는 해결 순서 */
