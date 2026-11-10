@@ -265,6 +265,13 @@ table#wf-list tbody tr.sel td{background:var(--accent-soft)}
 .lp-supd>summary::before{content:'▸ ';color:var(--ink-mid)}.lp-supd[open]>summary::before{content:'▾ '}
 .lp-fold{font-size:11px;padding:0 7px;border:1px solid var(--line,#ccc);border-radius:8px;color:var(--ink-mid);margin-left:4px}.lp-supd[open] .lp-fold{display:none}
 .lp-supd:not([open])>summary{margin-bottom:0}
+.eq-gi-info{font-size:13px;line-height:1.7;margin:8px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.eq-gi-info b{font-weight:700}
+#eq-gi-out td:nth-child(3){min-width:230px}#eq-gi-out td:nth-child(9){min-width:150px;white-space:normal}#eq-gi-out th{white-space:nowrap}
+table.lp td.gi-i{text-align:center;font-weight:700;white-space:nowrap}
+.gi-ok{color:#14613a}.gi-no{color:#b42318}.gi-q{color:var(--ink-soft)}
+table.lp td.gi-late{background:#ffc7ce;color:#9c0006}table.lp td.gi-soon{background:#ffeb9c}
+table.lp tr.gi-cur td{background:var(--accent-soft);font-weight:600}
 .lp-new{display:inline-block;font-size:11px;padding:0 6px;border-radius:8px;background:#d7ecdf;color:#14613a;margin-left:4px;vertical-align:1px;font-weight:700}
 .lp-gone{display:inline-block;font-size:11px;padding:0 6px;border-radius:8px;background:#f4d9d0;color:#8a2c12;margin-left:4px;vertical-align:1px}
 </style>
@@ -754,6 +761,21 @@ table#wf-list tbody tr.sel td{background:var(--accent-soft)}
           <pre class="steps" id="eq-log">아직 보낸 명령이 없다.</pre>
         </div>
       </div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h2>장비 정보 읽기 <small style="font-weight:400;color:var(--ink-mid)">— 본체 · 펌웨어 · 설치 라이선스를 읽어 그 제품 라인 옵션과 비교 (PC 의 중계 프로그램 필요)</small></h2>
+      <div class="btns">
+        <button class="btn" id="eq-gi">장비 정보 읽기</button>
+        <label class="lp-chk"><input type="checkbox" id="eq-gi-miss"> 미설치만</label>
+        <label class="lp-chk"><input type="checkbox" id="eq-gi-exp"> 만료 임박(30일)만</label>
+        <label class="lp-chk"><input type="checkbox" id="eq-gi-sw"> 라이선스 항목만</label>
+        <button class="btn gh sm" id="eq-gi-lp" hidden>LP 제품에서 보기</button>
+        <span class="pill p-warn" id="eq-gi-st">읽기 전</span>
+      </div>
+      <div id="eq-gi-info" class="eq-gi-info"></div>
+      <div id="eq-gi-out"></div>
+      <div class="note"><b>읽기 명령만 보낸다</b><span>*IDN? · SYS → PN? · MIDN? · OPT? · SYST:OPT:ADAT? · SYST:OPT:EDAT? · AMOD? · BP → MIDN? · ROUTxx → MIDN? (CAST GetInfo 와 같음). 장비 설정은 바꾸지 않는다.</span>
+        <span>라이선스 코드 ↔ Part No 대응은 중계 프로그램이 PC 의 CAST DB 를 읽기 전용으로 열어 쓴다 — 계산기(공개 사이트)에는 들어 있지 않다. DB 를 못 찾으면 코드만 보인다.</span></div>
     </div>
   </div>
 
@@ -2342,6 +2364,82 @@ $('eq-check').addEventListener('click', eqCheck);
 $('t-eq').addEventListener('click', function(){
   if(eqFirst) eqPing().then(function(ok){ if(ok) eqCheck(); });
 });
+/* ---- 장비 정보 읽기 (CAST GetInfo 와 같은 방식) ---- */
+var EQ_GI = null;
+function eqGiLine(info, cat){   /* 본체 Part No → 계산기 제품 라인 · 본체 이름 */
+  var hit = null;
+  LP.lines.forEach(function(l){ l.items.forEach(function(it){ if(!hit && it[0] === info.pn && lpIsBody(it)) hit = [l.id, it[1]]; }); });
+  if(hit) return hit;
+  var pl = ((cat || {}).line || {})[info.pn] || (/56(30|31|40|41)/.test(info.model) ? 'IQgig-UWB+' : '');
+  var id = pl && [pl, pl + '_HW'].filter(function(x){ return LP_BY[x]; })[0];
+  return id ? [id, null] : null;
+}
+function eqGiDays(e){ if(!e) return null; var t = new Date(lpNow().slice(0, 10)); return Math.round((new Date(e) - t) / 864e5); }
+function eqGiRows(){
+  var g = EQ_GI, info = g.info, cat = g.cat || {pn:{}, names:{}}, lic = {}, used = {}, rows = [];
+  info.lic.forEach(function(l){ if(!lic[l.code]) lic[l.code] = l; });
+  function row(kind, pn, name, inst, code, l, note, cur){ rows.push({kind:kind, pn:pn, name:name, inst:inst, code:code, act:l ? l.act : '', exp:l ? l.exp : '', d:l ? eqGiDays(l.exp) : null, note:note || '', cur:cur}); }
+  if(g.line){
+    var id = g.line[0], l = LP_BY[id];
+    l.items.filter(lpIsBody).forEach(function(b){ row('본체', b[0], b[1], b[0] === info.pn ? '✔' : '–', '', null, b[0] === info.pn ? '이 장비' : '', b[0] === info.pn); });
+    lpByKind(lpOptsFor(id, g.line[1]).list).forEach(function(it){
+      var m = cat.pn[it[0]], code = m ? m[0] : '', sw = lpClass(it[0]) === 'SW';
+      if(code){ used[code] = 1; row(it[4] || (sw ? 'SW' : 'HW'), it[0], it[1], lic[code] ? '✔' : '✘', code, lic[code], m[1]); }
+      else row(it[4] || (sw ? 'SW' : 'HW'), it[0], it[1], '?', '', null, sw ? '코드 대응 없음 — 확인 필요' : '장비에서 확인 불가 (HW · 서비스)');
+    });
+  }
+  info.lic.forEach(function(l){ if(!used[l.code]){ used[l.code] = 1; row('SW 라이선스', '', cat.names[l.code] || '', '✔', l.code, l, g.line ? '목록 밖 (본체 기본 · 번들 등)' : ''); } });
+  return rows;
+}
+function eqGiRender(){
+  var g = EQ_GI; if(!g) return;
+  var info = g.info, rows = eqGiRows(), miss = $('eq-gi-miss').checked, exp = $('eq-gi-exp').checked, sw = $('eq-gi-sw').checked;
+  var nMiss = rows.filter(function(r){ return r.inst === '✘'; }).length;
+  var ex = info.lic.map(function(l){ return l.exp; }).filter(Boolean).sort()[0];
+  var reg = (g.cat && g.cat.src) ? '' : '\n⚠ CAST DB 를 찾지 못해 라이선스 코드 ↔ Part No 비교를 못 함' + (g.cat && g.cat.err ? ' (' + g.cat.err + ')' : '') + ' — 중계 프로그램 창의 「CAST DB」 줄 확인';
+  $('eq-gi-info').innerHTML = eqEsc(
+    'SN ' + info.sn + '  |  ' + info.model + '  |  PN ' + info.pn + '  (' + (g.line ? '제품 라인 ' + lpName(g.line[0]) + (g.line[1] ? ' · ' + g.line[1] : '') : '계산기에 없는 본체 — 라이선스만 표시') + ')' +
+    '  |  FW ' + info.fw + '  |  HW ' + info.hw + '  |  SW ' + info.os + '  |  장비 교정일 ' + info.cal + '\n' +
+    '모듈 ' + info.modules.length + '개' + (info.modules.length ? ': ' + info.modules.map(function(m){ return m.name + ' ' + m.sn + (m.cal ? ' (' + m.cal + ')' : ''); }).join(', ') : '') + '\n' +
+    '라이선스 ' + info.lic.length + '개 설치' + (g.line ? ', 이 라인 옵션 중 미설치 ' + nMiss + '개' : '') + (ex ? '  |  가장 빠른 만료 ' + ex + ' (' + eqGiDays(ex) + '일 남음)' : '') +
+    (info.warn.length ? '\n경고: ' + info.warn.join(' / ') : '') + reg);
+  var vis = rows.filter(function(r){
+    return (!miss || r.inst === '✘') && (!exp || (r.d !== null && r.d <= 30)) && (!sw || r.code || /SW|라이선스/.test(r.kind));
+  });
+  var cls = function(i){ return i === '✔' ? 'gi-ok' : i === '✘' ? 'gi-no' : 'gi-q'; };
+  $('eq-gi-out').innerHTML = '<div class="out"><div class="out-head">' + (g.line ? eqEsc(lpName(g.line[0])) + ' 옵션 · 설치 라이선스' : '설치 라이선스') + ' <span class="hint">' + vis.length + ' / ' + rows.length + '개</span></div>' +
+    '<div class="scroll"><table class="lp"><thead><tr><th>구분</th><th class="pn">Part No</th><th>이름</th><th>설치</th><th>장비 코드</th><th>활성화</th><th>만료</th><th>남은 일</th><th>비고</th></tr></thead><tbody>' +
+    vis.map(function(r){
+      return '<tr' + (r.cur ? ' class="gi-cur"' : '') + '><td class="k">' + eqEsc(r.kind) + '</td><td class="pn">' + eqEsc(r.pn) + '</td><td>' + eqEsc(r.name) + '</td>' +
+        '<td class="gi-i ' + cls(r.inst) + '">' + r.inst + '</td><td class="pn">' + eqEsc(r.code) + '</td><td class="k">' + eqEsc(r.act) + '</td><td class="k">' + eqEsc(r.exp) + '</td>' +
+        '<td class="k' + (r.d === null ? '' : r.d < 0 ? ' gi-late' : r.d <= 30 ? ' gi-soon' : '') + '">' + (r.d === null ? '' : r.d) + '</td><td class="k">' + eqEsc(r.note) + '</td></tr>';
+    }).join('') + '</tbody></table></div></div>';
+  $('eq-gi-lp').hidden = !g.line;
+}
+function eqGetInfo(){
+  var host = $('eq-host').value.trim();
+  if(!host){ eqPill('eq-gi-st', false, '장비 IP 를 입력하세요'); $('eq-host').focus(); return; }
+  eqSave();
+  var btn = $('eq-gi'); btn.disabled = true; eqPill('eq-gi-st', true, host + ' 읽는 중…');
+  fetch(eqUrl('/api/getinfo'), {method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({host:host, port:+$('eq-port').value || 24000, timeout:+$('eq-to').value || 5})})
+  .then(function(r){ if(r.status === 404) throw 'old'; return r.json(); })
+  .then(function(j){
+    eqState(true, '중계 켜짐');
+    if(!j.ok){ eqPill('eq-gi-st', false, '읽기 실패 — ' + j.err); eqDev(false, '장비 연결 안 됨'); return; }
+    EQ_GI = {info:j.info, cat:j.cat, at:lpNow()}; EQ_GI.line = eqGiLine(j.info, j.cat);
+    eqDev(true, '장비 연결됨 · ' + j.info.model);
+    eqPill('eq-gi-st', true, '읽기 완료 (' + lpNow().slice(11) + ')');
+    eqGiRender();
+  })
+  .catch(function(e){
+    if(e === 'old'){ eqPill('eq-gi-st', false, '중계 프로그램이 예전 버전 — rf_bridge.bat 을 닫고 다시 실행'); return; }
+    eqState(false, '중계 꺼짐'); eqPill('eq-gi-st', false, '중계 프로그램에 연결 못 함 — PC 에서 rf_bridge.bat 실행');
+  }).then(function(){ btn.disabled = false; });
+}
+$('eq-gi').addEventListener('click', eqGetInfo);
+['eq-gi-miss', 'eq-gi-exp', 'eq-gi-sw'].forEach(function(k){ $(k).addEventListener('change', eqGiRender); });
+$('eq-gi-lp').addEventListener('click', function(){ if(!EQ_GI || !EQ_GI.line) return; $('t-lp').click(); lpOpen(EQ_GI.line[0], EQ_GI.line[1]); });
 eqLoad();
 if(location.hash === '#eq') $('t-eq').click();
 
