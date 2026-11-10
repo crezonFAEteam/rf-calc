@@ -1788,7 +1788,7 @@ function blShapes(lk){
 }
 function blBoxRender(){
   const f=document.getElementById('blBoxField'),el=document.getElementById('blBox');
-  const sh=BL.lk?blShapes(BL.lk):null;BL.shapes=sh;
+  const sh=BL.lk?blShapes(BL.lk):null;if(BL.shapes&&sh&&BL.boxSel!=null&&(BL.shapes.list[BL.boxSel]||{}).name!==(sh.list[BL.boxSel]||{}).name)BL.boxSel=null;BL.shapes=sh;
   if(!sh||!sh.list.length){f.hidden=true;return}
   f.hidden=false;
   document.getElementById('blBoxLbl').textContent=sh.kind==='bar'?'운지표 (아래 숫자는 손가락 번호 · 누르면 소리)':'운지표 (이 예제에서 쓰는 코드 · 누르면 소리)';
@@ -1797,7 +1797,7 @@ function blBoxRender(){
 }
 function blBoxMark(){
   const sh=BL.shapes,lk=BL.lk;if(!sh||!lk)return;
-  const t=BL.cur?BL.cur.t:null;let on=-1;
+  const t=BL.cur?BL.cur.t:null;let on=t==null&&BL.boxSel!=null?BL.boxSel:-1;
   if(t!=null){if(sh.kind==='bar')on=sh.list.findIndex(o=>t>=o.from&&t<o.to);
     else{const sg=lk.segs.find(x=>t>=x.start&&t<x.start+x.len);if(sg)on=sh.list.findIndex(o=>o.name===sg.c.name)}}
   document.querySelectorAll('#blBox .vcard').forEach((b,k)=>b.setAttribute('aria-pressed',k===on));
@@ -1814,7 +1814,7 @@ function blStop(){
   if(was){document.getElementById('blPlay').textContent='재생';blMark();drawBoard()}
 }
 function blPlay(range){   /* range={a,z}: 그 칸 범위만 (악보에서 코드 누름). 없으면 고른 마디 범위 */
-  const ex=blEx();if(!ex)return;blStop();
+  const ex=blEx();if(!ex)return;blStop();BL.boxSel=null;
   try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume()}catch(e){return}
   const lk=BL.lk||blBuild(ex),G=lk.bar,e=60/blBpm(ex)/(G/4),sw=G===8&&blShuf(ex);   /* 한 칸 = 한 박 ÷ (칸 수/4). 셔플은 8칸 마디만 */
   let a=range?range.a:BL.from*G;const z=range?range.z:(BL.to+1)*G;
@@ -1846,6 +1846,9 @@ function blPlay(range){   /* range={a,z}: 그 칸 범위만 (악보에서 코드
 /* 지판: 지금 마디에서 쓰는 음(흐리게) + 지금 치는 음(진하게), 색은 그 순간 코드 기준 */
 function blDots(){
   const lk=BL.lk;if(!lk)return'';
+  const bo=!BL.cur&&BL.boxSel!=null&&BL.shapes&&BL.shapes.list[BL.boxSel];
+  if(bo){let s='';bo.v.forEach((f,i)=>{if(f<0){s+=`<text x="12" y="${sy(i)+8}" class="mute">×</text>`;return}
+    const pc=mod(TUNE[i]+f),x=mod(pc-bo.c.r),q=Q[bo.c.qi],inC=q.iv.some(y=>mod(y)===x);s+=dot(i,f,(inC?role(x,q):'tone')+' on',st.lbl==='deg'?(inC?degree(x,q):'베'):nn(pc))});return s}   /* 운지표에서 고른 코드 */
   const G=lk.bar,t=BL.cur?BL.cur.t:blRestT(lk),b=Math.floor(t/G);
   const sg=lk.segs.find(x=>t>=x.start&&t<x.start+x.len)||lk.segs[0];
   const seen=new Set();let s='';
@@ -1860,6 +1863,7 @@ function blDots(){
 function blRestT(lk){if(BL.playing&&BL.playA!=null)return BL.playA;const b=BL.from===0&&lk.pick&&lk.bars>1?1:BL.from;return b*lk.bar}   /* 멈춰 있을 때 보여 줄 마디 */
 function blCap(){
   const ex=blEx(),lk=BL.lk;if(!ex||!lk)return'블루스 예제 파일을 가져오면 지판에 운지가 표시됩니다.';
+  const bo=!BL.cur&&BL.boxSel!=null&&BL.shapes&&BL.shapes.list[BL.boxSel];if(bo)return ex.title+' · 운지표 '+bo.name+' 운지입니다. (운지표를 다시 누르면 예제 음으로)';
   const t=BL.cur?BL.cur.t:blRestT(lk),sg=lk.segs.find(x=>t>=x.start&&t<x.start+x.len)||lk.segs[0];
   return ex.title+' · '+blBarLabel(lk,Math.floor(t/lk.bar))+(sg?' · '+sg.c.name:'')+'. 진한 점이 지금 치는 음입니다.';
 }
@@ -1933,7 +1937,7 @@ document.getElementById('blClr').addEventListener('click',()=>{
 function blGo(i){const n=BL.data?BL.data.examples.length:0;if(!n)return;const was=BL.playing;blStop();BL.idx=(i+n)%n;BL.from=0;BL.to=-1;BL.lk=null;blSaveUI();blRender();if(was)blPlay()}
 document.getElementById('p-blues').addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;const ex=blEx();
-  if(b.dataset.blbox!=null){const o=BL.shapes&&BL.shapes.list[+b.dataset.blbox];if(o)strum(o.v);return}   /* 운지표 누르면 그 코드 소리 */
+  if(b.dataset.blbox!=null){const k=+b.dataset.blbox,o=BL.shapes&&BL.shapes.list[k];if(o){strum(o.v);BL.boxSel=BL.boxSel===k?null:k;blBoxMark();drawBoard()}return}   /* 운지표 누르면 그 코드 소리 + 지판에 그 운지 (다시 누르면 예제 음으로) */
   if(b.id==='blImp')return blImport();
   if(b.id==='blPlay')return BL.playing?blStop():blPlay();
   if(b.id==='blLoop'){BL.loop=!BL.loop;b.setAttribute('aria-pressed',BL.loop);blSaveUI();return}   /* 재생 중이어도 다음 바퀴부터 */
