@@ -738,7 +738,8 @@ table.lp tr.gi-cur td{background:var(--accent-soft);font-weight:600}
           <span>브라우저는 장비 소켓에 직접 붙지 못하므로 같은 폴더의 <code>rf_bridge.py</code> 가 대신 연결한다.</span>
           <span>· PC: <b>RF중계.exe</b> 실행 (또는 [중계 실행]) → 마지막에 쓴 장비에 연결해 두고 이 계산기가 열린다. Python 필요 없음</span>
           <span>· [중계 실행] 은 RF중계.exe 를 한 번이라도 실행한 PC 에서 동작한다 (그때 rfbridge:// 주소가 등록됨)</span>
-          <span>· 휴대폰: PC 에서 <code>rf_bridge_phone.bat</code> 실행 → 같은 Wi-Fi 에서 <code>http://PC-IP:8765</code></span>
+          <span>· 휴대폰: PC 에서 「RF 중계 (휴대폰도 연결)」 실행 → 중계 창에 나온 <code>http://PC-IP:8765</code> 를 휴대폰 브라우저로 연다 (같은 Wi-Fi · 사내망)</span>
+          <span>· 휴대폰은 꼭 그 주소로 연다 — github 주소(https)에서는 휴대폰 브라우저가 PC(http) 로 보내는 요청을 막는다</span>
         </div>
         </div>
 
@@ -2375,6 +2376,7 @@ function eqSend(text){
 }
 $('eq-ping').addEventListener('click', eqPing);
 $('eq-run').addEventListener('click', eqRun);
+if(!/Windows/.test(navigator.userAgent)) $('eq-run').hidden = true;   /* 휴대폰에는 exe 가 없다 */
 $('eq-send').addEventListener('click', function(){ eqSend($('eq-cmd').value); });
 $('eq-cmd').addEventListener('keydown', function(ev){
   if(ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)){ ev.preventDefault(); eqSend(this.value); }
