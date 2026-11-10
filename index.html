@@ -2466,6 +2466,19 @@ function lpMiss(id){
   if(pt && (!m.port || pt > m.port)) out.push(m.port ? '포트 최대 ' + m.port : '포트 정보 없음');
   return out;
 }
+function lpCondOn(){ return !!($('lp-f').value || $('lp-bw').value || $('lp-port').value || $('lp-std').value || $('lp-mimo').value); }
+function lpBodyDim(it){ var m = /\((\d+)\s*x\s*(\d+)\)/.exec(it[1]); return m ? [+m[1], +m[2]] : null; }   /* (4x16) = MIMO 4 · 포트 16 */
+function lpBodyMiss(line, it){   /* 본체 하나가 조건에 안 맞는 이유 (빈 배열 = 맞음) */
+  var out = [], k = $('lp-std').value, mi = +$('lp-mimo').value, pt = +$('lp-port').value;
+  var dm = lpDetModel(line, it[1]), d = lpBodyDim(it), mm = d ? d[0] : dm && dm.mimo;
+  if(k && LP_DET_KEY[k] && dm && !dm.sup[k]) out.push(LP_STD_BY[k][1] + ' 미지원');
+  if(mi && mm && mm < mi) out.push('MIMO ' + mm + 'x' + mm);
+  if(pt && d && d[1] < pt) out.push('포트 ' + d[1]);
+  return out;
+}
+function lpBodiesOk(id){ return ((LP_BY[id] || {}).items || []).filter(lpIsBody).filter(function(b){ return !lpBodyMiss(id, b).length; }); }
+var LP_SHOWALL = false;   /* 조건에 안 맞는 것도 흐리게 보기 */
+function lpAllBtn(n, what){ return n ? '<div class="note">조건에 안 맞는 ' + what + ' <b>' + n + '</b>개 ' + (LP_SHOWALL ? '흐리게 함께 보는 중' : '숨김') + ' <button class="btn gh sm" data-showall>' + (LP_SHOWALL ? '맞는 것만 보기' : '숨긴 것도 보기') + '</button></div>' : ''; }
 function lpSupLine(id, k){
   var dm = lpDetLine(id), by = {};
   if(!k || !LP_DET_KEY[k] || !dm.length) return '';
@@ -2946,32 +2959,44 @@ window.postMessage({src:'rfcalc', type:'lpc-hello'}, LPU_TO());   /* 확장이 �
 /* ---- 화면 2가지: 개요 / 라인 세부 ---- */
 var LP_CUR = null, LP_BODY = null, LP_FOCUS = null;   /* LP_FOCUS = 콤보로 고른 SW 품목 Part No */
 function lpOverview(){
-  var active = $('lp-f').value || $('lp-bw').value || $('lp-port').value || $('lp-std').value || $('lp-mimo').value;
-  return LP_GROUPS.map(function(g){
+  var active = lpCondOn(), hid = 0;
+  var miss0 = function(id){ var x = active ? lpMiss(id) : [];
+    if(active && !x.length && ((LP_BY[id] || {}).items || []).some(lpIsBody) && !lpBodiesOk(id).length) x.push('조건에 맞는 본체 없음');
+    return x; };
+  var html = LP_GROUPS.map(function(g){
+    var ids = g[2].filter(function(id){ var ok = !miss0(id).length; if(!ok) hid++; return ok || LP_SHOWALL; });
+    if(!ids.length) return '';
     return '<div class="lp-grp g-' + g[0] + '"><div class="lp-gh">' + lpEsc(g[1]) + ' <small>' +
-           g[2].map(lpName).map(lpEsc).join(' · ') + '</small></div><div class="lp-cards">' +
-      g[2].map(function(id){
-        var m = LP_META[id] || {name:id}, l = LP_BY[id] || {why:[], items:[]}, miss = active ? lpMiss(id) : [];
+           ids.map(lpName).map(lpEsc).join(' · ') + '</small></div><div class="lp-cards">' +
+      ids.map(function(id){
+        var m = LP_META[id] || {name:id}, l = LP_BY[id] || {why:[], items:[]}, miss = miss0(id), okb = active ? lpBodiesOk(id) : [];
         return '<div class="lp-card' + (miss.length ? ' dim' : '') + '" role="button" tabindex="0" data-line="' + lpEsc(id) + '">' +
           '<h3>' + lpEsc(m.name) + (m.sub ? ' <small>' + lpEsc(m.sub) + '</small>' : '') + '</h3>' + lpChips(m) + lpSupLine(id, $('lp-std').value) +
           (miss.length ? '<div class="lp-miss">✕ ' + miss.map(lpEsc).join(' · ') + '</div>' : '') +
+          (!miss.length && okb.length ? '<div class="lp-supl">조건 맞는 본체: ' + okb.map(function(b){ return lpEsc(b[1]); }).filter(function(v, i, a){ return a.indexOf(v) === i; }).join(', ') + '</div>' : '') +
           '<ul class="lp-why">' + l.why.map(function(t){ return '<li>' + lpWhy(t) + '</li>'; }).join('') + '</ul>' +
           (m.star ? '<div class="lp-star">' + lpEsc(m.star) + '</div>' : '') +
           '<div class="lp-more">품목 ' + l.items.length + '개 보기 ›</div></div>';
       }).join('') + '</div></div>';
   }).join('');
+  return (active ? lpAllBtn(hid, '제품 라인') : '') + (html || '<div class="note w">조건에 맞는 제품이 없다.</div>');
 }
 function lpDetail(id){
   var m = LP_META[id] || {name:id}, l = LP_BY[id] || {why:[], items:[], spec:''};
-  var bodies = l.items.filter(lpIsBody);
+  var all = l.items.filter(lpIsBody), cond = lpCondOn();
+  var bodies = cond && !LP_SHOWALL ? all.filter(function(b){ return !lpBodyMiss(id, b).length; }) : all;
   if(bodies.length && !bodies.some(function(b){ return b[1] === LP_BODY; })) LP_BODY = null;
+  if(!bodies.length && all.length) LP_BODY = null;
+  var bodyNote = cond ? lpAllBtn(all.length - all.filter(function(b){ return !lpBodyMiss(id, b).length; }).length, '본체') : '';
+  var lineMiss = cond ? lpMiss(id) : [];
   var head = '<div class="btns"><button class="btn gh sm" data-back>← 전체 제품</button></div>' +
     '<div class="card lp-head g-' + lpGroup(id) + '"><h3>' + lpEsc(m.name) + (m.sub ? ' <small>' + lpEsc(m.sub) + '</small>' : '') + '</h3>' +
     lpChips(m) + (l.spec ? '<div class="lp-spec" style="font-size:12.5px;color:var(--ink-mid)">' + lpEsc(l.spec) + '</div>' : '') +
     '<ul class="lp-why">' + l.why.map(function(t){ return '<li>' + lpWhy(t) + '</li>'; }).join('') + '</ul>' +
     (m.star ? '<div class="lp-star">' + lpEsc(m.star) + '</div>' : '') + '</div>';
   /* ① 본체 고르기 → ② 그 본체의 HW / SW / Service. 본체가 없는 라인(SW 등)은 바로 ② */
-  var step1 = bodies.length ? lpTable('① 제품(본체) 선택 — 보기를 누르면 아래에 옵션이 나온다', bodies.map(function(b){ return lpRow(b, id, false, b[1]); }), false, true) : '';
+  var step1 = (lineMiss.length ? '<div class="note w">이 라인은 조건에 안 맞음 — ' + lineMiss.map(lpEsc).join(' · ') + '</div>' : '') + bodyNote +
+    (all.length && !bodies.length ? '<div class="note w">조건에 맞는 본체가 없다.</div>' : '') + (bodies.length ? lpTable('① 제품(본체) 선택 — 보기를 누르면 아래에 옵션이 나온다', bodies.map(function(b){ return lpRow(b, id, false, b[1]); }), false, true) : '');
   var news = bodies.length ? l.items.filter(function(it){ return !lpIsBody(it) && LPU_UPD[it[0]] && LPU_UPD[it[0]].indexOf('포털 신규') >= 0; }) : [];   /* 최신 업데이트로 넣은 품목 (본체 미지정) */
   var newSec = news.length ? lpTable('포털 신규 품목 ' + news.length + '개 — 최신 업데이트로 추가 (본체 미지정)', lpByKind(news).map(function(it){ return lpRow(it, id); })) : '';
   if(bodies.length && !LP_BODY) return head + step1 + '<div class="note">위에서 <b>보기</b> 를 고르면 그 제품에 붙는 HW · SW · Service 품목이 나온다.</div>' + newSec;
@@ -2982,10 +3007,28 @@ function lpDetail(id){
         return xs.length ? '<div class="lp-supg"><span class="lp-supg-n">' + lpEsc(g[0]) + '</span>' + xs.map(function(x){ return '<span class="lp-sc s-' + dmc.sup[x[0]] + '" title="' + lpEsc(LP_SUP[dmc.sup[x[0]]][1]) + '">' + lpEsc(x[1]) + (dmc.sup[x[0]] === 'L' || dmc.sup[x[0]] === 'B' ? '' : ' · ' + LP_SUP[dmc.sup[x[0]]][0]) + '</span>'; }).join('') + '</div>' : ''; }).join('') +
       '<div class="lp-supc-lg"><span class="lp-sc s-L">라이선스로 활성화</span><span class="lp-sc s-B">하드웨어 기본 (SW 지원 별도일 수 있음)</span><span class="lp-sc s-C">C/N · Stacked · 868/915 · 시그널링 등 제한</span></div></div>' : '';
   r.list = lpByKind(r.list);
+  /* 조건(규격 · MIMO)에 맞는 SW 만: 고른 규격 라이선스 + MIMO 2x2 이상이면 WLAN MIMO 라이선스 */
+  var k = $('lp-std').value, mi = +$('lp-mimo').value, swAll = r.list.filter(function(it){ return lpClass(it[0]) === 'SW'; }), swHid = 0, cfg = '';
+  var isMimoLic = function(it){ return /MIMO/i.test(it[1]) && !/MU-?MIMO|Kit/i.test(it[1]); };
+  if(LP_BODY && (k || mi >= 2)){
+    var need = swAll.filter(function(it){ return (k && lpItemStd(it, k)) || (mi >= 2 && isMimoLic(it)); });
+    if(need.length && !LP_SHOWALL){ swHid = swAll.length - need.length; r.list = r.list.filter(function(it){ return lpClass(it[0]) !== 'SW' || need.indexOf(it) >= 0; }); }
+    var bd = (l.items.filter(function(b){ return b[1] === LP_BODY; })[0] || [])[3] || '', inc = /Includes (WLAN.*?software for .*?)\.(\s|$)/i.exec(bd), dd = lpBodyDim([0, LP_BODY]);
+    var wifiNew = /^(ax|be160|be320|bn)$/.test(k);
+    var lower = {ax:[], be160:['ax'], be320:['ax', 'be160'], bn:['ax', 'be160']}[k] || [];
+    var pre = swAll.filter(function(it){ return need.indexOf(it) < 0 && !/MU-?MIMO/i.test(it[1]) && lower.some(function(x){ return lpItemStd(it, x); }); });
+    cfg = '<div class="card lp-supc"><div class="lp-supc-h"><b>조건 구성</b> — ' + lpEsc(LP_BODY) + (dd ? ' <span class="lp-k k-B">MIMO ' + dd[0] + 'x' + dd[0] + ' · 포트 ' + dd[1] + '</span>' : '') + '</div>' +
+      (inc ? '<div class="lp-supg"><span class="lp-supg-n">본체 기본 포함</span>' + lpEsc(inc[1]) + '</div>' : '') +
+      '<div class="lp-supg"><span class="lp-supg-n">조건 관련 라이선스</span>' + (need.length ? need.map(function(it){ return '<span class="lp-sc s-L">' + lpEsc(it[1]) + ' <small>' + lpEsc(it[0]) + '</small></span>'; }).join('') : '목록에서 찾지 못함') + '</div>' +
+      (pre.length ? '<div class="lp-supg"><span class="lp-supg-n">하위 규격 (필요 여부 확인)</span>' + pre.map(function(it){ return '<span class="lp-sc s-C">' + lpEsc(it[1]) + ' <small>' + lpEsc(it[0]) + '</small></span>'; }).join('') + '</div>' : '') +
+      (wifiNew ? '<div class="note w" style="margin:6px 0 0">' + lpEsc(LP_STD_BY[k][1]) + ' 라이선스가 하위 규격(802.11ax · be) 라이선스 없이 단독으로 되는지는 제품 목록 · Determinator 에 나와 있지 않다 — 주문 전 LitePoint 확인 필요. (본체 기본은 SISO 11a/b/g/n/p/ac)</div>' : '') +
+      (mi >= 2 && !need.some(isMimoLic) ? '<div class="note w" style="margin:6px 0 0">MIMO 라이선스 품목을 이 본체 옵션에서 찾지 못함.</div>' : '') + '</div>';
+  }
   r.list.forEach(function(it){ var c = lpClass(it[0]); if(c !== 'SW') by[c].push(lpRow(it, id)); });
   by.SW = lpSwGrouped(r.list.filter(function(it){ return lpClass(it[0]) === 'SW'; }), id);
+  if(swHid) by.SW.push('<tr class="lp-swg"><td colspan="3">조건과 관계없는 SW ' + swHid + '개 숨김 — 「숨긴 것도 보기」로 전체</td></tr>');
   return head + step1 +
-    supCard + (LP_BODY ? '<div class="lp-gh g-' + lpGroup(id) + '">② ' + lpEsc(LP_BODY) + ' 에 붙는 품목</div>' : '') +
+    supCard + cfg + (swHid ? lpAllBtn(swHid, 'SW 품목') : '') + (LP_BODY ? '<div class="lp-gh g-' + lpGroup(id) + '">② ' + lpEsc(LP_BODY) + ' 에 붙는 품목</div>' : '') +
     (r.ref ? '<div class="note w">이 제품 전용 옵션 목록이 엑셀에 없어 같은 라인 <b>' + lpEsc(r.ref) + '</b> 의 옵션을 참고로 보여준다.</div>' : '') +
     LP_CLS.map(function(c){ return by[c[0]].length ? lpTable(c[1], by[c[0]]) : ''; }).join('') + newSec;
 }
@@ -2995,6 +3038,7 @@ function lpSyncCombos(){
   var ids = LP_CUR ? [LP_CUR] : LP_GROUPS.reduce(function(a, g){ return a.concat(g[2]); }, []);
   $('lp-body').innerHTML = '<option value="">' + (LP_CUR ? '— 제품을 고르세요 —' : '전체 제품 중에서 고르기') + '</option>' + ids.map(function(id){
     var items = (LP_BY[id] || {}).items || [], b = items.filter(lpIsBody);
+    if(lpCondOn() && !LP_SHOWALL && b.length){ b = b.filter(function(it){ return !lpBodyMiss(id, it).length; }); if(!b.length) return ''; }
     /* 본체가 없는 라인(IQFact 등 SW)은 품목 자체를 고른다 */
     var opt = b.length ? b.map(function(it){ return '<option value="' + lpEsc(id + '|' + it[1]) + '">' + lpEsc(it[1]) + '</option>'; }).join('')
       : items.map(function(it){ return '<option value="' + lpEsc(id + '|#' + it[0]) + '">' + lpEsc(it[0] + '  ' + it[1]) + '</option>'; }).join('');
@@ -3019,6 +3063,7 @@ function lpOpen(id, body){
 $('lp-view').addEventListener('click', function(ev){
   var t = ev.target, card = t.closest('[data-line].lp-card');
   if(card){ lpOpen(card.getAttribute('data-line')); return; }
+  if(t.hasAttribute('data-showall')){ LP_SHOWALL = !LP_SHOWALL; lpRender(); return; }
   if(t.hasAttribute('data-back')){ LP_CUR = null; LP_BODY = null; LP_FOCUS = null; lpRender(); return; }
   if(t.hasAttribute('data-desc')){ var d = t.closest('tr').nextElementSibling; d.hidden = !d.hidden; }
 });
@@ -3040,11 +3085,11 @@ $('lp-body').addEventListener('change', function(){
   if(i > 0) lpOpen(v.slice(0, i), v.slice(i + 1)); else if(LP_CUR){ LP_BODY = null; LP_FOCUS = null; lpRender(); }
 });
 $('lp-std').addEventListener('change', lpRender);
-$('lp-mimo').addEventListener('change', function(){ LP_CUR = null; LP_BODY = null; lpRender(); });
-['lp-f', 'lp-bw', 'lp-port'].forEach(function(k){ $(k).addEventListener('input', function(){ LP_CUR = null; LP_BODY = null; lpRender(); }); });
+$('lp-mimo').addEventListener('change', lpRender);
+['lp-f', 'lp-bw', 'lp-port'].forEach(function(k){ $(k).addEventListener('input', lpRender); });
 $('lp-reset').addEventListener('click', function(){
   ['lp-f', 'lp-bw', 'lp-port', 'lp-std', 'lp-mimo'].forEach(function(k){ $(k).value = ''; });
-  LP_CUR = null; LP_BODY = null; lpRender();
+  LP_CUR = null; LP_BODY = null; LP_SHOWALL = false; lpRender();
 });
 /* 표 칸 보기 체크박스 (이 브라우저에 기억). bs = 기본 설명(라인 소개 · 요약, 기본은 보임), ds = 상세 설명 줄 모두 펼치기 */
 function lpPnView(){
