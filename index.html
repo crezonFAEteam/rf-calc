@@ -261,6 +261,10 @@ table#wf-list tbody tr.sel td{background:var(--accent-soft)}
 .lp-supg{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:3px 0}.lp-supg-n{font-size:11.5px;color:var(--ink-mid);min-width:92px;font-weight:700}
 .lp-sc{font-size:11.5px;padding:1px 7px;border-radius:6px;border:1px solid transparent}.lp-sc.s-L{background:#e3f1e7;color:#14613a;border-color:#b9dcc4}.lp-sc.s-B{background:#e6eef9;color:#1f4f8a;border-color:#c3d4ee}
 .lp-sc.s-C,.lp-sc.s-S,.lp-sc.s-H,.lp-sc.s-Sig{background:#fdf0df;color:#8a4b0c;border-color:#f1d3ab}.lp-supc-lg{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;font-size:11px}
+.lp-supd>summary{cursor:pointer;list-style:none}.lp-supd>summary::-webkit-details-marker{display:none}
+.lp-supd>summary::before{content:'▸ ';color:var(--ink-mid)}.lp-supd[open]>summary::before{content:'▾ '}
+.lp-fold{font-size:11px;padding:0 7px;border:1px solid var(--line,#ccc);border-radius:8px;color:var(--ink-mid);margin-left:4px}.lp-supd[open] .lp-fold{display:none}
+.lp-supd:not([open])>summary{margin-bottom:0}
 .lp-new{display:inline-block;font-size:11px;padding:0 6px;border-radius:8px;background:#d7ecdf;color:#14613a;margin-left:4px;vertical-align:1px;font-weight:700}
 .lp-gone{display:inline-block;font-size:11px;padding:0 6px;border-radius:8px;background:#f4d9d0;color:#8a2c12;margin-left:4px;vertical-align:1px}
 </style>
@@ -2981,6 +2985,7 @@ function lpOverview(){
   }).join('');
   return (active ? lpAllBtn(hid, '제품 라인') : '') + (html || '<div class="note w">조건에 맞는 제품이 없다.</div>');
 }
+function lpSupOpen(){ try{ return localStorage.getItem('rf-lp-sup') === '1'; }catch(e){ return false; } }
 function lpDetail(id){
   var m = LP_META[id] || {name:id}, l = LP_BY[id] || {why:[], items:[], spec:''};
   var all = l.items.filter(lpIsBody), cond = lpCondOn();
@@ -3001,11 +3006,11 @@ function lpDetail(id){
   var newSec = news.length ? lpTable('포털 신규 품목 ' + news.length + '개 (본체 미지정)', lpByKind(news).map(function(it){ return lpRow(it, id); })) : '';
   if(bodies.length && !LP_BODY) return head + step1 + '<div class="note">위에서 <b>보기</b> 를 고르면 그 제품에 붙는 HW · SW · Service 품목이 나온다.</div>' + newSec;
   var r = lpOptsFor(id, LP_BODY), by = {HW:[], SW:[], Service:[]}, dmc = LP_BODY ? lpDetModel(id, LP_BODY) : null;
-  var supCard = dmc ? '<div class="card lp-supc"><div class="lp-supc-h"><b>' + lpEsc(dmc.n) + '</b> 지원 규격 <small>(' + lpEsc(LP_DET.src || 'Product Determinator') + ' 기준)</small>' +
-      (dmc.mimo ? ' <span class="lp-k k-B">MIMO 최대 ' + dmc.mimo + 'x' + dmc.mimo + '</span>' : '') + (dmc.dut ? ' <small>동시 DUT · 포트: ' + lpEsc(dmc.dut) + '</small>' : '') + '</div>' +
+  var supCard = dmc ? '<details class="card lp-supc lp-supd"' + (lpSupOpen() ? ' open' : '') + '><summary class="lp-supc-h"><b>' + lpEsc(dmc.n) + '</b> 지원 규격 <small>(' + lpEsc(LP_DET.src || 'Product Determinator') + ' 기준)</small>' +
+      (dmc.mimo ? ' <span class="lp-k k-B">MIMO 최대 ' + dmc.mimo + 'x' + dmc.mimo + '</span>' : '') + (dmc.dut ? ' <small>동시 DUT · 포트: ' + lpEsc(dmc.dut) + '</small>' : '') + ' <span class="lp-fold">보기</span></summary>' +
       LP_STD.map(function(g){ var xs = g[1].filter(function(x){ return dmc.sup[x[0]]; });
         return xs.length ? '<div class="lp-supg"><span class="lp-supg-n">' + lpEsc(g[0]) + '</span>' + xs.map(function(x){ return '<span class="lp-sc s-' + dmc.sup[x[0]] + '" title="' + lpEsc(LP_SUP[dmc.sup[x[0]]][1]) + '">' + lpEsc(x[1]) + (dmc.sup[x[0]] === 'L' || dmc.sup[x[0]] === 'B' ? '' : ' · ' + LP_SUP[dmc.sup[x[0]]][0]) + '</span>'; }).join('') + '</div>' : ''; }).join('') +
-      '<div class="lp-supc-lg"><span class="lp-sc s-L">라이선스로 활성화</span><span class="lp-sc s-B">하드웨어 기본 (SW 지원 별도일 수 있음)</span><span class="lp-sc s-C">C/N · Stacked · 868/915 · 시그널링 등 제한</span></div></div>' : '';
+      '<div class="lp-supc-lg"><span class="lp-sc s-L">라이선스로 활성화</span><span class="lp-sc s-B">하드웨어 기본 (SW 지원 별도일 수 있음)</span><span class="lp-sc s-C">C/N · Stacked · 868/915 · 시그널링 등 제한</span></div></details>' : '';
   r.list = lpByKind(r.list);
   /* 조건(규격 · MIMO)에 맞는 SW 만: 고른 규격 라이선스 + MIMO 2x2 이상이면 WLAN MIMO 라이선스 */
   var k = $('lp-std').value, mi = +$('lp-mimo').value, swAll = r.list.filter(function(it){ return lpClass(it[0]) === 'SW'; }), swHid = 0, cfg = '';
@@ -3071,6 +3076,9 @@ $('lp-view').addEventListener('keydown', function(ev){
   var card = ev.target.closest && ev.target.closest('.lp-card');
   if(card && (ev.key === 'Enter' || ev.key === ' ')){ ev.preventDefault(); lpOpen(card.getAttribute('data-line')); }
 });
+$('lp-view').addEventListener('toggle', function(ev){
+  if(ev.target.classList && ev.target.classList.contains('lp-supd')){ try{ localStorage.setItem('rf-lp-sup', ev.target.open ? '1' : '0'); }catch(e){} }
+}, true);
 $('lp-view').addEventListener('change', function(ev){
   var c = ev.target;
   if(c.hasAttribute('data-body')){
