@@ -730,14 +730,15 @@ table.lp tr.gi-cur td{background:var(--accent-soft);font-weight:600}
         </div>
         <div class="btns">
           <button class="btn sm gh" id="eq-ping">중계 확인</button>
+          <button class="btn sm" id="eq-run" title="PC 에 설치된 RF중계.exe 를 실행 (처음 한 번은 브라우저가 열지 물어봄)">중계 실행</button>
           <span class="pill p-warn" id="eq-state">확인 전</span>
         </div>
         <div class="note w">
           <b>중계 프로그램이 켜져 있어야 동작한다</b>
           <span>브라우저는 장비 소켓에 직접 붙지 못하므로 같은 폴더의 <code>rf_bridge.py</code> 가 대신 연결한다.</span>
-          <span>· PC: <code>rf_bridge.bat</code> 더블클릭 → 이 계산기가 열리고 바로 연결된다</span>
+          <span>· PC: <b>RF중계.exe</b> 실행 (또는 [중계 실행]) → 마지막에 쓴 장비에 연결해 두고 이 계산기가 열린다. Python 필요 없음</span>
+          <span>· [중계 실행] 은 RF중계.exe 를 한 번이라도 실행한 PC 에서 동작한다 (그때 rfbridge:// 주소가 등록됨)</span>
           <span>· 휴대폰: PC 에서 <code>rf_bridge_phone.bat</code> 실행 → 같은 Wi-Fi 에서 <code>http://PC-IP:8765</code></span>
-          <span>· PC 에서는 <b>RF계산기.exe</b> (PC 프로그램) 로 열면 중계 없이 바로 연결된다</span>
         </div>
         </div>
 
@@ -2325,11 +2326,23 @@ function eqLog(html){
   el.insertAdjacentHTML('beforeend', html + '\n');
   el.scrollTop = el.scrollHeight;
 }
+var EQ_LINKED = false;
+/* rfbridge:// 로 RF중계.exe 실행 → 켜질 때까지 몇 번 확인 */
+function eqRun(){
+  eqState(true, '중계 실행 중…');
+  location.href = 'rfbridge://start';
+  var n = 0, t = setInterval(function(){
+    eqCall('ping').then(function(j){ if(j.ok){ clearInterval(t); eqPing().then(function(){ if(!EQ_LINKED) eqCheck(); }); } })
+      .catch(function(){ if(++n > 12){ clearInterval(t); eqState(false, '중계가 안 켜짐 — RF중계.exe 를 직접 실행'); } });
+  }, 1000);
+}
 function eqPing(){
   eqSave();
   eqState(true, '확인 중');
   return eqCall('ping')
     .then(function(j){ if(!j.ok) throw 0; eqState(true, EQ_PC ? 'PC 직접 연결' : '중계 켜짐');
+      if(j.dev && j.dev.connected && j.dev.host){ $('eq-host').value = j.dev.host; $('eq-port').value = j.dev.port; eqSave();
+        eqDev(true, '장비 연결됨 · ' + ((j.dev.idn || '').split(',')[1] || j.dev.host)); EQ_LINKED = true; }
       if(EQ_PC) $('eq-pcdb').textContent = j.castdb ? '· CAST DB 찾음 — 장비 정보 읽기에서 라이선스를 Part No 와 비교한다' : '· CAST DB 를 찾지 못함 — 장비 정보 읽기에서 라이선스 코드만 보인다';
       return true; })
     .catch(function(){ eqState(false, '중계 꺼짐'); eqDev(false, '확인 불가'); return false; });
@@ -2357,10 +2370,11 @@ function eqSend(text){
   }).catch(function(){
     eqState(false, '중계 꺼짐');
     eqDev(false, '확인 불가');
-    eqLog('<span class="e">중계 프로그램에 연결하지 못했다 — rf_bridge.bat 이 실행 중인지, 중계 주소가 맞는지 확인</span>');
+    eqLog('<span class="e">중계 프로그램에 연결하지 못했다 — [중계 실행] 을 누르거나 RF중계.exe 를 실행, 중계 주소 확인</span>');
   }).then(function(){ btn.disabled = false; });
 }
 $('eq-ping').addEventListener('click', eqPing);
+$('eq-run').addEventListener('click', eqRun);
 $('eq-send').addEventListener('click', function(){ eqSend($('eq-cmd').value); });
 $('eq-cmd').addEventListener('keydown', function(ev){
   if(ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)){ ev.preventDefault(); eqSend(this.value); }
@@ -2378,7 +2392,7 @@ function eqCheck(){
 $('eq-check').addEventListener('click', eqCheck);
 ['eq-host', 'eq-port'].forEach(function(k){ $(k).addEventListener('change', eqCheck); });
 $('t-eq').addEventListener('click', function(){
-  if(eqFirst) eqPing().then(function(ok){ if(ok) eqCheck(); });
+  if(eqFirst) eqPing().then(function(ok){ if(ok && !EQ_LINKED) eqCheck(); });
 });
 /* ---- 장비 정보 읽기 (CAST GetInfo 와 같은 방식) ---- */
 var EQ_GI = null;
@@ -2448,7 +2462,7 @@ function eqGetInfo(){
   })
   .catch(function(e){
     if(e === 'old'){ eqPill('eq-gi-st', false, '중계 프로그램이 예전 버전 — rf_bridge.bat 을 닫고 다시 실행'); return; }
-    eqState(false, '중계 꺼짐'); eqPill('eq-gi-st', false, '중계 프로그램에 연결 못 함 — PC 에서 rf_bridge.bat 실행');
+    eqState(false, '중계 꺼짐'); eqPill('eq-gi-st', false, '중계 프로그램에 연결 못 함 — [중계 실행] 또는 RF중계.exe 실행');
   }).then(function(){ btn.disabled = false; });
 }
 $('eq-gi').addEventListener('click', eqGetInfo);
