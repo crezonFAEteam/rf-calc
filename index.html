@@ -2580,7 +2580,9 @@ function lpuList(title, arr, fn){
 function lpuShow(d){
   clearTimeout(LPU_WAIT);
   var P = LPU_PLAN = lpuPlan(d), box = $('lp-upd-box');
-  if(!P.listN && !P.optN){ box.innerHTML = '<div class="note w">LP 수집기에 담긴 내용이 없다. 포털에서 먼저 담을 것 (아래 방법).</div>' + lpuHow(); return; }
+  if(!P.listN && !P.optN){ box.innerHTML = '<div class="note w"><b>LP 수집기와 연결됨 — 그런데 확장 안에 담긴 자료가 0개</b>라 비교할 것이 없다 (확장을 새로 설치하면 비어 있음).<br>'
+    + '· 빠른 방법: 확장 아이콘 → <b>[엑셀 불러오기]</b> → 전에 받은 <code>LP_수집_*.xlsx</code> 선택 → 여기서 다시 [최신 업데이트]<br>'
+    + '· 최신 정보: 포털에서 다시 담기 (아래 방법)</div>' + lpuHow(); return; }
   var oc = P.opt.filter(function(o){ return o.add.length || o.del.length || o.hit.isNew; });
   box.innerHTML = '<div class="lp-upd-sum">포털에서 담은 때 <b>' + lpEsc(P.at.slice(0, 16)) + '</b> · 목록 ' + P.listN + '개 · 본체 옵션 ' + P.optN + '개 → ' +
       '이름·설명 바뀜 <b>' + P.chg.filter(function(c, i, A){ return A.findIndex(function(x){ return x.pn === c.pn; }) === i; }).length + '</b> · 옵션 바뀐 본체 <b>' + oc.length + '</b> · 포털 목록에 없음 <b>' + P.gone.length + '</b></div>' +
