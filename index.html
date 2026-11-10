@@ -2544,6 +2544,8 @@ function lpuPlan(d){
   });
   return P;
 }
+/* Part No 가운데 자리로 라인을 못 찾는 것 중 라인이 분명한 것 (IQ5630 = UWB 테스트 시스템, IQ5631 = 전력·지연 모듈, IQ5640/5641 = 확장 킷) */
+var LPU_LINE_HINT = {'5630':'IQgig-UWB+', '5631':'IQgig-UWB+', '5640':'IQgig-UWB+', '5641':'IQgig-UWB+', '56XX':'IQgig-UWB+'};
 function lpuKindOf(r){   /* 포털 신규 품목의 구분 — 엑셀에서 손으로 단 구분과 같은 이름을 쓴다 */
   var pn = r.pn || '', p = pn.slice(0, 4), t = (r.name || '') + ' ' + (r.desc || ''), f = r.family || '', ug = /Field Upgrade|\bUG\b|Upgrade/i.test(t);
   if(p === '0100') return '본체';
@@ -2589,13 +2591,22 @@ function lpuApply(d, on){
     l.items.forEach(function(it){ add(it[0]); }); Object.keys(l.opts || {}).forEach(function(b){ l.opts[b].forEach(function(x){ add(x[0]); }); });
   });
   P.only.forEach(function(r){
-    var c = cnt[seg(r.pn)], id = c ? Object.keys(c).sort(function(a, b){ return c[b] - c[a]; })[0] : 'LP_NEW';
+    var hint = LPU_LINE_HINT[seg(r.pn)], c = cnt[seg(r.pn)];
+    var id = hint && LP_BY[hint] ? hint : c ? Object.keys(c).sort(function(a, b){ return c[b] - c[a]; })[0] : 'LP_NEW';
     if(!LP_BY[id]){
       LP_BY[id] = {id:id, spec:'포털 제품 목록에만 있고 Part No 로 라인을 알 수 없는 품목 (최신 업데이트로 추가)', why:[], items:[], opts:{}};
       LP.lines.push(LP_BY[id]); LP_GROUPS.push(['new', '포털 신규', [id]]); LP_META[id] = {name:'포털 신규 (분류 전)', chips:['최신 업데이트로 추가', '라인 미분류']};
     }
     var f = r.family || '', it = [r.pn, r.name || r.pn, f, r.desc || '', lpuKindOf(r), ''];
     LP_BY[id].items.push(it); if(!LP_IDX[r.pn]) LP_IDX[r.pn] = it; mark(r.pn, '포털 신규');
+  });
+  /* 새로 넣은 본체(예: IQ5630)에 포털에서 담은 옵션이 있으면 그 본체 옵션으로 붙인다 */
+  P.skip = P.skip.filter(function(x){
+    var hit = lpuBlock(x.b); if(!hit) return true;
+    var l = LP_BY[hit.line], rows = (d.opts[x.b] || {}).rows || [];
+    l.opts = l.opts || {}; l.opts[hit.k] = rows.map(function(r){ return [r.pn, r.name || r.desc, r.sec]; });
+    l.items.forEach(function(it){ if(lpIsBody(it) && it[1] === hit.k) mark(it[0], '옵션 (포털에서 담은 ' + rows.length + '개)'); });
+    return false;
   });
   LP_STD_HIT = {};
   return P;
