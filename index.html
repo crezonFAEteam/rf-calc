@@ -720,8 +720,10 @@ table.lp tr.gi-cur td{background:var(--accent-soft);font-weight:600}
           <button class="btn sm" id="eq-check">장비 연결 확인</button>
           <span class="pill p-warn" id="eq-dev">확인 전</span>
         </div>
+        <div class="note" id="eq-pcnote" hidden><b>PC 프로그램 — 장비에 직접 연결</b><span>중계 프로그램 없이 이 프로그램이 장비(SCPI TCP)에 바로 붙는다 (CAST 와 같은 방식).</span><span id="eq-pcdb"></span></div>
+        <div id="eq-relay" style="display:flex;flex-direction:column;gap:12px">
         <hr style="border:none;border-top:1px solid var(--line-soft);margin:2px 0">
-        <h2>중계 프로그램</h2>
+        <h2>중계 프로그램 <small style="font-weight:400;color:var(--ink-mid)">— 휴대폰 · 웹 브라우저용</small></h2>
         <div class="field">
           <label for="eq-bridge">중계 주소</label>
           <input type="text" id="eq-bridge" value="http://localhost:8765" autocomplete="off">
@@ -735,6 +737,8 @@ table.lp tr.gi-cur td{background:var(--accent-soft);font-weight:600}
           <span>브라우저는 장비 소켓에 직접 붙지 못하므로 같은 폴더의 <code>rf_bridge.py</code> 가 대신 연결한다.</span>
           <span>· PC: <code>rf_bridge.bat</code> 더블클릭 → 이 계산기가 열리고 바로 연결된다</span>
           <span>· 휴대폰: PC 에서 <code>rf_bridge_phone.bat</code> 실행 → 같은 Wi-Fi 에서 <code>http://PC-IP:8765</code></span>
+          <span>· PC 에서는 <b>RF계산기.exe</b> (PC 프로그램) 로 열면 중계 없이 바로 연결된다</span>
+        </div>
         </div>
 
         <div class="note">
@@ -763,7 +767,7 @@ table.lp tr.gi-cur td{background:var(--accent-soft);font-weight:600}
       </div>
     </div>
     <div class="card" style="margin-top:14px">
-      <h2>장비 정보 읽기 <small style="font-weight:400;color:var(--ink-mid)">— 본체 · 펌웨어 · 설치 라이선스를 읽어 그 제품 라인 옵션과 비교 (PC 의 중계 프로그램 필요)</small></h2>
+      <h2>장비 정보 읽기 <small style="font-weight:400;color:var(--ink-mid)">— 본체 · 펌웨어 · 설치 라이선스를 읽어 그 제품 라인 옵션과 비교 (PC 프로그램은 바로, 휴대폰 · 웹은 중계 프로그램으로)</small></h2>
       <div class="btns">
         <button class="btn" id="eq-gi">장비 정보 읽기</button>
         <label class="lp-chk"><input type="checkbox" id="eq-gi-miss"> 미설치만</label>
@@ -775,7 +779,7 @@ table.lp tr.gi-cur td{background:var(--accent-soft);font-weight:600}
       <div id="eq-gi-info" class="eq-gi-info"></div>
       <div id="eq-gi-out"></div>
       <div class="note"><b>읽기 명령만 보낸다</b><span>*IDN? · SYS → PN? · MIDN? · OPT? · SYST:OPT:ADAT? · SYST:OPT:EDAT? · AMOD? · BP → MIDN? · ROUTxx → MIDN? (CAST GetInfo 와 같음). 장비 설정은 바꾸지 않는다.</span>
-        <span>라이선스 코드 ↔ Part No 대응은 중계 프로그램이 PC 의 CAST DB 를 읽기 전용으로 열어 쓴다 — 계산기(공개 사이트)에는 들어 있지 않다. DB 를 못 찾으면 코드만 보인다.</span></div>
+        <span>라이선스 코드 ↔ Part No 대응은 PC 프로그램(또는 중계 프로그램)이 PC 의 CAST DB 를 읽기 전용으로 열어 쓴다 — 계산기(공개 사이트)에는 들어 있지 않다. DB 를 못 찾으면 코드만 보인다.</span></div>
     </div>
   </div>
 
@@ -2291,6 +2295,20 @@ function eqSave(){
   try{ localStorage.setItem('rf-eq', JSON.stringify(s)); }catch(e){}
 }
 function eqUrl(p){ return $('eq-bridge').value.trim().replace(/\/+$/, '') + p; }
+var EQ_PC = !!(window.chrome && window.chrome.webview), EQ_PC_N = 0, EQ_PC_WAIT = {};
+if(EQ_PC) window.chrome.webview.addEventListener('message', function(ev){
+  var d = ev.data; if(!d || d.src !== 'rfcalc-pc' || !EQ_PC_WAIT[d.id]) return;
+  EQ_PC_WAIT[d.id](d); delete EQ_PC_WAIT[d.id];
+});
+/* 요청 하나: PC 프로그램 → 직접 연결, 그 밖(휴대폰 · 웹) → 중계 프로그램. 404 = 예전 중계 */
+function eqCall(type, body){
+  if(EQ_PC) return new Promise(function(ok){
+    var id = ++EQ_PC_N; EQ_PC_WAIT[id] = ok;
+    window.chrome.webview.postMessage(Object.assign({src:'rfcalc-pc', id:id, type:type}, body || {}));
+  });
+  var o = type === 'ping' ? {cache:'no-store'} : {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)};
+  return fetch(eqUrl('/api/' + type), o).then(function(r){ if(r.status === 404) throw 'old'; return r.json(); });
+}
 function eqPill(id, ok, txt){
   var el = $(id);
   el.className = 'pill ' + (ok ? 'p-ok' : 'p-warn');
@@ -2310,9 +2328,10 @@ function eqLog(html){
 function eqPing(){
   eqSave();
   eqState(true, '확인 중');
-  return fetch(eqUrl('/api/ping'), {cache:'no-store'})
-    .then(function(r){ return r.json(); })
-    .then(function(j){ if(!j.ok) throw 0; eqState(true, '중계 켜짐'); return true; })
+  return eqCall('ping')
+    .then(function(j){ if(!j.ok) throw 0; eqState(true, EQ_PC ? 'PC 직접 연결' : '중계 켜짐');
+      if(EQ_PC) $('eq-pcdb').textContent = j.castdb ? '· CAST DB 찾음 — 장비 정보 읽기에서 라이선스를 Part No 와 비교한다' : '· CAST DB 를 찾지 못함 — 장비 정보 읽기에서 라이선스 코드만 보인다';
+      return true; })
     .catch(function(){ eqState(false, '중계 꺼짐'); eqDev(false, '확인 불가'); return false; });
 }
 function eqSend(text){
@@ -2324,11 +2343,8 @@ function eqSend(text){
   var t0 = Date.now(), btn = $('eq-send');
   btn.disabled = true;
   eqLog('<span class="c">── ' + eqEsc(host + ':' + $('eq-port').value) + '  ' + new Date().toLocaleTimeString() + '</span>');
-  fetch(eqUrl('/api/scpi'), {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({host:host, port:+$('eq-port').value || 5025, timeout:+$('eq-to').value || 5, cmds:cmds})
-  }).then(function(r){ return r.json(); }).then(function(j){
-    eqState(true, '중계 켜짐');
+  eqCall('scpi', {host:host, port:+$('eq-port').value || 5025, timeout:+$('eq-to').value || 5, cmds:cmds}).then(function(j){
+    eqState(true, EQ_PC ? 'PC 직접 연결' : '중계 켜짐');
     var idn = null, bad = !j.ok;
     (j.res || []).forEach(function(x){
       eqLog('<span class="c">&gt; ' + eqEsc(x.cmd) + '</span>' +
@@ -2421,11 +2437,9 @@ function eqGetInfo(){
   if(!host){ eqPill('eq-gi-st', false, '장비 IP 를 입력하세요'); $('eq-host').focus(); return; }
   eqSave();
   var btn = $('eq-gi'); btn.disabled = true; eqPill('eq-gi-st', true, host + ' 읽는 중…');
-  fetch(eqUrl('/api/getinfo'), {method:'POST', headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({host:host, port:+$('eq-port').value || 24000, timeout:+$('eq-to').value || 5})})
-  .then(function(r){ if(r.status === 404) throw 'old'; return r.json(); })
+  eqCall('getinfo', {host:host, port:+$('eq-port').value || 24000, timeout:+$('eq-to').value || 5})
   .then(function(j){
-    eqState(true, '중계 켜짐');
+    eqState(true, EQ_PC ? 'PC 직접 연결' : '중계 켜짐');
     if(!j.ok){ eqPill('eq-gi-st', false, '읽기 실패 — ' + j.err); eqDev(false, '장비 연결 안 됨'); return; }
     EQ_GI = {info:j.info, cat:j.cat, at:lpNow()}; EQ_GI.line = eqGiLine(j.info, j.cat);
     eqDev(true, '장비 연결됨 · ' + j.info.model);
@@ -2441,6 +2455,7 @@ $('eq-gi').addEventListener('click', eqGetInfo);
 ['eq-gi-miss', 'eq-gi-exp', 'eq-gi-sw'].forEach(function(k){ $(k).addEventListener('change', eqGiRender); });
 $('eq-gi-lp').addEventListener('click', function(){ if(!EQ_GI || !EQ_GI.line) return; $('t-lp').click(); lpOpen(EQ_GI.line[0], EQ_GI.line[1]); });
 eqLoad();
+if(EQ_PC){ $('eq-relay').hidden = true; $('eq-relay').style.display = 'none'; $('eq-pcnote').hidden = false; eqState(true, 'PC 직접 연결'); }
 if(location.hash === '#eq') $('t-eq').click();
 
 /* ================= LP 제품 =================
