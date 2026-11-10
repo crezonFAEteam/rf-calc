@@ -2433,7 +2433,7 @@ LP.lines.forEach(function(l){ l.items.forEach(function(it){ if(!LP_IDX[it[0]]) L
 /* 구분 보여주는 순서 — 목록에 없는 구분은 그 뒤, '기타' 는 맨 끝 */
 var LP_KIND = ['본체', '포트 확장 UG', '포트확장/전환 UG', '주파수 확장 UG', '세대 확장 UG', '세대 전환 UG', '구형 전환 UG',
   '기능 추가', '기능 확장', '옵션', '액세서리', '액세서리(UG)', '소모품',
-  'SW 라이선스', 'SW 라이선스(UG)', 'SW 라이선스(추가)', 'SW 라이선스(체험)', '파형 라이선스', '유지보수', '서비스'];
+  'SW 라이선스', 'SW 라이선스(UG)', 'SW 라이선스(추가)', 'SW 라이선스(체험)', '파형 라이선스', '유지보수', '보증 · 교정', '교정', '서비스', '수리', '예비 부품'];
 function lpKindRank(k){ var i = LP_KIND.indexOf(k); return i >= 0 ? i : /^기타/.test(k) ? 999 : 500; }
 function lpByKind(list){
   return list.map(function(it, i){ return [lpKindRank(it[4]), i, it]; })
@@ -2544,6 +2544,27 @@ function lpuPlan(d){
   });
   return P;
 }
+function lpuKindOf(r){   /* 포털 신규 품목의 구분 — 엑셀에서 손으로 단 구분과 같은 이름을 쓴다 */
+  var pn = r.pn || '', p = pn.slice(0, 4), t = (r.name || '') + ' ' + (r.desc || ''), f = r.family || '', ug = /Field Upgrade|\bUG\b|Upgrade/i.test(t);
+  if(p === '0100') return '본체';
+  if(p === '0900') return '액세서리';
+  if(p === '0350') return '파형 라이선스';
+  if(p === '0300' || p === '0650' || (/soft/i.test(f) && !/^0[5-8]/.test(p))) return /trial|eval|demo/i.test(t) ? 'SW 라이선스(체험)' : ug ? 'SW 라이선스(UG)' : 'SW 라이선스';
+  if(p === '0500') return '보증 · 교정';
+  if(p === '0700') return '교정';
+  if(p === '0600') return '유지보수';
+  if(/^08/.test(p)) return /spare/i.test(f) ? '예비 부품' : /repair/i.test(t) ? '수리' : '서비스';
+  if(p === '0150'){
+    if(ug){
+      if(/\bports?\b|RF port/i.test(t) && !/sniffer|license/i.test(t)) return '포트 확장 UG';
+      if(/frequency|\d ?to ?\d ?G|GHz UG|7G UG/i.test(t)) return '주파수 확장 UG';
+      if(/IQxel-?(80|160|280)\b|legacy|trade/i.test(t)) return '구형 전환 UG';
+      return '기능 추가';
+    }
+    return /cable|kit|adapter|rack|mount|fixture|splitter|attenuat|antenna|chamber|power supply|case|bracket|shield/i.test(t) ? '액세서리' : '기능 추가';
+  }
+  return /serv/i.test(f) ? '서비스' : '기능 추가';
+}
 function lpuApply(d){
   var P = lpuPlan(d);
   LPU_UPD = {};   /* 최신 업데이트로 바뀐 품목 → 표시용 (pn: 바뀐 내용) */
@@ -2572,7 +2593,7 @@ function lpuApply(d){
       LP_BY[id] = {id:id, spec:'포털 제품 목록에만 있고 Part No 로 라인을 알 수 없는 품목 (최신 업데이트로 추가)', why:[], items:[], opts:{}};
       LP.lines.push(LP_BY[id]); LP_GROUPS.push(['new', '포털 신규', [id]]); LP_META[id] = {name:'포털 신규 (분류 전)', chips:['최신 업데이트로 추가', '라인 미분류']};
     }
-    var f = r.family || '', it = [r.pn, r.name || r.pn, f, r.desc || '', /^0100-/.test(r.pn) ? '본체(포털 신규)' : /soft/i.test(f) ? '포털 신규 SW' : /serv/i.test(f) ? '포털 신규 서비스' : '포털 신규 HW', ''];
+    var f = r.family || '', it = [r.pn, r.name || r.pn, f, r.desc || '', lpuKindOf(r), ''];
     LP_BY[id].items.push(it); if(!LP_IDX[r.pn]) LP_IDX[r.pn] = it; mark(r.pn, '포털 신규');
   });
   LP_STD_HIT = {};
@@ -2678,32 +2699,74 @@ function lpxZip(files){
 }
 function lpxEsc(v){ return String(v).replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 function lpxCol(i){ var s = ''; i++; while(i){ var m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = (i - m - 1) / 26; } return s; }
-function lpxSheet(rows, widths, bold){   /* bold = 굵게(머리줄) 할 행 번호 목록 */
-  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols>' +
-    widths.map(function(w, i){ return '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + w + '" customWidth="1"/>'; }).join('') + '</cols><sheetData>' +
-    rows.map(function(r, ri){ var b = bold.indexOf(ri) >= 0;
-      return '<row r="' + (ri + 1) + '">' + r.map(function(v, ci){ if(v === null || v === undefined || v === '') return '';
-        if(typeof v === 'number' && isFinite(v)) return '<c r="' + lpxCol(ci) + (ri + 1) + '" s="3"><v>' + v + '</v></c>';
-        return '<c r="' + lpxCol(ci) + (ri + 1) + '" t="inlineStr"' + (b ? ' s="1"' : ci === 3 || ci === 5 ? ' s="2"' : '') + '><is><t xml:space="preserve">' + lpxEsc(v) + '</t></is></c>'; }).join('') + '</row>'; }).join('') +
-    '</sheetData></worksheet>';
+/* 엑셀 스타일: 행마다 {v:[값], k:'title|spec|why|blank|head|body|grp|opt|item|sec|log', fill:'FFrrggbb', ol:1(접기)} */
+var LPX_ST = null;
+function lpxStyleReset(){ LPX_ST = {fills:['<fill><patternFill patternType="none"/></fill>', '<fill><patternFill patternType="gray125"/></fill>'], fillIx:{}, xfs:['<xf/>'], xfIx:{}}; }
+function lpxFill(rgb){ if(!rgb) return 0; if(!(rgb in LPX_ST.fillIx)){ LPX_ST.fillIx[rgb] = LPX_ST.fills.length; LPX_ST.fills.push('<fill><patternFill patternType="solid"><fgColor rgb="' + rgb + '"/></patternFill></fill>'); } return LPX_ST.fillIx[rgb]; }
+function lpxXf(font, fill, h, wrap, indent, num, border){
+  var key = [font, fill, h, wrap, indent, num, border].join('|');
+  if(!(key in LPX_ST.xfIx)){
+    LPX_ST.xfIx[key] = LPX_ST.xfs.length;
+    LPX_ST.xfs.push('<xf fontId="' + font + '" fillId="' + lpxFill(fill) + '" borderId="' + (border ? 1 : 0) + '" numFmtId="' + (num ? 3 : 0) + '" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"' + (num ? ' applyNumberFormat="1"' : '') +
+      '><alignment vertical="center"' + (h ? ' horizontal="' + h + '"' : '') + (wrap ? ' wrapText="1"' : '') + (indent ? ' indent="' + indent + '"' : '') + '/></xf>');
+  }
+  return LPX_ST.xfIx[key];
+}
+/* 열: 0 Part No · 1 이름 · 2 Family · 3 설명 · 4 구분 · 5 요약 · 6 상태 · 7 가격 · 8 업데이트 내용 */
+function lpxCellXf(k, ci, fill){
+  if(k === 'title') return lpxXf(2, '', '', 0, 0, 0, 0);
+  if(k === 'spec') return lpxXf(0, '', '', 0, 0, 0, 0);
+  if(k === 'why') return lpxXf(3, '', '', 0, 0, 0, 0);
+  if(k === 'head') return lpxXf(1, 'FFBDD7EE', 'center', 1, 0, 0, 1);
+  if(k === 'sec') return lpxXf(1, 'FFD9E1F2', '', 0, 0, 0, 1);
+  if(k === 'log') return lpxXf(0, '', ci === 1 ? 'center' : '', ci >= 3 ? 1 : 0, 0, 0, 1);
+  var bold = k === 'body' || k === 'grp' ? 1 : 0, bg = fill || (k === 'body' ? 'FFF2F2F2' : k === 'grp' ? 'FFF7F7F7' : '');
+  var h = ['', '', 'center', '', 'center', '', 'center', 'right', ''][ci] || '', wrap = ci === 1 || ci === 3 || ci === 4 || ci === 5 || ci === 6 || ci === 8 ? 1 : 0;
+  return lpxXf(bold, bg, h, wrap, k === 'opt' && ci === 1 ? 2 : 0, ci === 7 ? 1 : 0, 1);
+}
+function lpxSheet(sh){
+  var rows = sh.rows, hr = sh.headRow, last = rows.length, cols = sh.widths.length;
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    '<sheetPr><outlinePr summaryBelow="0"/></sheetPr>' +
+    (hr != null ? '<sheetViews><sheetView workbookViewId="0"><pane ySplit="' + (hr + 1) + '" topLeftCell="A' + (hr + 2) + '" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>' : '') +
+    '<sheetFormatPr defaultRowHeight="15"/><cols>' + sh.widths.map(function(w, i){ return '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + w + '" customWidth="1"/>'; }).join('') + '</cols><sheetData>' +
+    rows.map(function(r, ri){
+      var full = r.k !== 'title' && r.k !== 'spec' && r.k !== 'why' && r.k !== 'blank', n = full ? cols : r.v.length, cells = '';
+      for(var ci = 0; ci < n; ci++){
+        var v = r.v[ci], ref = lpxCol(ci) + (ri + 1), x = lpxCellXf(r.k, ci, r.fill);
+        if(v === null || v === undefined || v === '') cells += full ? '<c r="' + ref + '" s="' + x + '"/>' : '';
+        else if(typeof v === 'number' && isFinite(v)) cells += '<c r="' + ref + '" s="' + x + '"><v>' + v + '</v></c>';
+        else cells += '<c r="' + ref + '" s="' + x + '" t="inlineStr"><is><t xml:space="preserve">' + lpxEsc(v) + '</t></is></c>';
+      }
+      var head = !r.ol && rows[ri + 1] && rows[ri + 1].ol;   /* 접힌 묶음의 머리 행 (본체) → 엑셀 왼쪽 + 버튼 */
+      return '<row r="' + (ri + 1) + '"' + (r.ol ? ' outlineLevel="' + r.ol + '" hidden="1"' : '') + (head ? ' collapsed="1"' : '') + '>' + cells + '</row>'; }).join('') +
+    '</sheetData>' + (hr != null ? '<autoFilter ref="A' + (hr + 1) + ':' + lpxCol(cols - 1) + last + '"/>' : '') + '</worksheet>';
 }
 function lpxBook(sheets){
   var R = 'http://schemas.openxmlformats.org/', H = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+  lpxStyleReset();
+  var xmls = sheets.map(function(s){ return lpxSheet(s); });   /* 스타일을 모으려고 시트를 먼저 만든다 */
   return lpxZip([
     ['[Content_Types].xml', H + '<Types xmlns="' + R + 'package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>' +
       '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
       sheets.map(function(s, i){ return '<Override PartName="/xl/worksheets/sheet' + (i + 1) + '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'; }).join('') + '</Types>'],
     ['_rels/.rels', H + '<Relationships xmlns="' + R + 'package/2006/relationships"><Relationship Id="rId1" Type="' + R + 'officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'],
     ['xl/workbook.xml', H + '<workbook xmlns="' + R + 'spreadsheetml/2006/main" xmlns:r="' + R + 'officeDocument/2006/relationships"><sheets>' +
-      sheets.map(function(s, i){ return '<sheet name="' + lpxEsc(s.name) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>'; }).join('') + '</sheets></workbook>'],
+      sheets.map(function(s, i){ return '<sheet name="' + lpxEsc(s.name) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>'; }).join('') + '</sheets><definedNames>' +
+      sheets.map(function(s, i){ return s.headRow == null ? '' : '<definedName name="_xlnm._FilterDatabase" localSheetId="' + i + '" hidden="1">\'' + lpxEsc(s.name.replace(/'/g, "''")) + '\'!$A$' + (s.headRow + 1) + ':$' + lpxCol(s.widths.length - 1) + '$' + s.rows.length + '</definedName>'; }).join('') +
+      '</definedNames></workbook>'],
     ['xl/_rels/workbook.xml.rels', H + '<Relationships xmlns="' + R + 'package/2006/relationships">' +
       sheets.map(function(s, i){ return '<Relationship Id="rId' + (i + 1) + '" Type="' + R + 'officeDocument/2006/relationships/worksheet" Target="worksheets/sheet' + (i + 1) + '.xml"/>'; }).join('') +
       '<Relationship Id="rId' + (sheets.length + 1) + '" Type="' + R + 'officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'],
-    ['xl/styles.xml', H + '<styleSheet xmlns="' + R + 'spreadsheetml/2006/main"><fonts count="2"><font><sz val="10"/><name val="Arial"/></font><font><b/><sz val="10"/><name val="Arial"/></font></fonts>' +
-      '<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFDDEBF7"/></patternFill></fill></fills>' +
-      '<borders count="1"><border/></borders><cellStyleXfs count="1"><xf/></cellStyleXfs><cellXfs count="4"><xf/><xf fontId="1" fillId="2" applyFont="1" applyFill="1"/><xf applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf><xf numFmtId="3" applyNumberFormat="1"/></cellXfs></styleSheet>']
-  ].concat(sheets.map(function(s, i){ return ['xl/worksheets/sheet' + (i + 1) + '.xml', lpxSheet(s.rows, s.widths, s.bold)]; })));
+    ['xl/styles.xml', H + '<styleSheet xmlns="' + R + 'spreadsheetml/2006/main">' +
+      '<fonts count="4"><font><sz val="10"/><name val="맑은 고딕"/></font><font><b/><sz val="10"/><name val="맑은 고딕"/></font><font><b/><sz val="14"/><color rgb="FF1F3864"/><name val="맑은 고딕"/></font><font><sz val="9"/><color rgb="FF595959"/><name val="맑은 고딕"/></font></fonts>' +
+      '<fills count="' + LPX_ST.fills.length + '">' + LPX_ST.fills.join('') + '</fills>' +
+      '<borders count="2"><border/><border><left style="thin"><color rgb="FFD0D0D0"/></left><right style="thin"><color rgb="FFD0D0D0"/></right><top style="thin"><color rgb="FFD0D0D0"/></top><bottom style="thin"><color rgb="FFD0D0D0"/></bottom></border></borders>' +
+      '<cellStyleXfs count="1"><xf/></cellStyleXfs><cellXfs count="' + LPX_ST.xfs.length + '">' + LPX_ST.xfs.join('') + '</cellXfs></styleSheet>']
+  ].concat(xmls.map(function(x, i){ return ['xl/worksheets/sheet' + (i + 1) + '.xml', x]; })));
 }
+/* 업데이트한 해 → 연한 배경색 (2026 연두, 2027 살구, 2028 연보라, 2029 연노랑, 2030 하늘 … 다시 반복) */
+function lpxYearFill(y){ var P = ['FFE2EFDA', 'FFFCE4D6', 'FFE4DFEC', 'FFFFF2CC', 'FFDDEBF7']; return P[(((+y || 2026) - 2026) % 5 + 5) % 5]; }
 function lpuXlsx(){
   var sv = lpuSaved(); if(!sv) return;
   var done = false, t = setTimeout(function(){ if(done) return; done = true; window.removeEventListener('message', on);
@@ -2721,28 +2784,61 @@ function lpuXlsx(){
   window.postMessage({src:'rfcalc', type:'lpc-get', req:'xl', price:true}, LPU_TO());
 }
 function lpuXlsxMake(sv, pd){   /* pd = 가격이 든 수집 내용 (엑셀에만 쓰고 버림) */
-  var price = {}, optPrice = {};
+  var price = {}, optPrice = {}, optDesc = {}, addOpt = {};
   if(pd){ Object.keys(pd.list || {}).forEach(function(k){ if(pd.list[k].price != null) price[k] = pd.list[k].price; });
     Object.keys(pd.opts || {}).forEach(function(b){ (pd.opts[b].rows || []).forEach(function(r){ if(r.price != null) optPrice[lpuNorm(b) + '|' + r.pn] = r.price; }); }); }
+  var sd = sv.data || {};
+  Object.keys(sd.opts || {}).forEach(function(b){ (sd.opts[b].rows || []).forEach(function(r){ if(r.desc) optDesc[r.pn] = r.desc; }); });
+  Object.keys(sd.list || {}).forEach(function(k){ if(sd.list[k].desc && !optDesc[k]) optDesc[k] = sd.list[k].desc; });
+  (sv.log || []).forEach(function(x){ if(x[1] === '옵션 추가') addOpt[lpuNorm(x[3]) + '|' + x[2]] = 1; });
   var num = function(v){ return v == null || v === '' ? '' : Number(v); };
-  var day = sv.on.slice(0, 10), CAT = {Hardware:1, Software:1, Services:1, Warranty:1}, used = {};
+  var day = sv.on.slice(0, 10), Y = day.slice(0, 4), baseY = String(LP.srcDate || day).slice(0, 4), used = {};
+  var updTxt = Y + ' 업데이트 (' + day + ')';
+  function stat(pn, it){   /* [상태, 업데이트 내용, 배경색] */
+    if(LPU_GONE[pn]) return ['포털 목록에 없음 (' + day + ')', '단종 · 변경 확인', 'FFF8D7D0'];
+    if(LPU_UPD[pn]) return [updTxt, LPU_UPD[pn].join(', '), lpxYearFill(Y)];
+    var old = it && it[6] || '', m = /^(\d{4}) 업데이트/.exec(old);
+    return [old || baseY + ' 기본정보', it && it[7] || '', m ? lpxYearFill(m[1]) : ''];
+  }
+  var CATS = ['Hardware', 'Software', 'Services', 'Warranty'];
+  function catOf(x){ return CATS.indexOf(x[2]) >= 0 ? x[2] : /serv|warr|cal/i.test(x[2] || '') ? 'Services' : 'Hardware'; }
+  function optRows(rows, key, list){
+    var by = {}; list.forEach(function(x){ var c = catOf(x); (by[c] = by[c] || []).push(x); });
+    CATS.forEach(function(c){ (by[c] || []).forEach(function(x){
+      var ref = LP_IDX[x[0]], pr = optPrice[lpuNorm(key) + '|' + x[0]], added = addOpt[lpuNorm(key) + '|' + x[0]];
+      var st = added ? [updTxt, '옵션 추가', lpxYearFill(Y)] : [baseY + ' 기본정보', '', ''];
+      rows.push({k:'opt', ol:1, fill:st[2], v:[x[0], x[1] || (ref && ref[1]) || '', c, (ref && ref[3]) || optDesc[x[0]] || '', '옵션 (' + c + ')', (ref && ref[5]) || '', st[0], num(pr != null ? pr : price[x[0]]), st[1]]});
+    }); });
+  }
+  function rank(it){ return lpIsBody(it) ? -2 : /^본체/.test(it[4]) ? -1 : lpKindRank(it[4]); }
+  var HEAD = ['PART NUMBER', 'PRODUCT NAME', 'PRODUCT FAMILY', 'PRODUCT DESCRIPTION', '구분', '핵심 내용 요약', '상태', '정가 / 단가', '업데이트 내용'];
   var sheets = LP.lines.map(function(l){
-    var m = LP_META[l.id] || {}, rows = [['Product Selection'], [l.spec || ''], ], bold = [];
-    l.why.forEach(function(w){ rows.push(['▸ ' + w]); });
-    rows.push([]); bold.push(rows.length);
-    rows.push(['PART NUMBER', 'PRODUCT NAME', 'PRODUCT FAMILY', 'PRODUCT DESCRIPTION', '구분', '핵심 내용 요약', '상태', '정가']);
-    l.items.forEach(function(it){ rows.push([it[0], it[1], it[2], it[3], it[4], it[5], LPU_GONE[it[0]] ? '포털 목록에 없음 (' + day + ')' : LPU_UPD[it[0]] ? '업데이트: ' + LPU_UPD[it[0]].join(', ') + ' (' + day + ')' : '', num(price[it[0]])]); });
-    Object.keys(l.opts || {}).forEach(function(b){
-      rows.push([]); rows.push(['', b]); bold.push(rows.length - 1);
-      var by = {}; l.opts[b].forEach(function(x){ var c = CAT[x[2]] ? x[2] : /serv|warr|cal/i.test(x[2] || '') ? 'Services' : 'Hardware'; (by[c] = by[c] || []).push(x); });
-      ['Hardware', 'Software', 'Services', 'Warranty'].forEach(function(c){ if(!by[c]) return;
-        rows.push(['', c]); rows.push(['', 'QTY', 'PART NUMBER', 'PRODUCT NAME', '단가']);
-        by[c].forEach(function(x){ var pr = optPrice[lpuNorm(b) + '|' + x[0]]; rows.push(['', '1', x[0], x[1] || '', num(pr != null ? pr : price[x[0]])]); }); });
+    var m = LP_META[l.id] || {}, rows = [{k:'title', v:[lpName(l.id) + (m.sub ? '  (' + m.sub + ')' : '')]}];
+    if(l.spec) rows.push({k:'spec', v:[l.spec]});
+    l.why.forEach(function(w){ rows.push({k:'why', v:['▸ ' + w]}); });
+    rows.push({k:'blank', v:[]});
+    var hr = rows.length; rows.push({k:'head', v:HEAD});
+    var items = l.items.map(function(it, i){ return [rank(it), i, it]; }).sort(function(a, b){ return a[0] - b[0] || a[1] - b[1]; }).map(function(x){ return x[2]; });
+    var opts = l.opts || {}, done = {};
+    var itemRow = function(it, k){ var st = stat(it[0], it); rows.push({k:k, fill:st[2], v:[it[0], it[1], it[2], it[3], it[4], it[5], st[0], num(price[it[0]]), st[1]]}); };
+    items.filter(lpIsBody).forEach(function(it){
+      itemRow(it, 'body');
+      if(opts[it[1]] && !done[it[1]]){ optRows(rows, it[1], opts[it[1]]); done[it[1]] = 1; }
     });
+    Object.keys(opts).forEach(function(key){   /* 본체 이름과 안 맞는 옵션 묶음 (예: Service) */
+      if(done[key]) return;
+      rows.push({k:'grp', v:['', key, '', '', '옵션 묶음']}); optRows(rows, key, opts[key]);
+    });
+    var rest = items.filter(function(it){ return !lpIsBody(it); });
+    if(rest.length){
+      if(rows.length > hr + 1) rows.push({k:'sec', v:['', '본체 외 품목 — 업그레이드 · 기능 · 액세서리 · SW · 서비스']});
+      rest.forEach(function(it){ itemRow(it, 'item'); });
+    }
     var name = String(l.id).replace(/[\[\]:*?\/\\]/g, '_').slice(0, 31), k = name, n = 2; while(used[k]) k = name.slice(0, 28) + '_' + n++; used[k] = 1;
-    return {name:k, rows:rows, widths:[16, 34, 12, 70, 16, 50, 22, 12], bold:bold};
+    return {name:k, rows:rows, headRow:hr, widths:[16, 34, 11, 60, 15, 42, 22, 12, 26]};
   });
-  sheets.push({name:'변경 내역', rows:[['날짜', '구분', 'Part No', '이전 / 본체 · 라인', '이후 / 내용']].concat(sv.log || []), widths:[17, 16, 16, 40, 70], bold:[0]});
+  sheets.push({name:'변경 내역', headRow:0, widths:[17, 16, 16, 40, 70],
+    rows:[{k:'head', v:['날짜', '구분', 'Part No', '이전 / 본체 · 라인', '이후 / 내용']}].concat((sv.log || []).map(function(x){ return {k:'log', v:x}; }))});
   var a = document.createElement('a');
   a.href = URL.createObjectURL(lpxBook(sheets));
   a.download = 'SalesforceProductList_' + day + (pd ? '' : '_가격없음') + '.xlsx';
@@ -2783,7 +2879,7 @@ function lpDetail(id){
     (m.star ? '<div class="lp-star">' + lpEsc(m.star) + '</div>' : '') + '</div>';
   /* ① 본체 고르기 → ② 그 본체의 HW / SW / Service. 본체가 없는 라인(SW 등)은 바로 ② */
   var step1 = bodies.length ? lpTable('① 제품(본체) 선택 — 보기를 누르면 아래에 옵션이 나온다', bodies.map(function(b){ return lpRow(b, id, false, b[1]); }), false, true) : '';
-  var news = bodies.length ? l.items.filter(function(it){ return /^포털 신규/.test(it[4]); }) : [];   /* 최신 업데이트로 넣은 품목 (본체 미지정) */
+  var news = bodies.length ? l.items.filter(function(it){ return !lpIsBody(it) && LPU_UPD[it[0]] && LPU_UPD[it[0]].indexOf('포털 신규') >= 0; }) : [];   /* 최신 업데이트로 넣은 품목 (본체 미지정) */
   var newSec = news.length ? lpTable('포털 신규 품목 ' + news.length + '개 — 최신 업데이트로 추가 (본체 미지정)', lpByKind(news).map(function(it){ return lpRow(it, id); })) : '';
   if(bodies.length && !LP_BODY) return head + step1 + '<div class="note">위에서 <b>보기</b> 를 고르면 그 제품에 붙는 HW · SW · Service 품목이 나온다.</div>' + newSec;
   var r = lpOptsFor(id, LP_BODY), by = {HW:[], SW:[], Service:[]};
