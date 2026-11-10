@@ -2617,7 +2617,7 @@ window.addEventListener('message', function(e){
   LPU_OK = false;
   var d = e.data.data || {}, P = lpuPlan(d);
   var oc = P.opt.filter(function(o){ return o.add.length || o.del.length || o.hit.isNew; }).length;
-  var sv = {on:lpNow(), at:P.at, n:{chg:P.chg.length, opt:oc, gone:P.gone.length}, data:d};
+  var sv = {on:lpNow(), at:P.at, n:{chg:P.chg.filter(function(c, i, A){ return A.findIndex(function(x){ return x.pn === c.pn; }) === i; }).length, opt:oc, gone:P.gone.length}, data:d};
   try{ localStorage.setItem(LPU_KEY, JSON.stringify(sv)); }catch(err){ alert('저장하지 못했다: ' + err.message); return; }
   location.reload();
 });
