@@ -2512,7 +2512,7 @@ function lpOptsFor(line, body){
 
 /* ---- 최신 업데이트: LP 수집기(브라우저 확장)가 LitePoint Partner 포털에서 담아 둔 제품 목록 · 본체별 옵션을 받아 반영 ----
    · 이름 · 설명 · 분류가 바뀐 품목은 바꾸고, 본체별 옵션은 포털에서 담은 구성으로 바꾼다
-   · 엑셀에서 손으로 쓴 구분 · 핵심 요약 · 선택 기준은 그대로. 포털에만 있는 품목은 참고로만 보여준다 (엑셀은 골라 놓은 일부라서)
+   · 엑셀에서 손으로 쓴 구분 · 핵심 요약 · 선택 기준은 그대로. 포털에만 있는 품목은 Part No 로 라인을 찾아 추가한다 ('포털 신규' 구분 · 업데이트 표시)
    · 가격은 받지 않는다. 반영 내용은 이 브라우저에만 저장 → [엑셀 기준으로 되돌리기]로 원래대로                                  */
 function LPU_TO(){ return /^https?:$/.test(location.protocol) ? location.origin : '*'; }   /* 파일로 열면 주소가 'null' 이라 * 로 */
 var LPU_KEY = 'rf-lp-upd', LPU_EXT = null, LPU_WAIT = null, LPU_GONE = {}, LPU_UPD = {}, LPU_PLAN = null;
@@ -2560,6 +2560,21 @@ function lpuApply(d){
   });
   P.opt.forEach(function(o){ var l = LP_BY[o.hit.line]; l.opts = l.opts || {}; l.opts[o.hit.k] = o.rows.map(function(r){ return [r.pn, r.name || r.desc, r.sec]; }); });
   LPU_GONE = {}; P.gone.forEach(function(g){ LPU_GONE[g.pn] = 1; });
+  /* 포털에만 있는 품목 → Part No 가운데 자리(예: 0300-XLMX-001 의 XLMX)가 가장 많이 쓰인 라인에 넣는다. 모르는 것은 '포털 신규 (분류 전)' */
+  var seg = function(pn){ return String(pn).split('-')[1] || ''; }, cnt = {};
+  LP.lines.forEach(function(l){
+    var add = function(pn){ var k = seg(pn); (cnt[k] = cnt[k] || {})[l.id] = (cnt[k][l.id] || 0) + 1; };
+    l.items.forEach(function(it){ add(it[0]); }); Object.keys(l.opts || {}).forEach(function(b){ l.opts[b].forEach(function(x){ add(x[0]); }); });
+  });
+  P.only.forEach(function(r){
+    var c = cnt[seg(r.pn)], id = c ? Object.keys(c).sort(function(a, b){ return c[b] - c[a]; })[0] : 'LP_NEW';
+    if(!LP_BY[id]){
+      LP_BY[id] = {id:id, spec:'포털 제품 목록에만 있고 Part No 로 라인을 알 수 없는 품목 (최신 업데이트로 추가)', why:[], items:[], opts:{}};
+      LP.lines.push(LP_BY[id]); LP_GROUPS.push(['new', '포털 신규', [id]]); LP_META[id] = {name:'포털 신규 (분류 전)', chips:['최신 업데이트로 추가', '라인 미분류']};
+    }
+    var f = r.family || '', it = [r.pn, r.name || r.pn, f, r.desc || '', /^0100-/.test(r.pn) ? '본체(포털 신규)' : /soft/i.test(f) ? '포털 신규 SW' : /serv/i.test(f) ? '포털 신규 서비스' : '포털 신규 HW', ''];
+    LP_BY[id].items.push(it); if(!LP_IDX[r.pn]) LP_IDX[r.pn] = it; mark(r.pn, '포털 신규');
+  });
   LP_STD_HIT = {};
   return P;
 }
@@ -2569,7 +2584,7 @@ function lpuStatus(msg){
   var sv = lpuSaved(), st = $('lp-upd-st');
   $('lp-upd-undo').hidden = $('lp-upd-xl').hidden = !sv;
   st.innerHTML = msg || (sv ? '<b class="lp-upd-d">' + lpEsc(sv.on.slice(0, 10)) + ' 업데이트</b> · 포털 수집 ' + lpEsc((sv.at || '').slice(0, 16)) +
-    ' · 이름·설명 바뀜 ' + sv.n.chg + ' · 옵션 갱신 본체 ' + sv.n.opt + (sv.n.gone ? ' · 포털 목록에 없음 ' + sv.n.gone : '') + ' · 바뀐 품목에 <span class="lp-new">업데이트</span> 표시 <small>(원본: ' + lpEsc(lpuBase()) + ')</small>'
+    ' · 이름·설명 바뀜 ' + sv.n.chg + ' · 옵션 갱신 본체 ' + sv.n.opt + (sv.n.gone ? ' · 포털 목록에 없음 ' + sv.n.gone : '') + (sv.n.add ? ' · 포털 신규 추가 ' + sv.n.add : '') + ' · 바뀐 품목에 <span class="lp-new">업데이트</span> 표시 <small>(원본: ' + lpEsc(lpuBase()) + ')</small>'
     : '기준: ' + lpEsc(lpuBase()) + (LPU_EXT ? ' · LP 수집기 연결됨 — 담아 둔 목록 ' + LPU_EXT.n.list + '개 · 본체 ' + LPU_EXT.n.opts + '개' : ''));
 }
 function lpuList(title, arr, fn){
@@ -2585,14 +2600,14 @@ function lpuShow(d){
     + '· 최신 정보: 포털에서 다시 담기 (아래 방법)</div>' + lpuHow(); return; }
   var oc = P.opt.filter(function(o){ return o.add.length || o.del.length || o.hit.isNew; });
   box.innerHTML = '<div class="lp-upd-sum">포털에서 담은 때 <b>' + lpEsc(P.at.slice(0, 16)) + '</b> · 목록 ' + P.listN + '개 · 본체 옵션 ' + P.optN + '개 → ' +
-      '이름·설명 바뀜 <b>' + P.chg.filter(function(c, i, A){ return A.findIndex(function(x){ return x.pn === c.pn; }) === i; }).length + '</b> · 옵션 바뀐 본체 <b>' + oc.length + '</b> · 포털 목록에 없음 <b>' + P.gone.length + '</b></div>' +
+      '이름·설명 바뀜 <b>' + P.chg.filter(function(c, i, A){ return A.findIndex(function(x){ return x.pn === c.pn; }) === i; }).length + '</b> · 옵션 바뀐 본체 <b>' + oc.length + '</b> · 포털 목록에 없음 <b>' + P.gone.length + '</b> · 포털 신규 <b>' + P.only.length + '</b></div>' +
     (P.listN && P.listN < 300 ? '<div class="note w">제품 목록이 ' + P.listN + '개만 담겨 있어 \'포털 목록에 없음\'은 판단하지 않았다 (Product Selection 화면에서 [목록 전체 담기]).</div>' : '') +
     lpuList('이름 · 설명 · 분류 바뀜', P.chg.filter(function(c, i, A){ return A.findIndex(function(x){ return x.pn === c.pn; }) === i; }), function(c){ return '<code>' + lpEsc(c.pn) + '</code> ' + lpEsc(c.was) + (c.f.indexOf('이름') >= 0 ? ' → <b>' + lpEsc(c.r.name) + '</b>' : '') + ' <small>(' + c.f.join('·') + ')</small>'; }) +
     lpuList('본체별 옵션 바뀜', oc, function(o){ return '<b>' + lpEsc(o.b) + '</b>' + (o.hit.isNew ? ' (새 옵션 목록)' : '') + ' — 새로 ' + o.add.length + ' · 빠짐 ' + o.del.length +
       (o.add.length ? '<br><small>+ ' + o.add.map(function(r){ return lpEsc(r.pn + ' ' + (r.name || '')); }).join(', ') + '</small>' : '') +
       (o.del.length ? '<br><small>− ' + o.del.map(function(x){ return lpEsc(x[0] + ' ' + (x[1] || '')); }).join(', ') + '</small>' : ''); }) +
     lpuList('포털 목록에 없음 (단종 · 변경 확인 필요 — 반영하면 표에 표시만 함)', P.gone, function(g){ return '<code>' + lpEsc(g.pn) + '</code> ' + lpEsc(g.name) + ' <small>' + lpEsc(lpName(g.line)) + '</small>'; }) +
-    lpuList('포털에만 있는 품목 (참고 — 엑셀은 골라 놓은 일부라 자동으로 넣지 않음)', P.only, function(r){ return '<code>' + lpEsc(r.pn) + '</code> ' + lpEsc(r.name) + ' <small>' + lpEsc(r.family || '') + '</small>'; }) +
+    lpuList('포털 신규 품목 (반영하면 Part No 로 라인을 찾아 추가하고 「업데이트」 표시)', P.only, function(r){ return '<code>' + lpEsc(r.pn) + '</code> ' + lpEsc(r.name) + ' <small>' + lpEsc(r.family || '') + '</small>'; }) +
     lpuList('계산기에 없는 본체라 건너뜀', P.skip, function(x){ return lpEsc(x.b) + ' <small>옵션 ' + x.n + '개</small>'; }) +
     '<div class="btns"><button class="btn sm" id="lp-upd-ok">반영</button><button class="btn gh sm" id="lp-upd-no">취소</button></div>';
 }
@@ -2634,7 +2649,8 @@ window.addEventListener('message', function(e){
   uq.forEach(function(c){ log.push([on, c.f.join('·') + ' 바뀜', c.pn, c.was, c.f.indexOf('이름') >= 0 ? c.r.name : (c.r.desc || '').slice(0, 200)]); });
   P.opt.forEach(function(o){ o.add.forEach(function(r){ log.push([on, '옵션 추가', r.pn, o.b, r.name || r.desc]); }); o.del.forEach(function(x){ log.push([on, '옵션 빠짐', x[0], o.b, x[1] || '']); }); });
   P.gone.forEach(function(g){ log.push([on, '포털 목록에 없음', g.pn, lpName(g.line), g.name]); });
-  var sv = {on:on, at:P.at, n:{chg:uq.length, opt:oc, gone:P.gone.length}, log:log, data:d};
+  P.only.forEach(function(r){ log.push([on, '포털 신규 추가', r.pn, r.family || '', r.name || '']); });
+  var sv = {on:on, at:P.at, n:{chg:uq.length, opt:oc, gone:P.gone.length, add:P.only.length}, log:log, data:d};
   try{ localStorage.setItem(LPU_KEY, JSON.stringify(sv)); }catch(err){ alert('저장하지 못했다: ' + err.message); return; }
   location.reload();
 });
@@ -2767,7 +2783,9 @@ function lpDetail(id){
     (m.star ? '<div class="lp-star">' + lpEsc(m.star) + '</div>' : '') + '</div>';
   /* ① 본체 고르기 → ② 그 본체의 HW / SW / Service. 본체가 없는 라인(SW 등)은 바로 ② */
   var step1 = bodies.length ? lpTable('① 제품(본체) 선택 — 보기를 누르면 아래에 옵션이 나온다', bodies.map(function(b){ return lpRow(b, id, false, b[1]); }), false, true) : '';
-  if(bodies.length && !LP_BODY) return head + step1 + '<div class="note">위에서 <b>보기</b> 를 고르면 그 제품에 붙는 HW · SW · Service 품목이 나온다.</div>';
+  var news = bodies.length ? l.items.filter(function(it){ return /^포털 신규/.test(it[4]); }) : [];   /* 최신 업데이트로 넣은 품목 (본체 미지정) */
+  var newSec = news.length ? lpTable('포털 신규 품목 ' + news.length + '개 — 최신 업데이트로 추가 (본체 미지정)', lpByKind(news).map(function(it){ return lpRow(it, id); })) : '';
+  if(bodies.length && !LP_BODY) return head + step1 + '<div class="note">위에서 <b>보기</b> 를 고르면 그 제품에 붙는 HW · SW · Service 품목이 나온다.</div>' + newSec;
   var r = lpOptsFor(id, LP_BODY), by = {HW:[], SW:[], Service:[]};
   r.list = lpByKind(r.list);
   r.list.forEach(function(it){ var c = lpClass(it[0]); if(c !== 'SW') by[c].push(lpRow(it, id)); });
@@ -2775,7 +2793,7 @@ function lpDetail(id){
   return head + step1 +
     (LP_BODY ? '<div class="lp-gh g-' + lpGroup(id) + '">② ' + lpEsc(LP_BODY) + ' 에 붙는 품목</div>' : '') +
     (r.ref ? '<div class="note w">이 제품 전용 옵션 목록이 엑셀에 없어 같은 라인 <b>' + lpEsc(r.ref) + '</b> 의 옵션을 참고로 보여준다.</div>' : '') +
-    LP_CLS.map(function(c){ return by[c[0]].length ? lpTable(c[1], by[c[0]]) : ''; }).join('');
+    LP_CLS.map(function(c){ return by[c[0]].length ? lpTable(c[1], by[c[0]]) : ''; }).join('') + newSec;
 }
 /* 콤보 상태를 화면에 맞춘다. 라인이 "전체" 면 제품 콤보에 모든 라인의 본체를 라인별로 */
 function lpSyncCombos(){
