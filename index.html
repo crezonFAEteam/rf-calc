@@ -2809,8 +2809,8 @@ function lpuXlsxMake(sv, pd){   /* pd = 가격이 든 수집 내용 (엑셀에�
   function stat(pn, it){   /* [상태, 업데이트 내용, 배경색] */
     if(LPU_GONE[pn]) return [Y + '년 이전 단종', '포털 목록에 없음 (' + day + ')', 'FFF8D7D0'];
     if(LPU_UPD[pn]) return [updTxt, LPU_UPD[pn].join(', '), lpxYearFill(Y)];
-    var old = it && it[6] || '', m = /^(\d{4}) 업데이트/.exec(old);
-    return [old || baseY + ' 기본정보', it && it[7] || '', /단종/.test(old) ? 'FFF8D7D0' : m ? lpxYearFill(m[1]) : ''];
+    var old = String(it && it[6] || '').replace(' 기본정보', ' 이전정보'), m = /^(\d{4}) 업데이트/.exec(old);
+    return [old || baseY + ' 이전정보', it && it[7] || '', /단종/.test(old) ? 'FFF8D7D0' : m ? lpxYearFill(m[1]) : ''];
   }
   var CATS = ['Hardware', 'Software', 'Services', 'Warranty'];
   function catOf(x){ return CATS.indexOf(x[2]) >= 0 ? x[2] : /serv|warr|cal/i.test(x[2] || '') ? 'Services' : 'Hardware'; }
@@ -2818,7 +2818,7 @@ function lpuXlsxMake(sv, pd){   /* pd = 가격이 든 수집 내용 (엑셀에�
     var by = {}; list.forEach(function(x){ var c = catOf(x); (by[c] = by[c] || []).push(x); });
     CATS.forEach(function(c){ (by[c] || []).forEach(function(x){
       var ref = LP_IDX[x[0]], pr = optPrice[lpuNorm(key) + '|' + x[0]], added = addOpt[lpuNorm(key) + '|' + x[0]];
-      var st = added ? [updTxt, '옵션 추가', lpxYearFill(Y)] : [baseY + ' 기본정보', '', ''];
+      var st = added ? [updTxt, '옵션 추가', lpxYearFill(Y)] : [baseY + ' 이전정보', '', ''];
       rows.push({k:'opt', ol:1, fill:st[2], v:[x[0], x[1] || (ref && ref[1]) || '', c, (ref && ref[3]) || optDesc[x[0]] || '', '옵션 (' + c + ')', (ref && ref[5]) || '', st[0], num(pr != null ? pr : price[x[0]]), st[1]]});
     }); });
   }
@@ -2850,7 +2850,7 @@ function lpuXlsxMake(sv, pd){   /* pd = 가격이 든 수집 내용 (엑셀에�
     return {name:k, rows:rows, headRow:hr, widths:[16, 34, 11, 60, 15, 42, 22, 12, 26]};
   });
   sheets.push({name:'변경 내역', headRow:0, widths:[17, 16, 16, 40, 70],
-    rows:[{k:'head', v:['날짜', '구분', 'Part No', '이전 / 본체 · 라인', '이후 / 내용']}].concat((sv.log || []).map(function(x){ return {k:'log', v:x}; }))});
+    rows:[{k:'head', v:['확인 날짜', '구분', 'Part No', '이전 / 본체 · 라인', '이후 / 내용']}].concat((sv.log || []).map(function(x){ return {k:'log', v:[String(sv.at || x[0]).slice(0, 10)].concat(x.slice(1))}; }))});
   var a = document.createElement('a');
   a.href = URL.createObjectURL(lpxBook(sheets));
   a.download = 'SalesforceProductList_' + day + (pd ? '' : '_가격없음') + '.xlsx';
