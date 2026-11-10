@@ -2600,7 +2600,10 @@ $('lp-upd-go').addEventListener('click', function(){
   $('lp-upd-box').innerHTML = '<div class="note">LP 수집기에서 받는 중…</div>';
   window.postMessage({src:'rfcalc', type:'lpc-get'}, LPU_TO());
   clearTimeout(LPU_WAIT);
-  LPU_WAIT = setTimeout(function(){ $('lp-upd-box').innerHTML = '<div class="note w">LP 수집기(브라우저 확장)가 응답하지 않는다.</div>' + lpuHow(); }, 1500);
+  LPU_WAIT = setTimeout(function(){
+    var ua = navigator.userAgent, br = /Edg\//.test(ua) ? '엣지' : /Whale/.test(ua) ? '웨일' : /Chrome\//.test(ua) ? '크롬' : '이 브라우저';
+    $('lp-upd-box').innerHTML = '<div class="note w">LP 수집기(브라우저 확장)가 응답하지 않는다. 지금 브라우저: <b>' + br + '</b> — 포털에서 담은 브라우저(확장이 설치된 브라우저)로 이 계산기를 열어야 한다. 확장을 고친 뒤라면 확장 관리에서 [새로 고침] 후 이 페이지도 새로 고침.</div>' + lpuHow();
+  }, 1500);
 });
 $('lp-upd-box').addEventListener('click', function(ev){
   var t = ev.target;
