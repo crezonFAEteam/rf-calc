@@ -3359,6 +3359,10 @@ function adInit(){
 
 /* ---------- 탭 · 표기 ---------- */
 function setTab(t){
+  /* 코드명 탭으로 올 때: 앞 탭에서 보던 운지(운지법 탭의 선택 운지, 펜타토닉 탭의 코드 모양)를 그대로 가져와 이름을 보여 줌 */
+  if(t==='name'&&st.tab!=='name'){let v=null;
+    if(st.tab==='find')v=st.voicings[st.vi];else if(st.tab==='scale'&&st.schShape)v=shapeV();
+    if(Array.isArray(v)&&v.length===6)st.nv=v.slice()}
   st.tab=t;document.body.dataset.page=t;
   document.querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t));
   if(t!=='adlib'&&ad.playing)adStop();
