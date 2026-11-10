@@ -2985,7 +2985,7 @@ function lpOverview(){
   }).join('');
   return (active ? lpAllBtn(hid, '제품 라인') : '') + (html || '<div class="note w">조건에 맞는 제품이 없다.</div>');
 }
-function lpSupOpen(){ try{ return localStorage.getItem('rf-lp-sup') === '1'; }catch(e){ return false; } }
+function lpSupOpen(w){ try{ return localStorage.getItem('rf-lp-sup' + (w ? '-' + w : '')) === '1'; }catch(e){ return false; } }
 function lpDetail(id){
   var m = LP_META[id] || {name:id}, l = LP_BY[id] || {why:[], items:[], spec:''};
   var all = l.items.filter(lpIsBody), cond = lpCondOn();
@@ -3021,13 +3021,13 @@ function lpDetail(id){
     var bd = (l.items.filter(function(b){ return b[1] === LP_BODY; })[0] || [])[3] || '', inc = /Includes (WLAN.*?software for .*?)\.(\s|$)/i.exec(bd), dd = lpBodyDim([0, LP_BODY]);
     var wifiNew = /^(ax|be160|be320|bn)$/.test(k);
     var lower = {ax:[], be160:['ax'], be320:['ax', 'be160'], bn:['ax', 'be160']}[k] || [];
-    var pre = swAll.filter(function(it){ return need.indexOf(it) < 0 && !/MU-?MIMO/i.test(it[1]) && lower.some(function(x){ return lpItemStd(it, x); }); });
-    cfg = '<div class="card lp-supc"><div class="lp-supc-h"><b>조건 구성</b> — ' + lpEsc(LP_BODY) + (dd ? ' <span class="lp-k k-B">MIMO ' + dd[0] + 'x' + dd[0] + ' · 포트 ' + dd[1] + '</span>' : '') + '</div>' +
+    var pre = swAll.filter(function(it){ return need.indexOf(it) < 0 && !/MU-?MIMO/i.test(it[1]) && lower.some(function(x){ return LP_STD_BY[x][2].test(it[1]); }); });
+    cfg = '<details class="card lp-supc lp-supd lp-cfgd"' + (lpSupOpen('cfg') ? ' open' : '') + '><summary class="lp-supc-h"><b>조건 구성</b> — ' + lpEsc(LP_BODY) + (dd ? ' <span class="lp-k k-B">MIMO ' + dd[0] + 'x' + dd[0] + ' · 포트 ' + dd[1] + '</span>' : '') + ' <small>관련 라이선스 ' + need.length + '개' + (pre.length ? ' · 확인 필요 ' + pre.length + '개' : '') + '</small> <span class="lp-fold">보기</span></summary>' +
       (inc ? '<div class="lp-supg"><span class="lp-supg-n">본체 기본 포함</span>' + lpEsc(inc[1]) + '</div>' : '') +
       '<div class="lp-supg"><span class="lp-supg-n">조건 관련 라이선스</span>' + (need.length ? need.map(function(it){ return '<span class="lp-sc s-L">' + lpEsc(it[1]) + ' <small>' + lpEsc(it[0]) + '</small></span>'; }).join('') : '목록에서 찾지 못함') + '</div>' +
       (pre.length ? '<div class="lp-supg"><span class="lp-supg-n">하위 규격 (필요 여부 확인)</span>' + pre.map(function(it){ return '<span class="lp-sc s-C">' + lpEsc(it[1]) + ' <small>' + lpEsc(it[0]) + '</small></span>'; }).join('') + '</div>' : '') +
       (wifiNew ? '<div class="note w" style="margin:6px 0 0">' + lpEsc(LP_STD_BY[k][1]) + ' 라이선스가 하위 규격(802.11ax · be) 라이선스 없이 단독으로 되는지는 제품 목록 · Determinator 에 나와 있지 않다 — 주문 전 LitePoint 확인 필요. (본체 기본은 SISO 11a/b/g/n/p/ac)</div>' : '') +
-      (mi >= 2 && !need.some(isMimoLic) ? '<div class="note w" style="margin:6px 0 0">MIMO 라이선스 품목을 이 본체 옵션에서 찾지 못함.</div>' : '') + '</div>';
+      (mi >= 2 && !need.some(isMimoLic) ? '<div class="note w" style="margin:6px 0 0">MIMO 라이선스 품목을 이 본체 옵션에서 찾지 못함.</div>' : '') + '</details>';
   }
   r.list.forEach(function(it){ var c = lpClass(it[0]); if(c !== 'SW') by[c].push(lpRow(it, id)); });
   by.SW = lpSwGrouped(r.list.filter(function(it){ return lpClass(it[0]) === 'SW'; }), id);
@@ -3077,7 +3077,7 @@ $('lp-view').addEventListener('keydown', function(ev){
   if(card && (ev.key === 'Enter' || ev.key === ' ')){ ev.preventDefault(); lpOpen(card.getAttribute('data-line')); }
 });
 $('lp-view').addEventListener('toggle', function(ev){
-  if(ev.target.classList && ev.target.classList.contains('lp-supd')){ try{ localStorage.setItem('rf-lp-sup', ev.target.open ? '1' : '0'); }catch(e){} }
+  if(ev.target.classList && ev.target.classList.contains('lp-supd')){ try{ localStorage.setItem('rf-lp-sup' + (ev.target.classList.contains('lp-cfgd') ? '-cfg' : ''), ev.target.open ? '1' : '0'); }catch(e){} }
 }, true);
 $('lp-view').addEventListener('change', function(ev){
   var c = ev.target;
