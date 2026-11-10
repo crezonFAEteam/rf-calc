@@ -2446,7 +2446,7 @@ function lpRow(it, line, showLine, view){
   return '<tr class="' + (hit ? 'lp-hit' : '') + (pn === LP_FOCUS ? ' lp-focus' : '') + '"' + (hit ? ' title="' + lpEsc(LP_STD_BY[$('lp-std').value][1]) + ' 해당"' : '') +
          (view && view === LP_BODY ? ' style="background:var(--accent-soft)"' : '') + '>' +
          (view !== undefined ? '<td class="c"><input type="radio" name="lp-body" data-body="' + lpEsc(view) + '"' + (view === LP_BODY ? ' checked' : '') + ' aria-label="옵션 보기"></td>' : '') +
-         '<td><a data-desc>' + lpEsc(it[1]) + '</a>' + (LPU_UPD[pn] ? ' <span class="lp-new" title="최신 업데이트로 바뀜: ' + lpEsc(LPU_UPD[pn].join(', ')) + '">업데이트</span>' : '') + (LPU_GONE[pn] ? ' <span class="lp-gone" title="최신 업데이트 때 포털 제품 목록에서 찾지 못함 — 단종 · 변경 확인">포털 목록에 없음</span>' : '') + (it[5] ? '<div class="lp-sum">' + lpEsc(it[5]) + '</div>' : '') + '</td>' +
+         '<td><a data-desc>' + lpEsc(it[1]) + '</a>' + (LPU_UPD[pn] ? ' <span class="lp-new" title="최신 업데이트로 바뀜: ' + lpEsc(LPU_UPD[pn].join(', ')) + '">업데이트</span>' : '') + (LPU_GONE[pn] || /단종/.test(it[6] || '') ? ' <span class="lp-gone" title="포털 제품 목록에서 찾지 못함 — 단종으로 처리">' + lpEsc(LPU_GONE[pn] ? LPU_Y + '년 이전 단종' : it[6]) + '</span>' : '') + (it[5] ? '<div class="lp-sum">' + lpEsc(it[5]) + '</div>' : '') + '</td>' +
          (showLine ? '<td class="k">' + lpEsc(lpName(line)) + '</td>' : '') +
          '<td class="k kd">' + lpEsc(it[4]) + '</td>' +
          '<td class="pn">' + lpEsc(pn) + '</td></tr>' +
@@ -2515,7 +2515,7 @@ function lpOptsFor(line, body){
    · 엑셀에서 손으로 쓴 구분 · 핵심 요약 · 선택 기준은 그대로. 포털에만 있는 품목은 Part No 로 라인을 찾아 추가한다 ('포털 신규' 구분 · 업데이트 표시)
    · 가격은 받지 않는다. 반영 내용은 이 브라우저에만 저장 → [엑셀 기준으로 되돌리기]로 원래대로                                  */
 function LPU_TO(){ return /^https?:$/.test(location.protocol) ? location.origin : '*'; }   /* 파일로 열면 주소가 'null' 이라 * 로 */
-var LPU_KEY = 'rf-lp-upd', LPU_EXT = null, LPU_WAIT = null, LPU_GONE = {}, LPU_UPD = {}, LPU_PLAN = null;
+var LPU_KEY = 'rf-lp-upd', LPU_EXT = null, LPU_WAIT = null, LPU_GONE = {}, LPU_UPD = {}, LPU_Y = '', LPU_PLAN = null;
 function lpuNorm(s){ return String(s || '').toLowerCase().replace(/[\s()\[\]\-_\/.,+&]+/g, ''); }
 function lpuLatest(d){ var t = ''; Object.keys(d.opts || {}).forEach(function(b){ if(d.opts[b].at > t) t = d.opts[b].at; });
   Object.keys(d.list || {}).forEach(function(k){ if(d.list[k].at > t) t = d.list[k].at; }); return t; }
@@ -2565,8 +2565,9 @@ function lpuKindOf(r){   /* 포털 신규 품목의 구분 — 엑셀에서 손�
   }
   return /serv/i.test(f) ? '서비스' : '기능 추가';
 }
-function lpuApply(d){
+function lpuApply(d, on){
   var P = lpuPlan(d);
+  LPU_Y = String(on || lpNow()).slice(0, 4);   /* 업데이트한 해 → 'YYYY년 이전 단종' */
   LPU_UPD = {};   /* 최신 업데이트로 바뀐 품목 → 표시용 (pn: 바뀐 내용) */
   var mark = function(pn, w){ (LPU_UPD[pn] = LPU_UPD[pn] || []).indexOf(w) < 0 && LPU_UPD[pn].push(w); };
   P.chg.forEach(function(c){ c.f.forEach(function(f){ mark(c.pn, f); }); });
@@ -2605,7 +2606,7 @@ function lpuStatus(msg){
   var sv = lpuSaved(), st = $('lp-upd-st');
   $('lp-upd-undo').hidden = $('lp-upd-xl').hidden = !sv;
   st.innerHTML = msg || (sv ? '<b class="lp-upd-d">' + lpEsc(sv.on.slice(0, 10)) + ' 업데이트</b> · 포털 수집 ' + lpEsc((sv.at || '').slice(0, 16)) +
-    ' · 이름·설명 바뀜 ' + sv.n.chg + ' · 옵션 갱신 본체 ' + sv.n.opt + (sv.n.gone ? ' · 포털 목록에 없음 ' + sv.n.gone : '') + (sv.n.add ? ' · 포털 신규 추가 ' + sv.n.add : '') + ' · 바뀐 품목에 <span class="lp-new">업데이트</span> 표시 <small>(원본: ' + lpEsc(lpuBase()) + ')</small>'
+    ' · 이름·설명 바뀜 ' + sv.n.chg + ' · 옵션 갱신 본체 ' + sv.n.opt + (sv.n.gone ? ' · ' + sv.on.slice(0, 4) + '년 이전 단종 ' + sv.n.gone : '') + (sv.n.add ? ' · 포털 신규 추가 ' + sv.n.add : '') + ' · 바뀐 품목에 <span class="lp-new">업데이트</span> 표시 <small>(원본: ' + lpEsc(lpuBase()) + ')</small>'
     : '기준: ' + lpEsc(lpuBase()) + (LPU_EXT ? ' · LP 수집기 연결됨 — 담아 둔 목록 ' + LPU_EXT.n.list + '개 · 본체 ' + LPU_EXT.n.opts + '개' : ''));
 }
 function lpuList(title, arr, fn){
@@ -2621,13 +2622,13 @@ function lpuShow(d){
     + '· 최신 정보: 포털에서 다시 담기 (아래 방법)</div>' + lpuHow(); return; }
   var oc = P.opt.filter(function(o){ return o.add.length || o.del.length || o.hit.isNew; });
   box.innerHTML = '<div class="lp-upd-sum">포털에서 담은 때 <b>' + lpEsc(P.at.slice(0, 16)) + '</b> · 목록 ' + P.listN + '개 · 본체 옵션 ' + P.optN + '개 → ' +
-      '이름·설명 바뀜 <b>' + P.chg.filter(function(c, i, A){ return A.findIndex(function(x){ return x.pn === c.pn; }) === i; }).length + '</b> · 옵션 바뀐 본체 <b>' + oc.length + '</b> · 포털 목록에 없음 <b>' + P.gone.length + '</b> · 포털 신규 <b>' + P.only.length + '</b></div>' +
+      '이름·설명 바뀜 <b>' + P.chg.filter(function(c, i, A){ return A.findIndex(function(x){ return x.pn === c.pn; }) === i; }).length + '</b> · 옵션 바뀐 본체 <b>' + oc.length + '</b> · 단종 (포털 목록에 없음) <b>' + P.gone.length + '</b> · 포털 신규 <b>' + P.only.length + '</b></div>' +
     (P.listN && P.listN < 300 ? '<div class="note w">제품 목록이 ' + P.listN + '개만 담겨 있어 \'포털 목록에 없음\'은 판단하지 않았다 (Product Selection 화면에서 [목록 전체 담기]).</div>' : '') +
     lpuList('이름 · 설명 · 분류 바뀜', P.chg.filter(function(c, i, A){ return A.findIndex(function(x){ return x.pn === c.pn; }) === i; }), function(c){ return '<code>' + lpEsc(c.pn) + '</code> ' + lpEsc(c.was) + (c.f.indexOf('이름') >= 0 ? ' → <b>' + lpEsc(c.r.name) + '</b>' : '') + ' <small>(' + c.f.join('·') + ')</small>'; }) +
     lpuList('본체별 옵션 바뀜', oc, function(o){ return '<b>' + lpEsc(o.b) + '</b>' + (o.hit.isNew ? ' (새 옵션 목록)' : '') + ' — 새로 ' + o.add.length + ' · 빠짐 ' + o.del.length +
       (o.add.length ? '<br><small>+ ' + o.add.map(function(r){ return lpEsc(r.pn + ' ' + (r.name || '')); }).join(', ') + '</small>' : '') +
       (o.del.length ? '<br><small>− ' + o.del.map(function(x){ return lpEsc(x[0] + ' ' + (x[1] || '')); }).join(', ') + '</small>' : ''); }) +
-    lpuList('포털 목록에 없음 (단종 · 변경 확인 필요 — 반영하면 표에 표시만 함)', P.gone, function(g){ return '<code>' + lpEsc(g.pn) + '</code> ' + lpEsc(g.name) + ' <small>' + lpEsc(lpName(g.line)) + '</small>'; }) +
+    lpuList(lpNow().slice(0, 4) + '년 이전 단종 — 포털 목록에 없음 (반영하면 상태에 「' + lpNow().slice(0, 4) + '년 이전 단종」 표시)', P.gone, function(g){ return '<code>' + lpEsc(g.pn) + '</code> ' + lpEsc(g.name) + ' <small>' + lpEsc(lpName(g.line)) + '</small>'; }) +
     lpuList('포털 신규 품목 (반영하면 Part No 로 라인을 찾아 추가하고 「업데이트」 표시)', P.only, function(r){ return '<code>' + lpEsc(r.pn) + '</code> ' + lpEsc(r.name) + ' <small>' + lpEsc(r.family || '') + '</small>'; }) +
     lpuList('계산기에 없는 본체라 건너뜀', P.skip, function(x){ return lpEsc(x.b) + ' <small>옵션 ' + x.n + '개</small>'; }) +
     '<div class="btns"><button class="btn sm" id="lp-upd-ok">반영</button><button class="btn gh sm" id="lp-upd-no">취소</button></div>';
@@ -2669,7 +2670,7 @@ window.addEventListener('message', function(e){
   var uq = P.chg.filter(function(c, i, A){ return A.findIndex(function(x){ return x.pn === c.pn; }) === i; }), on = lpNow(), log = [];
   uq.forEach(function(c){ log.push([on, c.f.join('·') + ' 바뀜', c.pn, c.was, c.f.indexOf('이름') >= 0 ? c.r.name : (c.r.desc || '').slice(0, 200)]); });
   P.opt.forEach(function(o){ o.add.forEach(function(r){ log.push([on, '옵션 추가', r.pn, o.b, r.name || r.desc]); }); o.del.forEach(function(x){ log.push([on, '옵션 빠짐', x[0], o.b, x[1] || '']); }); });
-  P.gone.forEach(function(g){ log.push([on, '포털 목록에 없음', g.pn, lpName(g.line), g.name]); });
+  P.gone.forEach(function(g){ log.push([on, on.slice(0, 4) + '년 이전 단종', g.pn, lpName(g.line), g.name + ' (포털 목록에 없음)']); });
   P.only.forEach(function(r){ log.push([on, '포털 신규 추가', r.pn, r.family || '', r.name || '']); });
   var sv = {on:on, at:P.at, n:{chg:uq.length, opt:oc, gone:P.gone.length, add:P.only.length}, log:log, data:d};
   try{ localStorage.setItem(LPU_KEY, JSON.stringify(sv)); }catch(err){ alert('저장하지 못했다: ' + err.message); return; }
@@ -2795,10 +2796,10 @@ function lpuXlsxMake(sv, pd){   /* pd = 가격이 든 수집 내용 (엑셀에�
   var day = sv.on.slice(0, 10), Y = day.slice(0, 4), baseY = String(LP.srcDate || day).slice(0, 4), used = {};
   var updTxt = Y + ' 업데이트 (' + day + ')';
   function stat(pn, it){   /* [상태, 업데이트 내용, 배경색] */
-    if(LPU_GONE[pn]) return ['포털 목록에 없음 (' + day + ')', '단종 · 변경 확인', 'FFF8D7D0'];
+    if(LPU_GONE[pn]) return [Y + '년 이전 단종', '포털 목록에 없음 (' + day + ')', 'FFF8D7D0'];
     if(LPU_UPD[pn]) return [updTxt, LPU_UPD[pn].join(', '), lpxYearFill(Y)];
     var old = it && it[6] || '', m = /^(\d{4}) 업데이트/.exec(old);
-    return [old || baseY + ' 기본정보', it && it[7] || '', m ? lpxYearFill(m[1]) : ''];
+    return [old || baseY + ' 기본정보', it && it[7] || '', /단종/.test(old) ? 'FFF8D7D0' : m ? lpxYearFill(m[1]) : ''];
   }
   var CATS = ['Hardware', 'Software', 'Services', 'Warranty'];
   function catOf(x){ return CATS.indexOf(x[2]) >= 0 ? x[2] : /serv|warr|cal/i.test(x[2] || '') ? 'Services' : 'Hardware'; }
@@ -2846,7 +2847,7 @@ function lpuXlsxMake(sv, pd){   /* pd = 가격이 든 수집 내용 (엑셀에�
 }
 $('lp-upd-xl').addEventListener('click', lpuXlsx);
 function lpNow(){ var d = new Date(), p = function(x){ return ('0' + x).slice(-2); }; return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()); }
-(function(){ var sv = lpuSaved(); if(sv && sv.data){ try{ lpuApply(sv.data); }catch(e){} } })();
+(function(){ var sv = lpuSaved(); if(sv && sv.data){ try{ lpuApply(sv.data, sv.on); }catch(e){} } })();
 lpuStatus();
 window.postMessage({src:'rfcalc', type:'lpc-hello'}, LPU_TO());   /* 확장이 있으면 '연결됨' 표시 */
 
