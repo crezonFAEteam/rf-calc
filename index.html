@@ -104,6 +104,7 @@ table.lp tr.lp-focus td{background:var(--accent-soft);font-weight:600}
 .g-wlan{--g:#3B6FB6}.g-cell{--g:#7B5BB5}.g-prod{--g:#B0702A}.g-mmw{--g:#2F8A7A}.g-sw{--g:#7A838C}
 #lp-view:not(.show-pn) table.lp .pn{display:none}
 #lp-view:not(.show-kd) table.lp .kd{display:none}
+#lp-view:not(.show-bs) .lp-sum,#lp-view:not(.show-bs) .lp-why,#lp-view:not(.show-bs) .lp-star,#lp-view:not(.show-bs) .lp-spec{display:none}
 .lp-chk{display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;align-self:end;padding-bottom:6px}
 table.lp td{vertical-align:top;white-space:normal;overflow-wrap:anywhere}
 table.lp .lp-sum{word-break:keep-all;font-size:12px;color:var(--ink-mid);margin-top:3px;line-height:1.45}
@@ -776,7 +777,8 @@ table#wf-list tbody tr.sel td{background:var(--accent-soft)}
               <label for="lp-port">RF 포트 수</label>
               <input type="number" id="lp-port" placeholder="예: 8" min="0">
             </div>
-            <label class="lp-chk"><input type="checkbox" id="lp-ds"> 설명 모두 보기</label>
+            <label class="lp-chk" title="라인 소개 · 선택 기준 · 품목 한 줄 요약"><input type="checkbox" id="lp-bs"> 기본 설명</label>
+            <label class="lp-chk" title="포털의 영문 제품 설명 전체"><input type="checkbox" id="lp-ds"> 상세 설명</label>
             <label class="lp-chk"><input type="checkbox" id="lp-kd"> 구분 보기</label>
             <label class="lp-chk"><input type="checkbox" id="lp-pn"> Part No 보기</label>
             <button class="btn gh sm" id="lp-reset">조건 지우기</button>
@@ -2886,7 +2888,7 @@ function lpDetail(id){
   if(bodies.length && !bodies.some(function(b){ return b[1] === LP_BODY; })) LP_BODY = null;
   var head = '<div class="btns"><button class="btn gh sm" data-back>← 전체 제품</button></div>' +
     '<div class="card lp-head g-' + lpGroup(id) + '"><h3>' + lpEsc(m.name) + (m.sub ? ' <small>' + lpEsc(m.sub) + '</small>' : '') + '</h3>' +
-    lpChips(m) + (l.spec ? '<div style="font-size:12.5px;color:var(--ink-mid)">' + lpEsc(l.spec) + '</div>' : '') +
+    lpChips(m) + (l.spec ? '<div class="lp-spec" style="font-size:12.5px;color:var(--ink-mid)">' + lpEsc(l.spec) + '</div>' : '') +
     '<ul class="lp-why">' + l.why.map(function(t){ return '<li>' + lpWhy(t) + '</li>'; }).join('') + '</ul>' +
     (m.star ? '<div class="lp-star">' + lpEsc(m.star) + '</div>' : '') + '</div>';
   /* ① 본체 고르기 → ② 그 본체의 HW / SW / Service. 본체가 없는 라인(SW 등)은 바로 ② */
@@ -2959,14 +2961,14 @@ $('lp-reset').addEventListener('click', function(){
   ['lp-f', 'lp-bw', 'lp-port', 'lp-std'].forEach(function(k){ $(k).value = ''; });
   LP_CUR = null; LP_BODY = null; lpRender();
 });
-/* 표 칸 보기 체크박스 (기본은 숨김, 이 브라우저에 기억). ds = 설명 줄 모두 펼치기 */
+/* 표 칸 보기 체크박스 (이 브라우저에 기억). bs = 기본 설명(라인 소개 · 요약, 기본은 보임), ds = 상세 설명 줄 모두 펼치기 */
 function lpPnView(){
-  ['pn', 'kd'].forEach(function(k){ $('lp-view').classList.toggle('show-' + k, $('lp-' + k).checked); });
+  ['pn', 'kd', 'bs'].forEach(function(k){ $('lp-view').classList.toggle('show-' + k, $('lp-' + k).checked); });
   var all = lpDescAll();
   Array.prototype.forEach.call(document.querySelectorAll('#lp-view tr.lp-sub'), function(r){ r.hidden = !all || r.hasAttribute('data-empty'); });
 }
-['pn', 'kd', 'ds'].forEach(function(k){
-  try{ $('lp-' + k).checked = localStorage.getItem('rf-lp-' + k) === '1'; }catch(e){}
+['pn', 'kd', 'ds', 'bs'].forEach(function(k){
+  try{ var v = localStorage.getItem('rf-lp-' + k); $('lp-' + k).checked = k === 'bs' ? v !== '0' : v === '1'; }catch(e){ $('lp-' + k).checked = k === 'bs'; }
   $('lp-' + k).addEventListener('change', function(){ lpPnView(); try{ localStorage.setItem('rf-lp-' + k, this.checked ? '1' : '0'); }catch(e){} });
 });
 lpPnView(); lpFillCombos(); lpRender();
@@ -2991,7 +2993,7 @@ calcPar();
    휴대폰은 다른 앱에 다녀오면 브라우저가 페이지를 다시 읽는 일이 많다.
    열린 탭 · 입력칸 · 콤보 · LP 제품 위치 · 스크롤을 이 브라우저에 저장했다가 다시 열 때 되살린다.
    (장비 연결 칸과 LP 체크박스는 각자 따로 저장하고 있어서 뺀다. 파일 선택 · 파일에 따라 바뀌는 콤보도 뺀다) */
-var UI_KEY = 'rf-ui', UI_SKIP = ['lp-line', 'lp-body', 'lp-ds', 'lp-kd', 'lp-pn', 'eq-host', 'eq-port', 'eq-to', 'eq-bridge', 'wf-a', 'wf-b'];
+var UI_KEY = 'rf-ui', UI_SKIP = ['lp-line', 'lp-body', 'lp-ds', 'lp-bs', 'lp-kd', 'lp-pn', 'eq-host', 'eq-port', 'eq-to', 'eq-bridge', 'wf-a', 'wf-b'];
 var UI_READY = false;
 function uiCtrls(){
   return Array.prototype.filter.call(document.querySelectorAll('input[id],select[id],textarea[id]'), function(c){
