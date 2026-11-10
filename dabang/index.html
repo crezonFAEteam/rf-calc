@@ -1948,9 +1948,10 @@ const tuHz=m=>TU.a4*Math.pow(2,(m-69)/12);
 const tuName=m=>nn(m)+(Math.floor(m/12)-1);
 /* 음높이 재기: McLeod 방식(정규화 자기상관, NSDF). 옥타브 착오가 적고 소수점까지 정확.
    반환 {f, clar}: clar(선명도 0~1)가 낮으면 잡음 · 여러 줄 소리로 보고 버림 */
-function tuPitch(b,sr){
+/* lo~hi(Hz)를 주면 그 대역의 주기만 찾음 → 대역 밖(2배음 · 절반 음)은 계산에서 빠져 옥타브 착오가 생길 수 없음 */
+function tuPitch(b,sr,lo,hi){
   const N=b.length;let e0=0;for(let i=0;i<N;i++)e0+=b[i]*b[i];if(Math.sqrt(e0/N)<0.004)return null;
-  const maxLag=Math.min(N>>1,Math.floor(sr/62)),minLag=Math.floor(sr/1400),n=new Float32Array(maxLag+2);
+  const maxLag=Math.min(N>>1,Math.floor(sr/(lo||62))),minLag=Math.floor(sr/(hi||1400)),n=new Float32Array(maxLag+2);
   for(let t=0;t<=maxLag+1;t++){let ac=0,m=0;for(let j=0;j<N-t;j++){const a=b[j],c=b[j+t];ac+=a*c;m+=a*a+c*c}n[t]=m>0?2*ac/m:0}
   /* 양수 구간마다 가장 큰 봉우리(키 최댓값) → 전체 최댓값의 0.9 이상인 첫 봉우리 */
   const peaks=[];let pos=false,bi=-1;
@@ -1967,27 +1968,70 @@ function tuPitch(b,sr){
 }
 /* 목표 줄: 자동 = 가장 가까운 줄, 수동 = 고른 줄 */
 function tuTarget(f){let si=TU.sel;if(TU.mode==='auto'){let best=1e9;for(let i=0;i<6;i++){const c=Math.abs(1200*Math.log2(f/tuHz(tuMidi(i))));if(c<best){best=c;si=i}}}return si}
+/* 대역 측정: 이미 대역 통과된 신호를 2:1로 줄여(900Hz 아래만 남아 있어 안전) 목표음 ±반 옥타브의 주기만 계산.
+   그 범위에는 기본 주기 봉우리 하나뿐 → 가장 높은 봉우리 = 기본음 (2배음 · 절반 음은 범위 밖) */
+/* 2:1로 줄이기 (계산량 1/4, 2000Hz 아래만 쓰므로 안전) */
+function tuDec(b){const N=b.length>>1,x=new Float32Array(N);for(let i=0;i<N;i++)x[i]=(b[2*i]+b[2*i+1])*0.5;return x}
+function tuPitchBand(b,sr,lo,hi){
+  const x=tuDec(b),N=x.length,s=sr/2;let e0=0;for(let i=0;i<N;i++)e0+=x[i]*x[i];
+  if(e0/N<1e-9)return null;
+  const t0=Math.max(3,Math.floor(s/hi)-1),t1=Math.min(N>>1,Math.ceil(s/lo)+1),n=new Float32Array(t1+2);
+  for(let t=t0-1;t<=t1+1;t++){let ac=0,m=0;for(let j=0;j<N-t;j++){const a=x[j],c=x[j+t];ac+=a*c;m+=a*a+c*c}n[t]=m>0?2*ac/m:0}
+  let bi=-1;for(let t=t0;t<=t1;t++)if(n[t]>=n[t-1]&&n[t]>=n[t+1]&&(bi<0||n[t]>n[bi]))bi=t;
+  if(bi<0)return null;
+  const y0=n[bi-1],y1=n[bi],y2=n[bi+1],d=y0-2*y1+y2,off=d?0.5*(y0-y2)/d:0;
+  return {f:s/(bi+off),clar:y1-0.25*(y0-y2)*off};
+}
+const tuCt=(a,b)=>1200*Math.log2(a/b);
+/* 위아래 1/4을 버린 평균 (6개 미만이면 중앙값) */
+const tuTM=a=>{const s=[...a].sort((p,q)=>p-q);if(s.length<6)return s[s.length>>1];const k=s.length>>2,m=s.slice(k,s.length-k);return m.reduce((p,q)=>p+q,0)/m.length};
+function tuReset(){TU.hist2=[];TU.cand=[];TU.wc=null;TU.lockSi=null;TU.shown=false}
+/* 정밀 측정 대역 통과: 목표 줄 기본음 ×0.7 아래(저음 잡음)와 6배음 위만 자름.
+   기타 소리의 힘은 기본음보다 2·3배음에 많아서 배음은 살려야 잡음 속에서도 또렷함 (줄이 정해지지 않으면 50~900Hz) */
+function tuSetBand(si,now){
+  if(TU.bandSi===si)return;TU.bandSi=si;TU.hist2=[];TU.cand=[];TU.shown=false;TU.fcAt=now;
+  const t0=actx.currentTime,tg=si==null?0:tuHz(tuMidi(si)),lp=si==null?900:Math.min(2000,tg*6),hp=si==null?50:tg*0.7;
+  TU.n1.frequency.setTargetAtTime(lp,t0,0.02);TU.n2.frequency.setTargetAtTime(lp,t0,0.02);TU.hp.frequency.setTargetAtTime(hp,t0,0.02);
+}
+/* 잡음 속 지속음 잡기:
+   1) 바탕 잡음 크기를 계속 따라가서 그보다 확실히 큰 소리만 잼
+   2) 목표 줄 대역 신호를 0.17초 창으로, 목표음 ±반 옥타브의 주기만 측정 (지속음은 길게 볼수록 잡음보다 또렷해짐)
+   3) 같은 음높이가 이어질 때만 표시 (잡음 · 말소리는 음높이가 계속 바뀌거나 금방 끊김) */
 function tuTick(){
   TU.raf=0;if(!TU.on)return;
   TU.an.getFloatTimeDomainData(TU.buf);
-  const sr=actx.sampleRate,now=performance.now();
-  /* 튕긴 직후(소리 크기가 갑자기 커짐) 0.1초는 건너뜀: 어택 잡음 때문에 값이 튀는 것 방지 */
+  const sr=actx.sampleRate,now=performance.now(),manual=TU.mode==='manual';
   let e=0;for(let i=TU.buf.length-1024;i<TU.buf.length;i++)e+=TU.buf[i]*TU.buf[i];e=Math.sqrt(e/1024);
-  if(e>0.01&&e>(TU.lvl||0)*2.2)TU.atk=now;TU.lvl=TU.lvl?TU.lvl*0.8+e*0.2:e;
-  const r=now-(TU.atk||0)<100?null:tuPitch(TU.buf,sr);
-  if(r&&r.clar>0.85&&r.f>60&&r.f<1400){
-    if(TU.hist.length&&Math.abs(1200*Math.log2(r.f/TU.hist[TU.hist.length-1]))>60){TU.hist=[];TU.hist2=[]}   /* 다른 줄로 바뀌면 새로 */
-    TU.hist.push(r.f);if(TU.hist.length>5)TU.hist.shift();TU.last=now;
-    const med=[...TU.hist].sort((a,b)=>a-b)[TU.hist.length>>1];
-    /* 정밀: 목표 줄 기본음의 1.3배에서 자르고(배음 제거) 다시 측정 → 넓은 측정과 40센트 안이면 이 값 */
-    const fc=Math.min(900,tuHz(tuMidi(tuTarget(med)))*1.3);
-    if(TU.fc!==fc){TU.fc=fc;TU.n1.frequency.setTargetAtTime(fc,actx.currentTime,0.02);TU.n2.frequency.setTargetAtTime(fc,actx.currentTime,0.02);TU.hist2=[];TU.fcAt=now}   /* 줄이 바뀔 때만 */
-    let fin=med;TU.an2.getFloatTimeDomainData(TU.buf2);const r2=tuPitch(TU.buf2,sr);
-    if(r2&&r2.clar>0.8&&now-TU.fcAt>120&&Math.abs(1200*Math.log2(r2.f/med))<40){   /* 필터가 자리 잡은 뒤 */TU.hist2.push(r2.f);if(TU.hist2.length>5)TU.hist2.shift()}
-    if(TU.hist2.length>=2)fin=[...TU.hist2].sort((a,b)=>a-b)[TU.hist2.length>>1];
-    tuShow(fin,now);
-  }else if(now-(TU.atk||0)<100){/* 어택 중: 그대로 */}
-  else if(now-TU.last>900){TU.hist=[];TU.hist2=[];if(TU.n1&&TU.fc!==900){TU.fc=900;TU.n1.frequency.value=900;TU.n2.frequency.value=900}tuShow(null,now)}
+  /* 바탕 잡음: 조용해지면 빨리, 커지면 천천히(약 8초) 따라감 → 계속 나는 잡음에는 적응, 튕긴 소리는 잡음보다 커서 구분됨 */
+  TU.nf=TU.nf==null?e:e<TU.nf?TU.nf*0.8+e*0.2:TU.nf*0.998+e*0.002;
+  if(e>0.01&&e>(TU.lvl||0)*2.2){TU.atk=now;TU.peak=e}TU.lvl=TU.lvl?TU.lvl*0.8+e*0.2:e;TU.peak=Math.max((TU.peak||0)*0.998,e);
+  const loud=e>Math.max(0.003,TU.nf*1.8),atk=now-(TU.atk||0)<100;
+  /* 소리 꼬리: 튕긴 최고 음량의 12% 아래면 새 값을 받지 않고 마지막 값 유지 (거의 사라진 소리는 잡음과 섞여 음이 틀어져 보임) */
+  const tail=e<TU.peak*0.12;   /* 튕긴 직후 0.1초는 어택 잡음이라 건너뜀 */
+  /* 자동: 넓게(0.17초 창, 2:1로 줄여) 재서 가장 가까운 줄 → 같은 줄이 8번 이어져야 그 줄로 정함 */
+  if(!manual&&loud&&!atk){
+    let bLo=1e9,bHi=0;for(let i=0;i<6;i++){const h=tuHz(tuMidi(i));bLo=Math.min(bLo,h/1.414);bHi=Math.max(bHi,h*1.414)}bLo=Math.max(55,bLo);
+    const r=tuPitch(tuDec(TU.buf),sr/2,bLo,bHi);
+    if(r&&r.clar>0.6&&r.f>=bLo&&r.f<=bHi){const s=tuTarget(r.f);
+      if(TU.wc&&TU.wc.si===s&&now-TU.wc.t<150)TU.wc.n++;else TU.wc={si:s,n:1};TU.wc.t=now;TU.last=now;
+      if(TU.wc.n>=8)TU.lockSi=s}
+  }
+  const si=manual?TU.sel:TU.lockSi;tuSetBand(si,now);
+  /* 정밀: 목표 줄 대역 신호에서 측정 */
+  let got=false;
+  if(si!=null&&loud&&!atk&&!tail&&now-TU.fcAt>150){   /* 필터가 자리 잡은 뒤 */
+    TU.an2.getFloatTimeDomainData(TU.buf2);const tg=tuHz(tuMidi(si)),r2=tuPitchBand(TU.buf2,sr,tg/1.414,tg*1.414);
+    if(r2&&r2.clar>0.5){got=true;   /* 잡음이 섞이면 선명도가 낮아지므로 기준을 낮추고, 대신 아래 지속성 확인으로 거름 */TU.last=now;
+      if(TU.shown&&Math.abs(tuCt(r2.f,tuTM(TU.hist2)))>20){   /* 지금 음과 20센트 넘게 다른 값: 12번 이어질 때만 새 음 (줄감개를 많이 돌린 경우) */
+        const cd=TU.cand;if(cd.length&&Math.abs(tuCt(r2.f,cd[cd.length-1]))>30)cd.length=0;cd.push(r2.f);
+        if(cd.length>=12){TU.hist2=cd.slice(-12);TU.cand=[];TU.newNote=true}
+      }else{TU.cand=[];TU.hist2.push(r2.f);if(TU.hist2.length>12)TU.hist2.shift()}
+      /* 처음 보여줄 때: 최근 8개(약 0.13초)가 ±30센트 안에 모여야 (지속음 확인) */
+      if(!TU.shown&&TU.hist2.length>=8){const l=TU.hist2.slice(-8),m=tuTM(l);if(l.every(f=>Math.abs(tuCt(f,m))<30)){TU.hist2=l;TU.shown=true;TU.newNote=true}else TU.hist2.shift()}
+    }
+  }
+  if(TU.shown&&got)tuShow(tuTM(TU.hist2),now);
+  else if(!atk&&now-(TU.last||0)>1500&&(TU.cur||TU.shown||TU.lockSi!=null)){TU.hist2=[];TU.cand=[];TU.shown=false;TU.wc=null;if(!manual){TU.lockSi=null;tuSetBand(null,now)}tuShow(null,now)}   /* 1.5초 동안 소리 없으면 비움 */
   tuStrobe(now);tuTrail(now);
   TU.raf=requestAnimationFrame(tuTick);
 }
@@ -2000,7 +2044,9 @@ function tuShow(f,now){
   let si=TU.sel;
   if(TU.mode==='auto'){let best=1e9;for(let i=0;i<6;i++){const c=Math.abs(1200*Math.log2(f/tuHz(tuMidi(i))));if(c<best){best=c;si=i}}}
   const target=tuMidi(si),raw=1200*Math.log2(f/tuHz(target));
-  if(TU.sc==null||!TU.cur||TU.cur.si!==si||Math.abs(raw-TU.sc)>30)TU.sc=raw;else TU.sc+=0.5*(raw-TU.sc);   /* 바늘 떨림 줄이기 (반응은 빠르게) */
+  /* 바늘 떨림 줄이기: 항상 시간 기준 지수 평활(τ 0.12초). 새 음으로 확정됐을 때만 바로 그 값으로 */
+  const dt=TU.scAt?Math.min(0.2,(now-TU.scAt)/1000):0;TU.scAt=now;
+  if(TU.sc==null||!TU.cur||TU.cur.si!==si||TU.newNote){TU.sc=raw;TU.newNote=false}else TU.sc+=(1-Math.exp(-dt/0.15))*(raw-TU.sc);
   const c=TU.sc,near=Math.round(69+12*Math.log2(f/TU.a4)),far=Math.abs(c)>100,ok=Math.abs(c)<=3;
   if(ok&&!far){if(!TU.okSince)TU.okSince=now}else{TU.okSince=0;TU.locked=false}
   const lock=ok&&!far&&now-TU.okSince>600;
@@ -2029,7 +2075,7 @@ function tuStrobe(now){
   const c=TU.cur&&TU.cur.c!=null?Math.max(-60,Math.min(60,TU.cur.c)):0;TU.sx=((TU.sx||0)+c*6*dt)%40;
   el.style.backgroundPositionX=TU.sx.toFixed(2)+'px';el.classList.toggle('idle',!TU.cur);
 }
-/* 흐름 보기: 위 동그라미 = 지금 음 (왼쪽 ♭ 낮음 · 오른쪽 ♯ 높음), 지난 기록은 아래로 흘러감 (초당 60px).
+/* 흐름 보기: 위 동그라미 = 지금 음 (왼쪽 ♭ 낮음 · 오른쪽 ♯ 높음), 지난 기록은 아래로 흘러감 (초당 30px).
    가로 = 센트(±50, 가운데 ±10은 2배로 넓게), 초록 = ±3센트(맞음) · 노랑 = ±10 · 주황 = 더 벗어남 */
 function tuX(c,w){const a=Math.abs(c),s=c<0?-1:1,u=a<=10?a*2:20+(Math.min(a,50)-10)*0.75;return w/2+s*u/50*(w/2-18)}
 function tuTrail(now){
@@ -2038,11 +2084,15 @@ function tuTrail(now){
   if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr)}
   if(!TU.col||now-TU.colAt>2000){const cs=getComputedStyle(document.documentElement),v=k=>cs.getPropertyValue(k).trim();
     TU.col={ink:v('--ink')||'#222',muted:v('--muted')||'#888',line:v('--line')||'#ccc',acc:v('--accent-fill')||'#d49a2a',ok:'#2f9a5c',mid:'#d9b21f',bad:'#e0692e'};TU.colAt=now}
-  const C=TU.col,x=cv.getContext('2d'),Y0=34,SP=60/1000;x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,W,H);
-  /* 바탕: 가로 시간 칸(0.5초) · 세로 센트 눈금 · 맞음 띠 */
+  const C=TU.col,x=cv.getContext('2d'),Y0=34,SP=30/1000;   /* 초당 30px */x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,W,H);
+  /* 바탕: 가로 시간 칸(큰 칸 1초 · 잔 칸 1/3초) · 세로 센트 눈금 · 맞음 띠 */
   x.fillStyle=C.ok;x.globalAlpha=0.12;x.fillRect(tuX(-3,W),0,tuX(3,W)-tuX(-3,W),H);x.globalAlpha=1;
-  x.lineWidth=1;x.strokeStyle=C.line;x.beginPath();
-  for(const c of [-50,-30,-10,-5,5,10,30,50]){const X=Math.round(tuX(c,W))+0.5;x.moveTo(X,Y0);x.lineTo(X,H)}
+  /* 잔 칸: 큰 칸을 가로세로 3등분 (흐리게) */
+  const TK=[-50,-30,-10,-5,0,5,10,30,50];x.lineWidth=1;x.strokeStyle=C.line;x.globalAlpha=0.7;x.beginPath();
+  for(let i=0;i<TK.length-1;i++){const a=tuX(TK[i],W),b=tuX(TK[i+1],W);for(const k of [1,2]){const X=Math.round(a+(b-a)*k/3)+0.5;x.moveTo(X,Y0);x.lineTo(X,H)}}
+  const off1=(now*SP)%10;for(let y=Y0+off1;y<H;y+=10){x.moveTo(0,Math.round(y)+0.5);x.lineTo(W,Math.round(y)+0.5)}x.stroke();x.globalAlpha=1;
+  /* 큰 칸: 센트 눈금 · 1초(30px)마다 가로줄 */
+  x.beginPath();for(const c of [-50,-30,-10,-5,5,10,30,50]){const X=Math.round(tuX(c,W))+0.5;x.moveTo(X,Y0);x.lineTo(X,H)}
   const off=(now*SP)%30;for(let y=Y0+off;y<H;y+=30){x.moveTo(0,Math.round(y)+0.5);x.lineTo(W,Math.round(y)+0.5)}x.stroke();
   const last=TU.cur;x.strokeStyle=last&&last.ok?C.ok:C.acc;x.lineWidth=2;x.beginPath();x.moveTo(W/2,Y0);x.lineTo(W/2,H);x.stroke();
   x.fillStyle=C.muted;x.font='600 22px system-ui,sans-serif';x.textBaseline='middle';x.textAlign='left';x.fillText('♭',8,Y0);x.textAlign='right';x.fillText('♯',W-8,Y0);
@@ -2054,11 +2104,14 @@ function tuTrail(now){
   for(let i=1;i<TU.trail.length;i++){const a=TU.trail[i-1],b=TU.trail[i];if(a.brk||b.brk||b.t-a.t>250)continue;
     x.strokeStyle=col(b);x.beginPath();x.moveTo(tuX(a.c,W),Y0+(now-a.t)*SP);x.lineTo(tuX(b.c,W),Y0+(now-b.t)*SP);x.stroke()}
   /* 지금 음 동그라미 */
-  const live=last&&TU.trail.length&&now-TU.trail[TU.trail.length-1].t<300;
-  if(live){const p=TU.trail[TU.trail.length-1],X=tuX(p.c,W),cc=col(p);
+  const live=last&&TU.trail.length&&now-TU.trail[TU.trail.length-1].t<1600;   /* 소리 꼬리 동안 마지막 값 유지 */
+  /* 동그라미는 목표 위치로 부드럽게 미끄러짐 (τ 0.06초) */
+  const ddt=TU.dxAt?Math.min(0.1,(now-TU.dxAt)/1000):0;TU.dxAt=now;
+  if(live){const p=TU.trail[TU.trail.length-1],tx=tuX(p.c,W),cc=col(p);
+    TU.dx=TU.dx==null?tx:TU.dx+(1-Math.exp(-ddt/0.06))*(tx-TU.dx);const X=TU.dx;
     x.beginPath();x.arc(X,Y0,17,0,Math.PI*2);x.fillStyle=cc;x.fill();x.lineWidth=3;x.strokeStyle='#fff';x.stroke();
     x.fillStyle='#fff';x.font='700 14px system-ui,sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(p.n||'',X,Y0+1)}
-  else{x.beginPath();x.arc(W/2,Y0,16,0,Math.PI*2);x.lineWidth=3;x.strokeStyle=C.muted;x.stroke();
+  else{TU.dx=null;x.beginPath();x.arc(W/2,Y0,16,0,Math.PI*2);x.lineWidth=3;x.strokeStyle=C.muted;x.stroke();
     x.fillStyle=C.muted;x.font='13px system-ui,sans-serif';x.textAlign='center';x.textBaseline='top';x.fillText(TU.on?'줄을 하나 튕기세요':'마이크를 켜면 음의 흐름이 보입니다',W/2,Y0+26)}
 }
 function tuView(){const t=document.querySelector('.tuner');if(t)t.dataset.view=TU.view;document.querySelectorAll('[data-tuview]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.tuview===TU.view));tuTrail(performance.now())}
@@ -2119,13 +2172,14 @@ async function tuStart(){
     actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();   /* 터치 안에서 먼저 깨움 (아이폰) */
     TU.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
     if(actx.state==='suspended')await actx.resume();
-    TU.src=actx.createMediaStreamSource(TU.stream);TU.an=actx.createAnalyser();TU.an.fftSize=4096;TU.buf=new Float32Array(TU.an.fftSize);
+    TU.src=actx.createMediaStreamSource(TU.stream);TU.an=actx.createAnalyser();TU.an.fftSize=8192;TU.buf=new Float32Array(TU.an.fftSize);
     /* 높은 배음(실제 줄은 배음이 조금씩 높게 울림)이 기본음 측정을 끌어올리지 않도록 저역 통과 */
     TU.lp=actx.createBiquadFilter();TU.lp.type='lowpass';TU.lp.frequency.value=900;TU.lp.Q.value=0.6;
     TU.src.connect(TU.lp);TU.lp.connect(TU.an);
     /* 정밀 측정용: 목표 줄 기본음 바로 위에서 자르는 저역 통과 2단 → 배음 없이 기본음만 */
     TU.n1=actx.createBiquadFilter();TU.n2=actx.createBiquadFilter();[TU.n1,TU.n2].forEach(f=>{f.type='lowpass';f.frequency.value=900;f.Q.value=0.6});
-    TU.an2=actx.createAnalyser();TU.an2.fftSize=4096;TU.buf2=new Float32Array(4096);TU.src.connect(TU.n1);TU.n1.connect(TU.n2);TU.n2.connect(TU.an2);TU.hist2=[];TU.fc=900;TU.fcAt=0;
+    TU.hp=actx.createBiquadFilter();TU.hp.type='highpass';TU.hp.frequency.value=50;TU.hp.Q.value=0.6;
+    TU.an2=actx.createAnalyser();TU.an2.fftSize=8192;TU.buf2=new Float32Array(8192);TU.src.connect(TU.hp);TU.hp.connect(TU.n1);TU.n1.connect(TU.n2);TU.n2.connect(TU.an2);TU.bandSi=undefined;TU.nf=null;TU.fcAt=0;tuReset();
     TU.on=true;TU.hist=[];TU.last=performance.now();tuRender();TU.raf=requestAnimationFrame(tuTick);
   }catch(e){TU.on=false;tuRender();const n=e&&e.name;
     const kind=n==='NotAllowedError'||n==='SecurityError'||n==='PermissionDeniedError'?'denied':n==='NotFoundError'||n==='OverconstrainedError'?'nomic':n==='NotReadableError'||n==='AbortError'?'busy':'denied';
@@ -2141,25 +2195,25 @@ document.addEventListener('visibilitychange',()=>{
 document.addEventListener('pointerdown',()=>{try{if(actx&&actx.state==='suspended')actx.resume()}catch(e){}},{passive:true});
 function tuStop(){
   TU.on=false;if(TU.raf)cancelAnimationFrame(TU.raf);TU.raf=0;
-  try{TU.src&&TU.src.disconnect();TU.lp&&TU.lp.disconnect();TU.n1&&TU.n1.disconnect();TU.n2&&TU.n2.disconnect()}catch(e){}if(TU.stream)TU.stream.getTracks().forEach(t=>t.stop());TU.stream=null;TU.src=null;TU.cur=null;
+  try{TU.src&&TU.src.disconnect();TU.lp&&TU.lp.disconnect();TU.hp&&TU.hp.disconnect();TU.n1&&TU.n1.disconnect();TU.n2&&TU.n2.disconnect()}catch(e){}if(TU.stream)TU.stream.getTracks().forEach(t=>t.stop());TU.stream=null;TU.src=null;TU.cur=null;
   if(document.getElementById('tuMic'))tuRender();
 }
 /* 기준음: 기타 소리로 한 번 (A4 기준에 맞춰 음높이 보정) */
 function tuRef(i){
   try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();
-    const s=actx.createBufferSource(),gn=actx.createGain();gn.gain.value=0.4;s.buffer=makeBuf(tuMidi(i),2.4,0.996,0.9);
+    const s=actx.createBufferSource(),gn=actx.createGain();gn.gain.value=0.4;s.buffer=makeBuf(tuMidi(i),4.8,0.996,0.9,true);   /* exact: 음정 흔들기 없음 · 2배 길게 울림 */
     s.detune.value=1200*Math.log2(TU.a4/440);s.connect(gn);gn.connect(gOut());s.start(actx.currentTime+0.02)}catch(e){}
 }
 document.getElementById('p-tune').addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
   if(b.id==='tuMic'){TU.on?tuStop():tuStart();return}
   if(b.dataset.tucopy!=null){const u=location.href.split('#')[0];(navigator.clipboard?navigator.clipboard.writeText(u):Promise.reject()).then(()=>{b.textContent='복사했습니다'},()=>{prompt('이 주소를 복사해 다른 브라우저에 붙여 넣으세요',u)});return}
-  if(b.dataset.tumode){TU.mode=b.dataset.tumode;tuSave();TU.hist=[];tuStrings();return}
+  if(b.dataset.tumode){TU.mode=b.dataset.tumode;tuSave();tuReset();tuStrings();return}
   if(b.dataset.tuview){TU.view=b.dataset.tuview;tuSave();tuView();return}
-  if(b.dataset.tus!=null){const i=+b.dataset.tus;TU.sel=i;if(TU.mode!=='manual')TU.mode='manual';tuSave();tuRef(i);TU.hist=[];tuStrings();return}
+  if(b.dataset.tus!=null){const i=+b.dataset.tus;TU.sel=i;if(TU.mode!=='manual')TU.mode='manual';tuSave();tuRef(i);tuReset();tuStrings();return}
   if(b.dataset.a4!=null){const v=+b.dataset.a4;TU.a4=v===0?440:Math.max(430,Math.min(450,TU.a4+v));tuSave();tuRender();return}
 });
-document.getElementById('tuTun').addEventListener('change',e=>{TU.tun=e.target.value;tuSave();TU.hist=[];tuRender()});
+document.getElementById('tuTun').addEventListener('change',e=>{TU.tun=e.target.value;tuSave();tuReset();TU.bandSi=undefined;tuRender()});
 /* 지판: 각 줄의 개방현 목표 음, 지금 맞추는 줄은 진하게 */
 function tuDots(){
   let s='';const on=TU.cur?TU.cur.si:(TU.mode==='manual'?TU.sel:-1);
@@ -3014,13 +3068,13 @@ function hlTick(){
    · 세게 칠수록 밝게, 뮤트는 둔하고 짧게
    · 울림 길이: 낮은 음은 길게(최대 5초), 높은 음은 짧게
    · 소리 마지막 단계(gOut)에서 통기타 몸통 울림(저음 공명 · 중고음 대역)과 작은 방 울림을 더함 */
-function makeBuf(midi,dur,decay,amp){
+function makeBuf(midi,dur,decay,amp,exact){
   const sr=actx.sampleRate,mute=decay!=null&&decay<0.95,a=amp==null?1:amp;
-  const f0=440*Math.pow(2,(midi-69)/12)*(1+(Math.random()-0.5)*0.0016);   /* 아주 조금씩 다른 음정 → 기계음 느낌 줄임 */
+  const f0=440*Math.pow(2,(midi-69)/12)*(exact?1:1+(Math.random()-0.5)*0.0016);   /* 아주 조금씩 다른 음정 → 기계음 느낌 줄임 */
   const len=Math.max(256,Math.floor(sr*dur)),buf=actx.createBuffer(1,len,sr),d=buf.getChannelData(0);
   let L=sr/f0-0.5,N=Math.floor(L),fr=L-N;if(fr<0.1){N-=1;fr+=1}if(N<2){N=2;fr=0.5}
   const C=(1-fr)/(1+fr);
-  const T60=mute?0.07:Math.max(1.1,Math.min(5,5.6-(midi-40)*0.085));
+  const T60=(mute?0.07:Math.max(1.1,Math.min(5,5.6-(midi-40)*0.085)))*(exact?2:1);   /* 조율 기준음은 2배 오래 */
   const rho=Math.pow(0.001,1/(f0*T60));
   /* 튕김: 잡음 → 밝기(한 극 저역 통과) → 피크 위치(빗살) */
   const ex=new Float32Array(N),k=mute?0.22:Math.max(0.3,Math.min(0.92,0.42+0.38*a)),P=Math.max(1,Math.round(N*0.13));
