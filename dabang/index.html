@@ -47,6 +47,7 @@ button,select,textarea{font:inherit;color:inherit}
 /* 제목 줄 + 지판 고정. 탭 줄은 그 바로 아래에 붙는다 (--pinH = 고정 영역 높이, 스크립트가 잰다) */
 .pin{position:sticky;top:0;z-index:6;background:var(--bg);margin:0 -20px;padding:0 20px 6px}
 .pin.off{position:static}
+.pin .tabs{position:static;margin:4px 0 10px}   /* 탭이 고정 영역 안에 있어 따로 고정할 필요 없음 */
 html{scroll-padding-top:var(--pinH,0px)}
 .acc{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;flex:none}
 .acc button{background:none;border:0;padding:2px 9px;cursor:pointer;font-size:.78rem;line-height:1.5;color:var(--muted)}
@@ -346,6 +347,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
   .tabs::-webkit-scrollbar{display:none}
   .tabs button{padding:11px 4px;font-size:.92rem;flex:1 1 0;white-space:nowrap}   /* 탭 6개를 한 줄에 고르게 */
   .tabs{gap:0}
+  .pin .tabs{margin:2px -12px 8px}
   .grid{gap:20px}
   .field{margin-bottom:14px}
   .chip{min-height:44px;padding:8px 10px}
@@ -376,6 +378,28 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
   #p-tune .tu-opts .field{margin-bottom:8px}
   .songbar .ghost.sm{min-height:38px;padding:4px 10px}
   .songbar select{flex-basis:100%}
+  /* 세로 여백 최소화: 한 화면에 많이 보이게 (버튼은 손가락으로 누르기 충분한 36px 이상 유지) */
+  body{line-height:1.42}
+  .wrap{padding:8px 12px 28px}
+  .top{margin-bottom:2px}
+  .pin{padding-bottom:2px}
+  .tabs button{padding:7px 4px}
+  .pin .tabs{margin:0 -12px 6px}
+  .grid{gap:10px}
+  .field{margin-bottom:8px}
+  .flabel{margin-bottom:3px;font-size:.8rem}
+  .chip{min-height:36px;padding:4px 8px}
+  .roots{gap:4px}.roots .chip{padding:4px 0}
+  .quals{gap:4px}.chips{gap:4px}
+  .cname{font-size:2rem}
+  .play,.ghost{min-height:38px}
+  .tones li{padding:5px 8px}
+  .stepper button{width:38px;height:38px}
+  .acced button{min-width:38px;height:38px}
+  .voicings{gap:4px}
+  .sdesc{margin-top:6px;font-size:.85rem}
+  .board-bar{margin-top:2px}
+  #p-tune .tu-opts .field{margin-bottom:4px}
 }
 @media (max-width:420px){   /* 좁은 휴대폰: 제목 줄이 한 줄에 들어가게 */
   .top h1{font-size:1.25rem}.tops{gap:3px}
@@ -419,16 +443,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
     </div>
     </div>
   </header>
-    <div class="board-scroll" id="boardScroll"><svg id="board" viewBox="0 0 1000 226" role="img" aria-label="기타 지판"></svg><svg id="board2" viewBox="0 0 1000 226" aria-hidden="true" hidden></svg></div>
-  </div>
-
-  <section>
-    <div class="board-bar">
-      <p class="board-cap" id="boardCap"></p>
-    </div>
-    <div class="legend"><span><i style="background:#E2A93A"></i>루트</span><span><i style="background:#A8D0BC"></i>3도 (성격)</span><span><i style="background:#EFE6D3"></i>5도</span><span><i style="background:#E9B4A4"></i>7도</span><span><i style="background:#B7C8EA"></i>텐션·sus·6도</span></div>
-  </section>
-
+  <!-- 탭: 제목 줄 바로 아래, 지판 위 (고정 영역 안) -->
   <nav class="tabs" role="tablist">
     <button role="tab" data-tab="tune" aria-selected="false">조율기</button>
     <button role="tab" data-tab="blues" aria-selected="false">블루스</button>
@@ -439,6 +454,16 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
     <button role="tab" data-tab="find" aria-selected="true" title="코드 → 운지">운지법</button>
     <button role="tab" data-tab="shift" aria-selected="false" hidden>조옮김 · 카포</button><!-- 우선 숨김 (hidden 지우면 다시 보임) -->
   </nav>
+    <div class="board-scroll" id="boardScroll"><svg id="board" viewBox="0 0 1000 226" role="img" aria-label="기타 지판"></svg><svg id="board2" viewBox="0 0 1000 226" aria-hidden="true" hidden></svg></div>
+  </div>
+
+  <section>
+    <div class="board-bar">
+      <p class="board-cap" id="boardCap"></p>
+    </div>
+    <div class="legend"><span><i style="background:#E2A93A"></i>루트</span><span><i style="background:#A8D0BC"></i>3도 (성격)</span><span><i style="background:#EFE6D3"></i>5도</span><span><i style="background:#E9B4A4"></i>7도</span><span><i style="background:#B7C8EA"></i>텐션·sus·6도</span></div>
+  </section>
+
 
   <section id="p-find" role="tabpanel">
     <div class="grid">
