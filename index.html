@@ -3642,9 +3642,53 @@ function codes(){
   return '<details class="card" style="margin-top:12px"><summary><b>코드 설명</b> <small>(Part No 에 붙는 커넥터 · 형태 · 서비스 코드)</small></summary><table class="qp-codes">' +
     (QP.codes || []).map(function(r){ return '<tr><td>' + esc(r[0]) + '</td><td><code>' + esc(r[1]) + '</code></td><td>' + esc(r[2]) + '</td></tr>'; }).join('') + '</table></details>';
 }
+/* 제품군 화면: LP 제품처럼 ① 본품 선택 → ② 그 본품에 붙는 교정 · 보증 · 부속품 */
+var BODY = null;
+function related(b){
+  var m = mkey(b), sv = [], acc = [], etc = [];
+  QP.items.forEach(function(it){
+    if(it === b || it[1] !== b[1]) return;
+    if(mkey(it) === m && /^서비스/.test(it[3])){ if(!it[4] || !b[4] || it[4] === b[4]) sv.push(it); return; }   /* 같은 모델 교정 · 보증 (채널이 있으면 같은 채널) */
+    if(it[3] === '부속품' || it[3] === 'SW 라이선스') acc.push(it);                                              /* 제품군 공통 부속품 · SW */
+    else if(mkey(it) === m && it[3] !== '본품') etc.push(it);
+  });
+  var by = function(a, c){ return kindRank(a[3]) - kindRank(c[3]) || (a[0] < c[0] ? -1 : 1); };
+  return {sv:sv.sort(by), acc:acc.sort(by), etc:etc.sort(by)};
+}
+function bodyView(C){
+  var all = QP.items.filter(function(it){ return it[1] === C.f && (!C.m || mkey(it) === C.m); });
+  var bodies = all.filter(function(it){ return it[3] === '본품' && (!C.fo || it[6] === C.fo) && (!C.c || it[5] === C.c); });
+  var head = '<div class="btns"><button class="btn gh sm" data-qpback>← 전체 제품군</button></div>' +
+    '<div class="card lp-head"><h3>' + esc(C.f) + (QP.fams[C.f] ? ' <small>' + esc(QP.fams[C.f]) + '</small>' : '') + '</h3>' +
+    (C.m && QP.models[C.m] ? '<div style="font-size:12.5px;color:var(--ink-mid)">' + esc(C.m) + ' — ' + esc(QP.models[C.m]) + '</div>' : '') + '</div>';
+  if(!bodies.length) return head + '<div class="note">본품이 없는 제품군이다 — 품목 전체.</div>' + '<div class="out">' + table(all.sort(function(a, b){ return kindRank(a[3]) - kindRank(b[3]) || (a[0] < b[0] ? -1 : 1); }), true) + '</div>';
+  if(BODY && !bodies.some(function(b){ return b[0] === BODY; })) BODY = null;
+  var groups = {}, order = [];
+  bodies.forEach(function(it){ var k = gkey(it); if(!groups[k]){ groups[k] = []; order.push(k); } groups[k].push(it); });
+  var ds = $('qp-ds').checked;
+  var rows = order.sort(gsort).map(function(k){
+    return '<tr class="lp-swg"><td colspan="7">' + esc(k) + ' <span class="hint">' + groups[k].length + '개</span>' + (QP.models[k] ? ' <span class="qp-mh" style="padding:0">' + esc(QP.models[k]) + '</span>' : '') + '</td></tr>' +
+      groups[k].sort(function(a, b){ return a[0] < b[0] ? -1 : 1; }).map(function(it){
+        var on = it[0] === BODY, d = desc(it);
+        return '<tr' + (on ? ' style="background:var(--accent-soft)"' : '') + (/단종/.test(it[10]) ? ' class="qp-gone"' : '') + '><td class="c"><input type="radio" name="qp-body" data-qpbody="' + esc(it[0]) + '"' + (on ? ' checked' : '') + ' aria-label="보기"></td>' +
+          '<td class="pn"><a data-qpd>' + esc(it[0]) + '</a></td><td class="k">' + esc(it[4]) + '</td><td class="k">' + esc(it[5]) + '</td><td class="k">' + esc(it[6]) + '</td><td>' + badges(it) + '</td><td></td></tr>' +
+          '<tr class="lp-sub"' + (ds && d ? '' : ' hidden') + '><td></td><td colspan="6">' + esc(d || '설명 없음') + '</td></tr>';
+      }).join('');
+  }).join('');
+  var step1 = '<div class="out"><div class="out-head">① 본품 선택 — 보기를 누르면 아래에 교정 · 보증 · 부속품이 나온다 <span class="hint">' + bodies.length + '개</span></div>' +
+    '<div class="scroll"><table class="lp qp-t"><colgroup><col style="width:44px"><col style="width:26%"><col style="width:8%"><col style="width:12%"><col style="width:16%"><col><col style="width:1px"></colgroup>' +
+    '<thead><tr><th>보기</th><th class="pn">Part No</th><th>채널</th><th>커넥터</th><th>형태</th><th>상태</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
+  if(!BODY) return head + step1 + '<div class="note">위에서 <b>보기</b> 를 고르면 그 본품에 붙는 교정 · 보증 · 부속품이 나온다.</div>';
+  var b = bodies.filter(function(x){ return x[0] === BODY; })[0], r = related(b);
+  var sec = function(t, list, fam){ return list.length ? '<div class="out"><div class="out-head">' + t + ' <span class="hint">' + list.length + '개</span></div>' + table(list, fam) + '</div>' : ''; };
+  return head + step1 + '<div class="lp-gh">② ' + esc(b[0]) + ' 에 붙는 품목' + (desc(b) ? ' <small>' + esc(desc(b).slice(0, 90)) + (desc(b).length > 90 ? '…' : '') + '</small>' : '') + '</div>' +
+    (r.sv.length + r.acc.length + r.etc.length ? '' : '<div class="note">이 본품에 따로 붙는 교정 · 보증 · 부속품이 목록에 없다.</div>') +
+    sec('서비스 — 교정 · 보증', r.sv, false) + sec('부속품 · SW (제품군 공통)', r.acc, true) + sec('그 밖의 같은 모델 품목', r.etc, false);
+}
 function render(){
   var C = cond(), any = C.f || C.m || C.k || C.fo || C.c || C.st || C.q || C.ns;
   if(!any){ $('qp-view').innerHTML = overview(); return; }
+  if(C.f && !C.q && !C.k && !C.st && !C.ns){ $('qp-view').innerHTML = bodyView(C); return; }
   var rows = QP.items.filter(function(it){ return match(it, C); }), MAX = 800;
   var head = '<div class="btns"><button class="btn gh sm" data-qpback>← 전체 제품군</button></div>';
   if(!rows.length){ $('qp-view').innerHTML = head + '<div class="note w">조건에 맞는 품목이 없다.</div>'; return; }
@@ -3665,15 +3709,19 @@ function render(){
 }
 $('qp-view').addEventListener('click', function(ev){
   var t = ev.target, card = t.closest('[data-qpf]');
-  if(card){ $('qp-fam').value = card.getAttribute('data-qpf'); fillModels(); render(); $('p-qp').scrollIntoView({block:'start'}); return; }
+  if(card){ $('qp-fam').value = card.getAttribute('data-qpf'); BODY = null; fillModels(); render(); $('p-qp').scrollIntoView({block:'start'}); return; }
   if(t.hasAttribute('data-qpback')){ ['qp-fam', 'qp-model', 'qp-kind', 'qp-form', 'qp-conn', 'qp-st', 'qp-q'].forEach(function(k){ $(k).value = ''; }); fillModels(); render(); return; }
   if(t.hasAttribute('data-qpd')){ var d = t.closest('tr').nextElementSibling; d.hidden = !d.hidden; }
+});
+$('qp-view').addEventListener('change', function(ev){
+  var c = ev.target;
+  if(c.hasAttribute && c.hasAttribute('data-qpbody')){ var y = window.scrollY; BODY = c.getAttribute('data-qpbody'); render(); window.scrollTo(0, y); }
 });
 $('qp-view').addEventListener('keydown', function(ev){
   var c = ev.target.closest && ev.target.closest('[data-qpf]');
   if(c && (ev.key === 'Enter' || ev.key === ' ')){ ev.preventDefault(); c.click(); }
 });
-$('qp-fam').addEventListener('change', function(){ fillModels(); render(); });
+$('qp-fam').addEventListener('change', function(){ BODY = null; fillModels(); render(); });
 ['qp-model', 'qp-kind', 'qp-form', 'qp-conn', 'qp-st', 'qp-ds', 'qp-nosvc'].forEach(function(k){ $(k).addEventListener('change', render); });
 var qt = null;
 $('qp-q').addEventListener('input', function(){ clearTimeout(qt); qt = setTimeout(render, 250); });
