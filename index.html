@@ -3873,25 +3873,30 @@ function bodyView(C){
   if(BODY && !bodies.some(function(b){ return b[0] === BODY; })) BODY = null;
   var groups = {}, order = [];
   bodies.forEach(function(it){ var k = gkey(it); if(!groups[k]){ groups[k] = []; order.push(k); } groups[k].push(it); });
-  var ds = $('qp-ds').checked;
+  var ds = $('qp-ds').checked, inl = '';
+  if(BODY){
+    var b = bodies.filter(function(x){ return x[0] === BODY; })[0], r = related(b);
+    var sec = function(t, list, fam){ return list.length ? '<div class="out"><div class="out-head">' + t + ' <span class="hint">' + list.length + '개</span></div>' + table(list, fam) + '</div>' : ''; };
+    inl = '<div class="lp-inl" style="--g:var(--accent);margin:8px 8px 12px 22px"><div class="lp-gh">② ' + esc(b[0]) + ' 에 붙는 품목' + (desc(b) ? ' <small>' + esc(desc(b).slice(0, 90)) + (desc(b).length > 90 ? '…' : '') + '</small>' : '') + '</div>' +
+      (r.sv.length + r.acc.length + r.etc.length ? '' : '<div class="note">이 본품에 따로 붙는 교정 · 보증 · 부속품이 목록에 없다.</div>') +
+      sec('서비스 — 교정 · 보증', r.sv, false) + sec('부속품 · SW (제품군 공통)', r.acc, true) + sec('그 밖의 같은 모델 품목', r.etc, false) + '</div>';
+  }
+  var COLS = '<colgroup><col style="width:44px"><col style="width:26%"><col style="width:8%"><col style="width:12%"><col style="width:16%"><col><col style="width:1px"></colgroup>';
+  var CUT = '</tbody></table></div>' + inl + '<div class="scroll"><table class="lp qp-t">' + COLS + '<tbody>';   /* 고른 본품 바로 아래에 붙인다 (LP 처럼) */
   var rows = order.sort(gsort).map(function(k){
     return '<tr class="lp-swg"><td colspan="7">' + esc(k) + ' <span class="hint">' + groups[k].length + '개</span>' + (QP.models[k] ? ' <span class="qp-mh" style="padding:0">' + esc(QP.models[k]) + '</span>' : '') + '</td></tr>' +
       groups[k].sort(function(a, b){ return a[0] < b[0] ? -1 : 1; }).map(function(it){
         var on = it[0] === BODY, d = desc(it);
         return '<tr' + (on ? ' style="background:var(--accent-soft)"' : '') + (/단종/.test(it[10]) ? ' class="qp-gone"' : '') + '><td class="c"><input type="radio" name="qp-body" data-qpbody="' + esc(it[0]) + '"' + (on ? ' checked' : '') + ' aria-label="보기"></td>' +
           '<td class="pn"><a data-qpd>' + esc(it[0]) + '</a></td><td class="k">' + esc(it[4]) + '</td><td class="k">' + esc(it[5]) + '</td><td class="k">' + esc(it[6]) + '</td><td>' + badges(it) + '</td><td></td></tr>' +
-          '<tr class="lp-sub"' + (ds && d ? '' : ' hidden') + '><td></td><td colspan="6">' + esc(d || '설명 없음') + '</td></tr>';
+          '<tr class="lp-sub"' + (ds && d ? '' : ' hidden') + '><td></td><td colspan="6">' + esc(d || '설명 없음') + '</td></tr>' + (on ? CUT : '');
       }).join('');
   }).join('');
   var step1 = '<div class="out"><div class="out-head">① 본품 선택 — 보기를 누르면 아래에 교정 · 보증 · 부속품이 나온다 <span class="hint">' + bodies.length + '개</span></div>' +
-    '<div class="scroll"><table class="lp qp-t"><colgroup><col style="width:44px"><col style="width:26%"><col style="width:8%"><col style="width:12%"><col style="width:16%"><col><col style="width:1px"></colgroup>' +
+    '<div class="scroll"><table class="lp qp-t">' + COLS +
     '<thead><tr><th>보기</th><th class="pn">Part No</th><th>채널</th><th>커넥터</th><th>형태</th><th>상태</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
   if(!BODY) return head + step1 + '<div class="note">위에서 <b>보기</b> 를 고르면 그 본품에 붙는 교정 · 보증 · 부속품이 나온다.</div>';
-  var b = bodies.filter(function(x){ return x[0] === BODY; })[0], r = related(b);
-  var sec = function(t, list, fam){ return list.length ? '<div class="out"><div class="out-head">' + t + ' <span class="hint">' + list.length + '개</span></div>' + table(list, fam) + '</div>' : ''; };
-  return head + step1 + '<div class="lp-inl" style="--g:var(--accent)"><div class="lp-gh">② ' + esc(b[0]) + ' 에 붙는 품목' + (desc(b) ? ' <small>' + esc(desc(b).slice(0, 90)) + (desc(b).length > 90 ? '…' : '') + '</small>' : '') + '</div>' +
-    (r.sv.length + r.acc.length + r.etc.length ? '' : '<div class="note">이 본품에 따로 붙는 교정 · 보증 · 부속품이 목록에 없다.</div>') +
-    sec('서비스 — 교정 · 보증', r.sv, false) + sec('부속품 · SW (제품군 공통)', r.acc, true) + sec('그 밖의 같은 모델 품목', r.etc, false) + '</div>';   /* LP 처럼 들여 쓴 묶음 */
+  return head + step1;   /* ② 는 고른 본품 행 바로 아래 */
 }
 function render(){
   var C = cond(), any = C.f || C.m || C.k || C.fo || C.c || C.st || C.q || C.ns;
