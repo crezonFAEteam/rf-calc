@@ -3440,7 +3440,7 @@ function status(){
   $('qp-upd-st').innerHTML = sv ? '<b class="lp-upd-d">' + esc(sv.on.slice(0, 10)) + ' 업데이트</b> · ' + esc(sv.book || 'Photonics Price Book') + ' 품목 ' + sv.n +
       (sv.add.length ? ' · 포털 신규 추가 ' + sv.add.length : '') + (sv.gone.length ? ' · ' + sv.on.slice(0, 4) + '년 이전 단종 ' + sv.gone.length : '') + (sv.inact.length ? ' · 포털 비활성 ' + sv.inact.length : '') +
       ' (원본: 엑셀 ' + esc(QP.src || '') + ')'
-    : '기준: 엑셀 ' + esc(QP.src || '') + ' · 품목 ' + BASE.length + (EXT && EXT.n && EXT.n.qp != null ? ' · LP 수집기 연결됨 — 담아 둔 QP 가격표 ' + EXT.n.qp + '개' : '');
+    : '기준: 엑셀 ' + esc(QP.src || '') + ' · 품목 ' + BASE.length + (EXT && EXT.n && EXT.n.qp != null ? ' · LP 수집기 연결됨 — 포털에서 담은 QP 가격표 ' + EXT.n.qp + '개' + (EXT.n.qpxl ? ' · 엑셀에서 불러온 가격 ' + EXT.n.qpxl + '개 (엑셀 받기용)' : '') : '');
   $('qp-upd-undo').hidden = !sv;
 }
 window.addEventListener('message', function(e){
@@ -3463,7 +3463,8 @@ function list(title, a, f){
 function show(d){
   clearTimeout(WAIT);
   var P = PLAN = plan(d);
-  if(!P.n){ $('qp-upd-box').innerHTML = '<div class="note w">LP 수집기에 담긴 QP Price Book 이 없다.' + how() + '</div>'; return; }
+  if(!P.n){ $('qp-upd-box').innerHTML = '<div class="note w"><b>포털에서 담은 QP Price Book 이 없다</b> — [최신 업데이트]는 포털 목록과 비교하므로 포털에서 먼저 담아야 한다.' +
+    (d.nxl ? '<br>엑셀에서 불러온 가격 <b>' + d.nxl + '</b>개는 있다 → [엑셀 받기 (가격 포함)] 에 들어간다 (신규 · 단종 비교에는 안 쓰임).' : '') + how() + '</div>'; return; }
   $('qp-upd-box').innerHTML = '<div class="note">포털 <b>' + esc(P.book || 'Price Book') + '</b> 품목 <b>' + P.n + '</b> · 기준과 같은 Part No <b>' + P.hit + '</b> / ' + BASE.length +
     ' (' + Math.round(P.cover * 100) + '%)' + (P.cover < 0.9 ? '<br>⚠ 포털 목록이 일부만 담겼다 — 단종 판단은 하지 않는다. 포털 \'Go to list\' 화면에서 [다음 페이지까지 자동] 으로 끝까지 담을 것.' : '') + '</div>' +
     list('포털 신규 (기준 엑셀에 없음 — 반영하면 Part No 앞부분으로 제품군 · 모델을 찾아 추가)', P.add, function(r){ return '<code>' + esc(r.pn) + '</code> ' + (r.name && r.name !== r.pn ? esc(r.name) : ''); }) +
