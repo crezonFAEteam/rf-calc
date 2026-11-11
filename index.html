@@ -833,6 +833,11 @@ nav.cz-sub button{font-size:13.5px;padding:8px 12px}
   <div id="p-lp" role="tabpanel" aria-labelledby="t-lp" hidden>
     <div class="lp-wrap">
       <div class="lp-main">
+        <div class="card lp-upd" id="lp-upd">
+          <div class="lp-upd-h"><b>최신 업데이트</b><span id="lp-upd-st" class="lp-upd-st"></span>
+            <span class="lp-upd-b"><button class="btn sm" id="lp-upd-go">최신 업데이트</button><button class="btn gh sm" id="lp-upd-xl" hidden>엑셀 받기 (가격 포함)</button><button class="btn gh sm" id="lp-upd-undo" hidden>엑셀 기준으로 되돌리기</button></span></div>
+          <div id="lp-upd-box"></div>
+        </div>
         <div class="card">
           <h2>제품 선택 · 조건</h2>
           <div class="lp-filters">
@@ -871,11 +876,6 @@ nav.cz-sub button{font-size:13.5px;padding:8px 12px}
             <button class="btn gh sm" id="lp-reset">조건 지우기</button>
           </div>
         </div>
-        <div class="card lp-upd" id="lp-upd">
-          <div class="lp-upd-h"><b>최신 업데이트</b><span id="lp-upd-st" class="lp-upd-st"></span>
-            <span class="lp-upd-b"><button class="btn sm" id="lp-upd-go">최신 업데이트</button><button class="btn gh sm" id="lp-upd-xl" hidden>엑셀 받기 (가격 포함)</button><button class="btn gh sm" id="lp-upd-undo" hidden>엑셀 기준으로 되돌리기</button></span></div>
-          <div id="lp-upd-box"></div>
-        </div>
         <div id="lp-view"></div>
       </div>
 
@@ -884,6 +884,11 @@ nav.cz-sub button{font-size:13.5px;padding:8px 12px}
 
   <!-- ==================== QP 제품 (Photonics) ==================== -->
   <div id="p-qp" role="tabpanel" aria-labelledby="t-qp" hidden>
+    <div class="card lp-upd">
+      <div class="lp-upd-h"><b>최신 업데이트</b><span id="qp-upd-st" class="lp-upd-st"></span>
+        <span class="lp-upd-b"><button class="btn sm" id="qp-upd-go">최신 업데이트</button><button class="btn gh sm" id="qp-upd-xl">엑셀 받기 (가격 포함)</button><button class="btn gh sm" id="qp-upd-undo" hidden>엑셀 기준으로 되돌리기</button></span></div>
+      <div id="qp-upd-box"></div>
+    </div>
     <div class="card">
       <h2>QP (Photonics) 제품 선택 · 조건</h2>
       <div class="lp-filters">
@@ -898,11 +903,6 @@ nav.cz-sub button{font-size:13.5px;padding:8px 12px}
         <label class="lp-chk"><input type="checkbox" id="qp-nosvc"> 교정·보증 숨김</label>
         <button class="btn gh sm" id="qp-reset">조건 지우기</button>
       </div>
-    </div>
-    <div class="card lp-upd">
-      <div class="lp-upd-h"><b>최신 업데이트</b><span id="qp-upd-st" class="lp-upd-st"></span>
-        <span class="lp-upd-b"><button class="btn sm" id="qp-upd-go">최신 업데이트</button><button class="btn gh sm" id="qp-upd-xl">엑셀 받기 (가격 포함)</button><button class="btn gh sm" id="qp-upd-undo" hidden>엑셀 기준으로 되돌리기</button></span></div>
-      <div id="qp-upd-box"></div>
     </div>
     <div id="qp-view"></div>
   </div>
