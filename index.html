@@ -1,5 +1,5 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
-<title>RF 계측 계산기</title>
+<title>Crezon Internal</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <style>
 :root{
@@ -291,27 +291,48 @@ table.lp tr.qp-gone td{opacity:.6}
 .qp-mh{font-weight:400;color:var(--ink-mid);font-size:12.5px;padding:6px 14px 2px;text-transform:none;letter-spacing:0}
 table.lp.qp-t{table-layout:fixed;width:100%}
 .qp-codes{font-size:12.5px}.qp-codes td{padding:2px 10px 2px 0}
+.cz-banner{background:#0B0F1A;color:#fff;margin:-26px -16px 22px}   /* body 여백을 넘어 화면 끝까지 */
+.cz-in{max-width:1000px;margin:0 auto;padding:16px 0;display:flex;align-items:center;gap:10px}
+.cz-logo{width:44px;height:28px;flex:none}
+.cz-word{font:600 26px/1 "IBM Plex Sans",system-ui,sans-serif;letter-spacing:.5px;color:#fff}
+.cz-sep{width:1px;height:22px;background:rgba(255,255,255,.3);margin:0 4px}
+.cz-int{font:500 14px/1 "IBM Plex Sans",sans-serif;color:#B8C4D0;letter-spacing:1.5px;text-transform:uppercase}
+nav.cz-main{border-bottom:2px solid var(--line);align-items:center}
+nav.cz-main button{font-size:16px;font-weight:700;padding:12px 16px}
+.cz-gt{color:var(--ink-soft);font-size:18px;user-select:none}
+nav.cz-sub{border-bottom:1px solid var(--line-soft);margin-top:2px;background:var(--surface-3)}
+nav.cz-sub button{font-size:13.5px;padding:8px 12px}
+@media (max-width:1032px){ .cz-in{padding:14px 16px} }
+@media (max-width:600px){ .cz-word{font-size:21px} nav.cz-main button{font-size:14.5px;padding:10px 10px} .cz-gt{display:none} }
 .lp-new{display:inline-block;font-size:11px;padding:0 6px;border-radius:8px;background:#d7ecdf;color:#14613a;margin-left:4px;vertical-align:1px;font-weight:700}
 .lp-gone{display:inline-block;font-size:11px;padding:0 6px;border-radius:8px;background:#f4d9d0;color:#8a2c12;margin-left:4px;vertical-align:1px}
 </style>
 
+<div class="cz-banner"><div class="cz-in"><svg class="cz-logo" viewBox="0 0 64 40" aria-hidden="true"><rect x="2" y="17" width="3.4" height="12" rx="1.7" fill="#E8692C"/><rect x="8" y="12" width="3.4" height="22" rx="1.7" fill="#F2A33A"/><rect x="14" y="5" width="3.4" height="30" rx="1.7" fill="#8CC63F"/><rect x="20" y="9" width="3.4" height="22" rx="1.7" fill="#39B54A"/><rect x="26" y="2" width="3.4" height="36" rx="1.7" fill="#29ABE2"/><rect x="32" y="10" width="3.4" height="20" rx="1.7" fill="#2E6FD8"/><rect x="38" y="6" width="3.4" height="26" rx="1.7" fill="#6B4FBB"/><rect x="44" y="13" width="3.4" height="14" rx="1.7" fill="#8E3FA8"/></svg><span class="cz-word">crezon</span><span class="cz-sep"></span><span class="cz-int">Internal</span></div></div>
 <div class="wrap">
 
   <header class="mast">
-    <div class="kicker">WLAN · BT · BLE · Zigbee</div>
-    <h1>RF 계측 계산기</h1>
-    <p class="dek">채널–주파수 표, PPDU 길이에서 캡처 길이·샘플링 레이트 산출, PAR 기반 기준 레벨 계산. 802.11 a/b/g/n/ac/ax/be 와 BT / BLE / Zigbee.</p>
+    <div class="kicker">Crezon Technology · 사내용</div>
+    <h1>Crezon Internal</h1>
+    <p class="dek">LP 기술지원(채널 · MCS · 캡처 · PAR · 웨이브폼 · 장비 연결) · LP 제품 · QP 제품</p>
   </header>
 
-  <nav class="tabs" role="tablist">
+  <nav class="tabs cz-main" role="tablist" aria-label="메뉴">
+    <button role="tab" id="m-tech" aria-selected="true">LP 기술지원</button>
+    <span class="cz-gt" aria-hidden="true">›</span>
+    <button role="tab" id="m-lp" aria-selected="false">LP 제품</button>
+    <span class="cz-gt" aria-hidden="true">›</span>
+    <button role="tab" id="m-qp" aria-selected="false">QP 제품</button>
+  </nav>
+  <nav class="tabs cz-sub" id="cz-sub" role="tablist" aria-label="LP 기술지원">
     <button role="tab" id="t-ch"  aria-selected="true"  aria-controls="p-ch">채널 표</button>
     <button role="tab" id="t-mcs" aria-selected="false" aria-controls="p-mcs">MCS 레이트</button>
     <button role="tab" id="t-cap" aria-selected="false" aria-controls="p-cap">캡처 길이 · 샘플링</button>
     <button role="tab" id="t-par" aria-selected="false" aria-controls="p-par">PAR · 기준 레벨</button>
     <button role="tab" id="t-wf" aria-selected="false" aria-controls="p-wf">웨이브폼 파일</button>
     <button role="tab" id="t-eq" aria-selected="false" aria-controls="p-eq">장비 연결</button>
-    <button role="tab" id="t-lp" aria-selected="false" aria-controls="p-lp">LP 제품</button>
-    <button role="tab" id="t-qp" aria-selected="false" aria-controls="p-qp">QP 제품</button>
+    <button role="tab" id="t-lp" aria-selected="false" aria-controls="p-lp" hidden>LP 제품</button>
+    <button role="tab" id="t-qp" aria-selected="false" aria-controls="p-qp" hidden>QP 제품</button>
   </nav>
 
   <!-- ==================== 채널 표 ==================== -->
@@ -907,6 +928,19 @@ tabs.forEach(function(p){
     });
   });
 });
+
+/* ---- 위 메뉴 (LP 기술지원 › LP 제품 › QP 제품) ---- */
+var CZ_SUB = ['t-ch', 't-mcs', 't-cap', 't-par', 't-wf', 't-eq'], czLast = 't-ch';
+function czMark(m){
+  ['m-tech', 'm-lp', 'm-qp'].forEach(function(id){ $(id).setAttribute('aria-selected', id === m ? 'true' : 'false'); });
+  $('cz-sub').hidden = m !== 'm-tech';
+}
+CZ_SUB.forEach(function(id){ $(id).addEventListener('click', function(){ czLast = id; czMark('m-tech'); }); });
+$('t-lp').addEventListener('click', function(){ czMark('m-lp'); });
+$('t-qp').addEventListener('click', function(){ czMark('m-qp'); });
+$('m-tech').addEventListener('click', function(){ $(czLast).click(); });
+$('m-lp').addEventListener('click', function(){ $('t-lp').click(); });
+$('m-qp').addEventListener('click', function(){ $('t-qp').click(); });
 
 /* ================= 채널 데이터 =================
    채널 번호마다 "그 번호가 어느 대역폭의 중심인가" 를 판정해
