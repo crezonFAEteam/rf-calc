@@ -84,6 +84,7 @@ nav.tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:-2p
 table.lp tr.lp-hit td:nth-child(-n+3){background:var(--ok-soft)}
 table.lp tr.lp-focus td{background:var(--accent-soft);font-weight:600}
 .lp-grp{display:flex;flex-direction:column;gap:8px}
+.lp-inl{margin:0 0 12px 14px;padding:2px 0 2px 10px;border-left:3px solid var(--g)}   /* 고른 본체 바로 아래에 붙는 품목 */
 .lp-gh{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;font-weight:700;font-size:14px;border-left:4px solid var(--g);padding-left:8px}
 .lp-gh small{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-soft);font-weight:400}
 .lp-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
@@ -837,7 +838,7 @@ table.lp.qp-t{table-layout:fixed;width:100%}
             </div>
             <div class="field">
               <label for="lp-mimo">MIMO</label>
-              <select id="lp-mimo"><option value="">상관없음</option><option value="2">2x2 이상</option><option value="3">3x3 이상</option><option value="4">4x4</option></select>
+              <select id="lp-mimo"><option value="">상관없음</option><option value="2">2x2 이상</option><option value="4">4x4</option></select>
             </div>
             <label class="lp-chk" title="라인 소개 · 선택 기준 · 품목 한 줄 요약"><input type="checkbox" id="lp-bs"> 기본 설명</label>
             <label class="lp-chk" title="포털의 영문 제품 설명 전체"><input type="checkbox" id="lp-ds"> 상세 설명</label>
@@ -3210,7 +3211,13 @@ function lpDetail(id){
       ' <small>· 표시 없음 = 장비에서 확인 불가 (HW · 액세서리 · 서비스)</small> <button class="btn gh sm" data-insoff>표시 끄기</button></div>';
   }
   var step1 = insBar + (lineMiss.length ? '<div class="note w">이 라인은 조건에 안 맞음 — ' + lineMiss.map(lpEsc).join(' · ') + '</div>' : '') + bodyNote +
-    (all.length && !bodies.length ? '<div class="note w">조건에 맞는 본체가 없다.</div>' : '') + (bodies.length ? lpTable('① 제품(본체) 선택 — 보기를 누르면 아래에 옵션이 나온다', bodies.map(function(b){ return lpRow(b, id, false, b[1]); }), false, true) : '');
+    (all.length && !bodies.length ? '<div class="note w">조건에 맞는 본체가 없다.</div>' : '');
+  /* 본체 표는 그대로 두고, 고른 본체의 품목은 표 바로 아래에 들여 쓴 묶음으로 */
+  var bRows = bodies.map(function(b){ return lpRow(b, id, false, b[1]); }), bSel = -1;
+  bodies.forEach(function(b, i){ if(b[1] === LP_BODY) bSel = i; });
+  var bT1 = '① 제품(본체) 선택 — 보기를 누르면 아래에 옵션이 나온다';
+  var bodyA = bodies.length ? lpTable(bT1, bRows, false, true) : '';
+  step1 += bodyA;
   var news = bodies.length ? l.items.filter(function(it){ return !lpIsBody(it) && (/포털 신규/.test(it[7] || '') || (LPU_UPD[it[0]] || []).indexOf('포털 신규') >= 0); }) : [];   /* 최신 업데이트로 넣은 품목 (본체 미지정) */
   var newSec = news.length ? lpTable('포털 신규 품목 ' + news.length + '개 (본체 미지정)', lpByKind(news).map(function(it){ return lpRow(it, id); })) : '';
   if(bodies.length && !LP_BODY) return head + step1 + '<div class="note">위에서 <b>보기</b> 를 고르면 그 제품에 붙는 HW · SW · Service 품목이 나온다.</div>' + newSec;
@@ -3241,10 +3248,11 @@ function lpDetail(id){
   r.list.forEach(function(it){ var c = lpClass(it[0]); if(c !== 'SW') by[c].push(lpRow(it, id)); });
   by.SW = lpSwGrouped(r.list.filter(function(it){ return lpClass(it[0]) === 'SW'; }), id);
   if(swHid) by.SW.push('<tr class="lp-swg"><td colspan="3">조건과 관계없는 SW ' + swHid + '개 숨김 — 「숨긴 것도 보기」로 전체</td></tr>');
-  return head + step1 +
+  var inl = bSel >= 0;   /* 본체를 골랐으면 그 행 바로 아래에 들여 쓴 묶음으로 */
+  return head + step1 + (inl ? '<div class="lp-inl g-' + lpGroup(id) + '">' : '') +
     supCard + cfg + (swHid ? lpAllBtn(swHid, 'SW 품목') : '') + (LP_BODY ? '<div class="lp-gh g-' + lpGroup(id) + '">② ' + lpEsc(LP_BODY) + ' 에 붙는 품목</div>' : '') +
     (r.ref ? '<div class="note w">이 제품 전용 옵션 목록이 엑셀에 없어 같은 라인 <b>' + lpEsc(r.ref) + '</b> 의 옵션을 참고로 보여준다.</div>' : '') +
-    LP_CLS.map(function(c){ return by[c[0]].length ? lpTable(c[1], by[c[0]]) : ''; }).join('') + newSec;
+    LP_CLS.map(function(c){ return by[c[0]].length ? lpTable(c[1], by[c[0]]) : ''; }).join('') + (inl ? '</div>' : '') + newSec;
 }
 /* 콤보 상태를 화면에 맞춘다. 라인이 "전체" 면 제품 콤보에 모든 라인의 본체를 라인별로 */
 function lpSyncCombos(){
@@ -3292,8 +3300,11 @@ $('lp-view').addEventListener('toggle', function(ev){
 $('lp-view').addEventListener('change', function(ev){
   var c = ev.target;
   if(c.hasAttribute('data-body')){
-    var y = window.scrollY;
-    LP_BODY = c.getAttribute('data-body'); LP_FOCUS = null; lpRender(); window.scrollTo(0, y);
+    var y = window.scrollY, top = c.getBoundingClientRect().top, bv = c.getAttribute('data-body');
+    LP_BODY = bv; LP_FOCUS = null; lpRender(); window.scrollTo(0, y);
+    /* 고른 행이 화면에서 같은 자리에 있게 */
+    var nc = [].filter.call(document.querySelectorAll('#lp-view [data-body]'), function(x){ return x.getAttribute('data-body') === bv; })[0];
+    if(nc) window.scrollBy(0, nc.getBoundingClientRect().top - top);
     return;
   }
 });
@@ -3681,9 +3692,9 @@ function bodyView(C){
   if(!BODY) return head + step1 + '<div class="note">위에서 <b>보기</b> 를 고르면 그 본품에 붙는 교정 · 보증 · 부속품이 나온다.</div>';
   var b = bodies.filter(function(x){ return x[0] === BODY; })[0], r = related(b);
   var sec = function(t, list, fam){ return list.length ? '<div class="out"><div class="out-head">' + t + ' <span class="hint">' + list.length + '개</span></div>' + table(list, fam) + '</div>' : ''; };
-  return head + step1 + '<div class="lp-gh">② ' + esc(b[0]) + ' 에 붙는 품목' + (desc(b) ? ' <small>' + esc(desc(b).slice(0, 90)) + (desc(b).length > 90 ? '…' : '') + '</small>' : '') + '</div>' +
+  return head + step1 + '<div class="lp-inl" style="--g:var(--accent)"><div class="lp-gh">② ' + esc(b[0]) + ' 에 붙는 품목' + (desc(b) ? ' <small>' + esc(desc(b).slice(0, 90)) + (desc(b).length > 90 ? '…' : '') + '</small>' : '') + '</div>' +
     (r.sv.length + r.acc.length + r.etc.length ? '' : '<div class="note">이 본품에 따로 붙는 교정 · 보증 · 부속품이 목록에 없다.</div>') +
-    sec('서비스 — 교정 · 보증', r.sv, false) + sec('부속품 · SW (제품군 공통)', r.acc, true) + sec('그 밖의 같은 모델 품목', r.etc, false);
+    sec('서비스 — 교정 · 보증', r.sv, false) + sec('부속품 · SW (제품군 공통)', r.acc, true) + sec('그 밖의 같은 모델 품목', r.etc, false) + '</div>';   /* LP 처럼 들여 쓴 묶음 */
 }
 function render(){
   var C = cond(), any = C.f || C.m || C.k || C.fo || C.c || C.st || C.q || C.ns;
