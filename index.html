@@ -3447,10 +3447,10 @@ window.addEventListener('message', function(e){
   if(e.source === window && e.data && e.data.src === 'lpc-ext' && e.data.type === 'lpc-ready'){ EXT = e.data; status(); }
 });
 function plan(d){
-  var P = d.list || {}, pns = Object.keys(P), bset = {};
+  var LPN = /^\d{4}-[A-Z0-9]{4}-\d{3}$/, all = Object.keys(d.list || {}), P = d.list || {}, pns = all.filter(function(k){ return !LPN.test(k); }), bset = {};   /* LP Part No 는 QP 가 아님 */
   BASE.forEach(function(it){ bset[it[0]] = 1; });
   var hit = pns.filter(function(k){ return bset[k]; }).length, cover = BASE.length ? hit / BASE.length : 0;
-  return {n:pns.length, hit:hit, cover:cover, book:d.book || '',
+  return {n:pns.length, lp:all.length - pns.length, hit:hit, cover:cover, book:d.book || '',
     add:pns.filter(function(k){ return !bset[k]; }).sort().map(function(k){ return {pn:k, name:P[k].name || ''}; }),
     gone:cover >= 0.9 ? BASE.filter(function(it){ return !P[it[0]]; }).map(function(it){ return it[0]; }) : [],
     inact:pns.filter(function(k){ return P[k].act === false; }).sort()};
@@ -3466,7 +3466,7 @@ function show(d){
   if(!P.n){ $('qp-upd-box').innerHTML = '<div class="note w"><b>포털에서 담은 QP Price Book 이 없다</b> — [최신 업데이트]는 포털 목록과 비교하므로 포털에서 먼저 담아야 한다.' +
     (d.nxl ? '<br>엑셀에서 불러온 가격 <b>' + d.nxl + '</b>개는 있다 → [엑셀 받기 (가격 포함)] 에 들어간다 (신규 · 단종 비교에는 안 쓰임).' : '') + how() + '</div>'; return; }
   $('qp-upd-box').innerHTML = '<div class="note">포털 <b>' + esc(P.book || 'Price Book') + '</b> 품목 <b>' + P.n + '</b> · 기준과 같은 Part No <b>' + P.hit + '</b> / ' + BASE.length +
-    ' (' + Math.round(P.cover * 100) + '%)' + (P.cover < 0.9 ? '<br>⚠ 포털 목록이 일부만 담겼다 — 단종 판단은 하지 않는다. 포털 \'Go to list\' 화면에서 [다음 페이지까지 자동] 으로 끝까지 담을 것.' : '') + '</div>' +
+    ' (' + Math.round(P.cover * 100) + '%)' + (P.lp ? '<br>LP 제품 Part No(0150-… 같은 형식) <b>' + P.lp + '</b>개는 QP 가 아니라서 뺐다 — 확장을 1.4.2 로 새로 고치면 담을 때부터 빠진다.' : '') + (P.cover < 0.9 ? '<br>⚠ 포털 목록이 일부만 담겼다 — 단종 판단은 하지 않는다. 포털 \'Go to list\' 화면에서 [다음 페이지까지 자동] 으로 끝까지 담을 것.' : '') + '</div>' +
     list('포털 신규 (기준 엑셀에 없음 — 반영하면 Part No 앞부분으로 제품군 · 모델을 찾아 추가)', P.add, function(r){ return '<code>' + esc(r.pn) + '</code> ' + (r.name && r.name !== r.pn ? esc(r.name) : ''); }) +
     list(now().slice(0, 4) + '년 이전 단종 — 포털에 없음', P.gone, function(pn){ return '<code>' + esc(pn) + '</code>'; }) +
     list('포털에서 비활성 (Active 해제)', P.inact, function(pn){ return '<code>' + esc(pn) + '</code>'; }) +
