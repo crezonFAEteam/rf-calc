@@ -3396,7 +3396,7 @@ uiLoad();
 /* ================= QP 제품 (Photonics) =================
    기준: QP제품\QP_Part_List_정리_v2.xlsx (make_qp_data.py, 가격 · 원가 없음)
    포털 Photonics Price Book 은 LP 수집기(확장 v1.4)가 담는다 → [포털 가격표와 비교] 로 신규 · 단종 확인 → 반영(이 브라우저에만)
-   [엑셀 받기] 때만 확장에서 가격(통화별 List Price)을 받아 엑셀에 넣는다 — 계산기에는 저장하지 않음                         */
+   [엑셀 받기] 때만 확장에서 가격(통화별 정가)을 받아 엑셀에 넣는다 — 계산기에는 저장하지 않음                         */
 (function(){
 'use strict';
 var $ = function(id){ return document.getElementById(id); };
@@ -3513,7 +3513,7 @@ function xlsx(pd){
   if(!X.book){ alert('엑셀 도구를 찾지 못했다'); return; }
   var L = (pd && pd.list) || {}, cur = {}, sv = saved(), day = now().slice(0, 10);
   Object.keys(L).forEach(function(k){ Object.keys(L[k].price || {}).forEach(function(c){ cur[c] = 1; }); });
-  var curs = Object.keys(cur).sort(function(a, b){ return (a === 'USD' ? -1 : 0) - (b === 'USD' ? -1 : 0) || a.localeCompare(b); });
+  var FIRST = /^US/, curs = Object.keys(cur).sort(function(a, b){ return (FIRST.test(b) ? 1 : 0) - (FIRST.test(a) ? 1 : 0) || a.localeCompare(b); });   /* 미국 달러 먼저 */
   var HEAD = ['Part No.', '제품군', '모델', '종류', '채널', '커넥터', '형태', '서비스', 'Long Description', 'Product Status', '포털 상태']
     .concat(curs.map(function(c){ return c + ' 정가'; })).concat(['포털 확인']);
   var P0 = 11, P1 = 11 + curs.length;
