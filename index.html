@@ -3177,12 +3177,11 @@ function lpDetail(id){
   }
   var step1 = insBar + (lineMiss.length ? '<div class="note w">이 라인은 조건에 안 맞음 — ' + lineMiss.map(lpEsc).join(' · ') + '</div>' : '') + bodyNote +
     (all.length && !bodies.length ? '<div class="note w">조건에 맞는 본체가 없다.</div>' : '');
-  /* 고른 본체 행에서 표를 나눠, 그 바로 아래에 품목을 넣고 나머지 본체는 그 뒤에 */
+  /* 본체 표는 그대로 두고, 고른 본체의 품목은 표 바로 아래에 들여 쓴 묶음으로 */
   var bRows = bodies.map(function(b){ return lpRow(b, id, false, b[1]); }), bSel = -1;
   bodies.forEach(function(b, i){ if(b[1] === LP_BODY) bSel = i; });
-  var bT1 = '① 제품(본체) 선택 — 보기를 누르면 바로 아래에 옵션이 나온다';
-  var bodyA = bodies.length ? lpTable(bT1, bSel >= 0 ? bRows.slice(0, bSel + 1) : bRows, false, true) : '';
-  var bodyB = bSel >= 0 && bSel + 1 < bRows.length ? lpTable('① 다른 본체', bRows.slice(bSel + 1), false, true) : '';
+  var bT1 = '① 제품(본체) 선택 — 보기를 누르면 아래에 옵션이 나온다';
+  var bodyA = bodies.length ? lpTable(bT1, bRows, false, true) : '';
   step1 += bodyA;
   var news = bodies.length ? l.items.filter(function(it){ return !lpIsBody(it) && (/포털 신규/.test(it[7] || '') || (LPU_UPD[it[0]] || []).indexOf('포털 신규') >= 0); }) : [];   /* 최신 업데이트로 넣은 품목 (본체 미지정) */
   var newSec = news.length ? lpTable('포털 신규 품목 ' + news.length + '개 (본체 미지정)', lpByKind(news).map(function(it){ return lpRow(it, id); })) : '';
@@ -3218,7 +3217,7 @@ function lpDetail(id){
   return head + step1 + (inl ? '<div class="lp-inl g-' + lpGroup(id) + '">' : '') +
     supCard + cfg + (swHid ? lpAllBtn(swHid, 'SW 품목') : '') + (LP_BODY ? '<div class="lp-gh g-' + lpGroup(id) + '">② ' + lpEsc(LP_BODY) + ' 에 붙는 품목</div>' : '') +
     (r.ref ? '<div class="note w">이 제품 전용 옵션 목록이 엑셀에 없어 같은 라인 <b>' + lpEsc(r.ref) + '</b> 의 옵션을 참고로 보여준다.</div>' : '') +
-    LP_CLS.map(function(c){ return by[c[0]].length ? lpTable(c[1], by[c[0]]) : ''; }).join('') + (inl ? '</div>' : '') + bodyB + newSec;
+    LP_CLS.map(function(c){ return by[c[0]].length ? lpTable(c[1], by[c[0]]) : ''; }).join('') + (inl ? '</div>' : '') + newSec;
 }
 /* 콤보 상태를 화면에 맞춘다. 라인이 "전체" 면 제품 콤보에 모든 라인의 본체를 라인별로 */
 function lpSyncCombos(){
@@ -3268,7 +3267,7 @@ $('lp-view').addEventListener('change', function(ev){
   if(c.hasAttribute('data-body')){
     var y = window.scrollY, top = c.getBoundingClientRect().top, bv = c.getAttribute('data-body');
     LP_BODY = bv; LP_FOCUS = null; lpRender(); window.scrollTo(0, y);
-    /* 고른 행이 화면에서 같은 자리에 있게 (위 본체의 품목이 접히며 행이 움직이므로) */
+    /* 고른 행이 화면에서 같은 자리에 있게 */
     var nc = [].filter.call(document.querySelectorAll('#lp-view [data-body]'), function(x){ return x.getAttribute('data-body') === bv; })[0];
     if(nc) window.scrollBy(0, nc.getBoundingClientRect().top - top);
     return;
