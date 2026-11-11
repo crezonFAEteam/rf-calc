@@ -875,8 +875,8 @@ table.lp.qp-t{table-layout:fixed;width:100%}
       </div>
     </div>
     <div class="card lp-upd">
-      <div class="lp-upd-h"><b>포털 Price Book</b><span id="qp-upd-st" class="lp-upd-st"></span>
-        <span class="lp-upd-b"><button class="btn sm" id="qp-upd-go">포털 가격표와 비교</button><button class="btn gh sm" id="qp-upd-xl">엑셀 받기 (가격 포함)</button><button class="btn gh sm" id="qp-upd-undo" hidden>반영 취소</button></span></div>
+      <div class="lp-upd-h"><b>최신 업데이트</b><span id="qp-upd-st" class="lp-upd-st"></span>
+        <span class="lp-upd-b"><button class="btn sm" id="qp-upd-go">최신 업데이트</button><button class="btn gh sm" id="qp-upd-xl">엑셀 받기 (가격 포함)</button><button class="btn gh sm" id="qp-upd-undo" hidden>엑셀 기준으로 되돌리기</button></span></div>
       <div id="qp-upd-box"></div>
     </div>
     <div id="qp-view"></div>
@@ -3434,12 +3434,18 @@ function apply(sv){
   (sv.gone || []).forEach(function(pn){ if(by[pn]) by[pn][10] = y + '년 이전 단종'; });
   (sv.inact || []).forEach(function(pn){ if(by[pn] && !by[pn][10]) by[pn][10] = '포털 비활성'; });
 }
+var EXT = null;   /* LP 수집기 연결 상태 (lpc-ready) */
 function status(){
   var sv = saved();
-  $('qp-upd-st').textContent = '기준: ' + (QP.src || '') + ' · 품목 ' + BASE.length +
-    (sv ? ' · 반영 ' + sv.on + ' (' + (sv.book || 'Price Book') + ') — 포털 신규 ' + sv.add.length + ' · 단종 ' + sv.gone.length + (sv.inact.length ? ' · 비활성 ' + sv.inact.length : '') : '');
+  $('qp-upd-st').innerHTML = sv ? '<b class="lp-upd-d">' + esc(sv.on.slice(0, 10)) + ' 업데이트</b> · ' + esc(sv.book || 'Photonics Price Book') + ' 품목 ' + sv.n +
+      (sv.add.length ? ' · 포털 신규 추가 ' + sv.add.length : '') + (sv.gone.length ? ' · ' + sv.on.slice(0, 4) + '년 이전 단종 ' + sv.gone.length : '') + (sv.inact.length ? ' · 포털 비활성 ' + sv.inact.length : '') +
+      ' (원본: 엑셀 ' + esc(QP.src || '') + ')'
+    : '기준: 엑셀 ' + esc(QP.src || '') + ' · 품목 ' + BASE.length + (EXT && EXT.n && EXT.n.qp != null ? ' · LP 수집기 연결됨 — 담아 둔 QP 가격표 ' + EXT.n.qp + '개' : '');
   $('qp-upd-undo').hidden = !sv;
 }
+window.addEventListener('message', function(e){
+  if(e.source === window && e.data && e.data.src === 'lpc-ext' && e.data.type === 'lpc-ready'){ EXT = e.data; status(); }
+});
 function plan(d){
   var P = d.list || {}, pns = Object.keys(P), bset = {};
   BASE.forEach(function(it){ bset[it[0]] = 1; });
@@ -3451,7 +3457,8 @@ function plan(d){
 }
 function list(title, a, f){
   if(!a.length) return '';
-  return '<details class="lp-upd-l"><summary>' + esc(title) + ' <b>' + a.length + '</b></summary><div style="max-height:220px;overflow:auto;font-size:12.5px">' + a.slice(0, 500).map(f).join('<br>') + (a.length > 500 ? '<br>… 외 ' + (a.length - 500) : '') + '</div></details>';
+  return '<details><summary>' + esc(title) + ' <b>' + a.length + '</b></summary><ul class="lp-upd-l">' + a.slice(0, 300).map(function(x){ return '<li>' + f(x) + '</li>'; }).join('') +
+    (a.length > 300 ? '<li>… 외 ' + (a.length - 300) + '개</li>' : '') + '</ul></details>';
 }
 function show(d){
   clearTimeout(WAIT);
@@ -3467,7 +3474,8 @@ function show(d){
 function how(){
   return '<ol class="lp-upd-how"><li>LP 수집기 확장 <b>1.4.0</b> 이상 (확장 관리에서 새로 고침).</li>' +
     '<li>포털 Price Book <b>Photonics Pricebook</b> → Price Book Entries 의 <b>\'Go to list\'</b> 전체 목록 → 오른쪽 아래 <b>[⏭ 다음 페이지까지 자동]</b>.</li>' +
-    '<li>같은 브라우저로 이 계산기를 열고 [포털 가격표와 비교].</li></ol>';
+    '<li>같은 브라우저로 이 계산기를 열고 [최신 업데이트].</li>' +
+    '<li>가격만 넣으려면: 확장 팝업 [엑셀 불러오기] 로 <code>QP_Part_List_정리_v2.xlsx</code> 를 넣으면 USD 정가가 담긴다 (포털 비교에는 안 쓰임).</li></ol>';
 }
 $('qp-upd-go').addEventListener('click', function(){
   $('qp-upd-box').innerHTML = '<div class="note">LP 수집기에서 받는 중…</div>';
@@ -3504,7 +3512,7 @@ $('qp-upd-xl').addEventListener('click', function(){
     done = true; clearTimeout(t); window.removeEventListener('message', on);
     var pd = e.data.data || {};
     if(Object.keys(pd.list || {}).length) return xlsx(pd);
-    if(confirm('LP 수집기에 담긴 QP Price Book 이 없다.\n포털에서 담은 뒤 받으면 통화별 정가가 들어간다.\n\n지금은 가격 없이 받을까요?')) xlsx(null);
+    if(confirm('LP 수집기에 담긴 QP 가격이 없다.\n\n· 확장 팝업 [엑셀 불러오기] 로 QP_Part_List_정리_v2.xlsx 를 넣거나 (USD 정가)\n· 포털 Photonics Price Book 에서 [Price Book 담기 (QP)] 로 담은 뒤 받을 것 (통화별 정가).\n\n지금은 가격 없이 받을까요?')) xlsx(null);
   }
   window.addEventListener('message', on);
   window.postMessage({src:'rfcalc', type:'qpc-get', req:'xl', price:true}, TO());
