@@ -621,7 +621,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
             <tr><td>보이는 것</td><td>박자 · 코드 + <b>가사 · 기타 TAB · 베이스 TAB · 하모니카</b><br>+ 트랙 나누기 (노래 · 기타 · 베이스 · 드럼)</td><td>박자 · 코드</td></tr>
             <tr><td>걸리는 시간</td><td>박자 · 코드는 수십 초 만에 먼저 보이고,<br>나머지는 곡당 몇 분 뒤 자동으로 바뀜 (위 진행 표시)</td><td>수십 초</td></tr></table>
           <ul>
-            <li><b>휴대폰에서 정밀 분석 결과 보기</b>: PC에서 분석하면 생기는 <b>"휴대폰용 ….zip"</b> 파일(OneDrive <b>saysay</b> 폴더 안 — 휴대폰의 OneDrive · Teams 앱에서 바로 보임)을 휴대폰으로 옮겨 1단계의 <b>[📂 분석 결과 열기]</b>로 고릅니다.</li>
+            <li><b>휴대폰에서 정밀 분석 결과 보기</b>: PC에서 분석하면 생기는 <b>"휴대폰용 ….zip"</b> 파일(PC에서 분석하면 OneDrive <b>saysay</b> 폴더에 자동 복사 — 휴대폰의 OneDrive · Teams 앱에서 받기)을 휴대폰으로 옮겨 1단계의 <b>[📂 분석 결과 열기]</b>로 고릅니다.</li>
             <li><b>도우미가 없는 PC</b>: 도우미가 꺼져 있다는 안내가 뜨면 그 안의 [설치 파일 받기]로 한 번만 설치하세요.</li>
           </ul></div></div>
         <div class="sg-step"><span class="sg-no">3</span><div><b>키 · 카포 맞추기</b> — 악보 위 <b>곡 키</b> 줄에서
@@ -2906,7 +2906,7 @@ async function sgListFill(){
   const pcBy={};pc.forEach(x=>{pcBy[x.title]=x});   /* PC 쪽이 더 새로우면(가사 다시 맞춤 등) PC 것으로 열기 */
   if(dev.length)h+=`<optgroup label="이 기기에 저장된 곡">${dev.map(x=>{const n=pcBy[x.title];return n&&n.mtime*1000>x.at?`<option value="p:${esc(n.key)}">${esc(x.title)} · ${d2(n.mtime*1000)} (PC에서 새로 고침)</option>`:`<option value="d:${esc(x.key)}">${esc(x.title)} · ${d2(x.at)}</option>`}).join('')}</optgroup>`;
   const pcOnly=pc.filter(x=>!devT.has(x.title));
-  if(pcOnly.length)h+=`<optgroup label="PC 분석 도우미 (OneDrive saysay)">${pcOnly.map(x=>`<option value="p:${esc(x.key)}">${esc(x.title)} · ${d2(x.mtime*1000)}${(x.parts||[]).includes('harmonica')?' · 하모니카':''}</option>`).join('')}</optgroup>`;
+  if(pcOnly.length)h+=`<optgroup label="PC 분석 도우미 (음악\\쎄이기타 분석)">${pcOnly.map(x=>`<option value="p:${esc(x.key)}">${esc(x.title)} · ${d2(x.mtime*1000)}${(x.parts||[]).includes('harmonica')?' · 하모니카':''}</option>`).join('')}</optgroup>`;
   const pcDev=!sgPhone();
   if(!dev.length&&!pcOnly.length&&pcDev)h=`<option value="">분석된 곡 ▼ (0) — ${SG.helperOn?'아직 없음':'PC 분석 도우미가 꺼져 있음'}</option>`;
   sel.innerHTML=h;sel.hidden=!dev.length&&!pcOnly.length&&!pcDev;
