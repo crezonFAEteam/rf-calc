@@ -647,7 +647,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
           <div class="sg-sub"><b>처음 여는 곡</b> → 열면 2단계 분석이 자동으로</div>
           <ul>
             <li><b>[🎵 음원 파일 열기]</b>: mp3 · mp4 · m4a · wav 파일을 고릅니다. (PC · 휴대폰)</li>
-            <li><b>[🔴 탭 소리 녹음]</b> (PC): 파일이 없으면 유튜브 등에서 재생되는 소리를 녹음합니다.
+            <li><b>[🔴 탭 소리 녹음]</b> (PC): 파일이 없으면 유튜브 등에서 재생되는 소리를 녹음합니다. PC 분석 도우미가 켜져 있으면 끝낼 때 곡 이름을 물어 <b>곡 폴더의 입력(녹음)</b>으로 넣고 바로 분석합니다.
               연습할 곡을 다른 탭에 열어 두고 → [🔴 탭 소리 녹음] → 공유 창에서 그 <b>탭</b>을 고르고 <b>"탭 오디오도 공유"</b> 켜기 → [공유] → 곡을 처음부터 재생 → 끝나면 <b>[■ 녹음 끝내고 저장]</b> → 저장된 파일을 [🎵 음원 파일 열기]로 엽니다.</li>
           </ul></div></div>
         <div class="sg-step"><span class="sg-no">2</span><div><b>분석</b> — 열면 자동으로 진행. PC와 휴대폰은 할 수 있는 것이 다릅니다
@@ -2702,6 +2702,10 @@ async function sgRecord(){
     stream.getTracks().forEach(t=>t.stop());clearInterval(SG.rec.tm);SG.rec=null;sgRecUi();
     const blob=new Blob(chunks,{type:'audio/webm'}),d=new Date(),p=n=>String(n).padStart(2,'0');
     const name=`녹음 ${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}.webm`;
+    if(!sgPhone()&&await sgHelperOn()){
+      const song=(prompt('녹음한 곡의 이름 (PC 곡 폴더: 음악\\쎄이기타 분석\\곡명 의 입력에 "녹음"으로 들어가고 바로 분석합니다)',SG.song&&SG.song.title||'')||'').trim();
+      if(song){const f=new File([blob],name,{type:'audio/webm'});f.sgSong=song;f.sgKind='rec';sgFiles([f]);return}
+    }
     try{
       if(window.showSaveFilePicker){const h=await window.showSaveFilePicker({id:'saygita-rec',suggestedName:name,types:[{description:'녹음 (webm)',accept:{'audio/webm':['.webm']}}]});const w=await h.createWritable();await w.write(blob);await w.close()}
       else{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click()}
@@ -3004,12 +3008,13 @@ async function sgUrlGo(){   /* PC 전용 (휴대폰에서는 버튼이 숨겨짐
 sgEl('sgUrl').addEventListener('click',sgUrlGo);
 async function sgDeep(file,fresh){
   if(sgPhone())return;                      /* 휴대폰은 간이 분석만 (도우미 주소로 열었으면 PC처럼) */
-  if(!SG.auto)return;
+  if(!SG.auto&&!file.sgKind)return;                 /* 녹음은 자동 분석 설정과 상관없이 PC 곡 폴더로 */
   if(!(await sgHelperOn())){sgDeepUi('off');return}
   const myTitle=SG.song&&SG.song.title;
   try{
     sgDeepUi('run',2,fresh?'PC 정밀 분석: 기존 분석을 지우고 새로 — 음원 보내는 중…':'PC 정밀 분석: 음원 보내는 중…');
-    const r=await fetch(SG_HELPER+'/analyze'+(fresh?'?fresh=1':''),{method:'POST',headers:{'X-File-Name':encodeURIComponent(file.name),'Content-Type':'application/octet-stream'},body:file});   /* 새로 분석 = 주소에 표시 (새 머리글은 다른 주소의 화면에서 막힘) */
+    const qs=new URLSearchParams();if(fresh)qs.set('fresh','1');if(file.sgSong)qs.set('song',file.sgSong);if(file.sgKind)qs.set('kind',file.sgKind);   /* 녹음: 곡 이름 · 입력\녹음 - … */
+    const r=await fetch(SG_HELPER+'/analyze'+(qs.toString()?'?'+qs:''),{method:'POST',headers:{'X-File-Name':encodeURIComponent(file.name),'Content-Type':'application/octet-stream'},body:file});   /* 새로 분석 = 주소에 표시 (새 머리글은 다른 주소의 화면에서 막힘) */
     const {id}=await r.json();if(!id)throw new Error('도우미 응답 없음');
     for(;;){
       const j=await (await fetch(SG_HELPER+'/job/'+encodeURIComponent(id),{cache:'no-store'})).json();
