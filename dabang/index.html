@@ -3008,7 +3008,11 @@ async function sgUrlGo(){   /* PC 전용 (휴대폰에서는 버튼이 숨겨짐
 sgEl('sgUrl').addEventListener('click',sgUrlGo);
 async function sgDeep(file,fresh){
   if(sgPhone())return;                      /* 휴대폰은 간이 분석만 (도우미 주소로 열었으면 PC처럼) */
-  if(!SG.auto&&!file.sgKind)return;                 /* 녹음은 자동 분석 설정과 상관없이 PC 곡 폴더로 */
+  if(!SG.auto&&!file.sgKind){                       /* 자동 분석을 꺼도: 도우미가 켜져 있으면 연 음원을 곡 폴더 입력에는 넣어 둠 */
+    if(await sgHelperOn()){const kind=/^video\//.test(file.type)||/\.(mp4|mov|mkv|avi|m4v|wmv)$/i.test(file.name)?'video':'audio';
+      fetch(SG_HELPER+'/song-file?'+new URLSearchParams({song:file.name.replace(/\.[^.]+$/,''),kind,name:file.name}),{method:'POST',body:file})
+        .then(r=>r.json()).then(j=>{if(j&&j.ok){sgStat('PC 곡 폴더 입력에 넣었습니다: '+j.folder.split('\\').pop()+'\\'+j.file);setTimeout(()=>sgStat(null),4000)}}).catch(()=>{})}
+    return}
   if(!(await sgHelperOn())){sgDeepUi('off');return}
   const myTitle=SG.song&&SG.song.title;
   try{
