@@ -263,6 +263,9 @@ table#wf-list tbody tr.sel td{background:var(--accent-soft)}
 .lp-sc{font-size:11.5px;padding:1px 7px;border-radius:6px;border:1px solid transparent}.lp-sc.s-L{background:#e3f1e7;color:#14613a;border-color:#b9dcc4}.lp-sc.s-B{background:#e6eef9;color:#1f4f8a;border-color:#c3d4ee}
 .lp-sc[data-supk]{cursor:pointer;user-select:none}.lp-sc[data-supk]:hover{filter:brightness(.95);text-decoration:underline}
 .lp-sc.on{outline:2px solid var(--accent);outline-offset:1px;font-weight:700}
+.lp-sc.s-inc{background:#eceef1;color:#5b6773;border-color:#d3d8de}
+tr.lp-incl td,tr.lp-incl td a,tr.lp-incl.lp-hit td{color:#8a929c}tr.lp-incl,tr.lp-incl.lp-hit{background:#f4f5f7}
+.lp-inc-tag{font-size:11px;background:#e4e7eb;color:#5b6773;border-radius:5px;padding:0 6px;margin-left:4px;white-space:nowrap}
 .lp-selc{margin:8px 0 10px}.lp-selc-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;margin:0 0 6px}
 .lp-sc.s-C,.lp-sc.s-S,.lp-sc.s-H,.lp-sc.s-Sig{background:#fdf0df;color:#8a4b0c;border-color:#f1d3ab}.lp-supc-lg{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;font-size:11px}
 .lp-supd>summary{cursor:pointer;list-style:none}.lp-supd>summary::-webkit-details-marker{display:none}
@@ -2816,6 +2819,30 @@ var LP_STD_BY = {};
 LP_STD.forEach(function(g){ g[1].forEach(function(x){ LP_STD_BY[x[0]] = x; }); });
 function lpStdText(it){ return /^0(100|150|300)/.test(it[0]) && !/참조/.test(it[4]) ? it[1] + ' ' + it[3] + ' ' + it[5] : ''; }   /* 다른 라인 본체를 참조로 적은 행은 빼고 */
 function lpItemStd(it, k){ var t = lpStdText(it); return !!(k && t && LP_STD_BY[k][2].test(t)); }
+/* 본체 설명에 이미 포함으로 적힌 규격 — "supports …" · "Includes … software …" 문장만 보고, "can be upgraded …" 문장은 뺀다 */
+var LP_INCL = {};
+function lpBodyIncl(line, body){
+  var key = line + '|' + body;
+  if(key in LP_INCL) return LP_INCL[key];
+  var it = ((LP_BY[line] || {}).items || []).filter(function(b){ return lpIsBody(b) && b[1] === body; })[0], out = {};
+  var txt = String(it ? it[3] || '' : '').split(/\.\s+/).filter(function(x){ return !/upgrad|option for|requires|sold separately|can be/i.test(x); }).join('. ');
+  txt = txt.replace(/a\/b\/g\/n\/p\/ac\b/gi, 'a/b/g/n/p 802.11ac');
+  LP_STD.forEach(function(g){ g[1].forEach(function(x){
+    if(/^★/.test(x[1]) || x[0] === 'band6') return;          /* "6 GHz test system" 같은 이름 때문에 대역은 보지 않음 */
+    if(x[0] === 'tmimo' ? /MIMO (SW|software|license)/i.test(txt) : x[0] === 'ac160' ? /11ac.{0,40}160 ?MHz/i.test(txt) : x[2].test(txt)) out[x[0]] = 1;
+  }); });
+  return (LP_INCL[key] = out);
+}
+/* 이름에 나오는 규격이 모두 본체 포함인 SW 품목 = 따로 살 필요 없음 */
+function lpItemIncl(it, incl){
+  if(!incl || lpClass(it[0]) !== 'SW') return false;
+  var ks = [], rest = it[1];
+  LP_STD.forEach(function(g){ g[1].forEach(function(x){ if(!/^★/.test(x[1]) && x[0] !== 'band6' && x[2].test(it[1])){ ks.push(x[0]); rest = rest.replace(new RegExp(x[2].source, 'gi'), ' '); } }); });
+  if(!ks.length || !ks.every(function(k){ return incl[k]; })) return false;
+  /* 이름이 규격 + 일반 낱말뿐일 때만 (5 HD · Adv · Cat M1 같은 꼬리가 붙으면 다른 라이선스) */
+  rest = rest.replace(/802\.11|\b(WLAN|SW|Software|Licen[cs]e|Lic|UG|Signaling|Sig|VHT80|VHT160|80 ?MHz|160 ?MHz|80|160|Upgrade|Suite|Measurement|Classic)\b/gi, ' ');
+  return !/[A-Za-z0-9]/.test(rest);
+}
 var LP_STD_HIT = {};   /* 라인별 규격 → 맞는 품목이 있나 */
 function lpHasStd(id, k){
   var key = id + '|' + k, dm = lpDetLine(id);
@@ -2916,14 +2943,15 @@ function lpInsTag(r){
 function lpRow(it, line, showLine, view){
   var pn = it[0], k0 = $('lp-std').value, dm0 = view !== undefined && k0 && LP_DET_KEY[k0] ? lpDetModel(line, it[1]) : null;
   var hit = dm0 ? !!dm0.sup[k0] : lpItemStd(it, k0);
+  var incl = view === undefined && LP_BODY && !lpIsBody(it) && lpItemIncl(it, lpBodyIncl(line, LP_BODY));
   var selHit = view === undefined && !lpIsBody(it) ? Object.keys(LP_SUPSEL).filter(function(k){ return lpItemStd(it, k); }) : [];
   if(!hit && selHit.length){ hit = true; k0 = selHit[0]; }
   var ins = LP_INST && LP_INST.line === line ? LP_INST.map[pn] : null;
   var insC = !ins ? '' : ins.inst === '✔' ? ' lp-ins-y' : ins.inst === '✘' ? ' lp-ins-n' : ins.inst === '≈' ? ' lp-ins-b' : '';
-  return '<tr class="' + (hit ? 'lp-hit' : '') + (pn === LP_FOCUS ? ' lp-focus' : '') + insC + '"' + (hit ? ' title="' + lpEsc(LP_STD_BY[k0][1]) + ' 해당"' : '') +
+  return '<tr class="' + (hit ? 'lp-hit' : '') + (incl ? ' lp-incl' : '') + (pn === LP_FOCUS ? ' lp-focus' : '') + insC + '"' + (incl ? ' title="본체에 이미 포함 — 따로 살 필요 없음"' : hit ? ' title="' + lpEsc(LP_STD_BY[k0][1]) + ' 해당"' : '') +
          (view && view === LP_BODY ? ' style="background:var(--accent-soft)"' : '') + '>' +
          (view !== undefined ? '<td class="c"><input type="radio" name="lp-body" data-body="' + lpEsc(view) + '"' + (view === LP_BODY ? ' checked' : '') + ' aria-label="옵션 보기"></td>' : '') +
-         '<td><a data-desc>' + lpEsc(it[1]) + '</a>' + lpInsTag(ins) + (view !== undefined ? lpBodyTags(line, it) : '') + '' + (LPU_GONE[pn] || /단종/.test(it[6] || '') ? ' <span class="lp-gone" title="포털 제품 목록에서 찾지 못함 — 단종으로 처리">' + lpEsc(LPU_GONE[pn] ? LPU_Y + '년 이전 단종' : it[6]) + '</span>' : '') + (it[5] ? '<div class="lp-sum">' + lpEsc(it[5]) + '</div>' : '') + '</td>' +
+         '<td><a data-desc>' + lpEsc(it[1]) + '</a>' + (incl ? '<span class="lp-inc-tag">본체 포함</span>' : '') + lpInsTag(ins) + (view !== undefined ? lpBodyTags(line, it) : '') + '' + (LPU_GONE[pn] || /단종/.test(it[6] || '') ? ' <span class="lp-gone" title="포털 제품 목록에서 찾지 못함 — 단종으로 처리">' + lpEsc(LPU_GONE[pn] ? LPU_Y + '년 이전 단종' : it[6]) + '</span>' : '') + (it[5] ? '<div class="lp-sum">' + lpEsc(it[5]) + '</div>' : '') + '</td>' +
          (showLine ? '<td class="k">' + lpEsc(lpName(line)) + '</td>' : '') +
          '<td class="k kd">' + lpEsc(it[4]) + '</td>' +
          '<td class="pn">' + lpEsc(pn) + '</td></tr>' +
@@ -3425,12 +3453,13 @@ function lpDetail(id){
   var newSec = news.length ? lpTable('포털 신규 품목 ' + news.length + '개 (본체 미지정)', lpByKind(news).map(function(it){ return lpRow(it, id); })) : '';
   if(bodies.length && !LP_BODY) return head + step1 + '<div class="note">위에서 <b>보기</b> 를 고르면 그 제품에 붙는 HW · SW · Service 품목이 나온다.</div>' + newSec;
   var r = lpOptsFor(id, LP_BODY), by = {HW:[], SW:[], Service:[]}, dmc = LP_BODY ? lpDetModel(id, LP_BODY) : null;
+  var binc = LP_BODY ? lpBodyIncl(id, LP_BODY) : {};
   var supCard = dmc ? '<details class="card lp-supc lp-supd"' + (lpSupOpen() ? ' open' : '') + '><summary class="lp-supc-h"><b>' + lpEsc(dmc.n) + '</b> 지원 규격 <small>(' + lpEsc(LP_DET.src || 'Product Determinator') + ' 기준)</small>' +
       (dmc.mimo ? ' <span class="lp-k k-B">MIMO 최대 ' + dmc.mimo + 'x' + dmc.mimo + '</span>' : '') + (dmc.dut ? ' <small>동시 DUT · 포트: ' + lpEsc(dmc.dut) + '</small>' : '') + ' <span class="lp-fold">보기</span></summary>' +
       LP_STD.map(function(g){ var xs = g[1].filter(function(x){ return dmc.sup[x[0]]; });
-        return xs.length ? '<div class="lp-supg"><span class="lp-supg-n">' + lpEsc(g[0]) + '</span>' + xs.map(function(x){ return '<span class="lp-sc s-' + dmc.sup[x[0]] + (LP_SUPSEL[x[0]] ? ' on' : '') + '" data-supk="' + x[0] + '" role="button" tabindex="0" title="' + lpEsc(LP_SUP[dmc.sup[x[0]]][1]) + ' — 누르면 이 규격의 옵션 보기">' + lpEsc(x[1]) + (dmc.sup[x[0]] === 'L' || dmc.sup[x[0]] === 'B' ? '' : ' · ' + LP_SUP[dmc.sup[x[0]]][0]) + '</span>'; }).join('') + '</div>' : ''; }).join('') +
+        return xs.length ? '<div class="lp-supg"><span class="lp-supg-n">' + lpEsc(g[0]) + '</span>' + xs.map(function(x){ var inc = binc[x[0]]; return '<span class="lp-sc ' + (inc ? 's-inc' : 's-' + dmc.sup[x[0]]) + (LP_SUPSEL[x[0]] ? ' on' : '') + '" data-supk="' + x[0] + '" role="button" tabindex="0" title="' + (inc ? '본체 설명에 포함으로 적혀 있음 — 따로 살 필요 없음' : lpEsc(LP_SUP[dmc.sup[x[0]]][1])) + ' — 누르면 이 규격의 옵션 보기">' + lpEsc(x[1]) + (inc ? ' · 본체 포함' : dmc.sup[x[0]] === 'L' || dmc.sup[x[0]] === 'B' ? '' : ' · ' + LP_SUP[dmc.sup[x[0]]][0]) + '</span>'; }).join('') + '</div>' : ''; }).join('') +
       '<div class="note" style="margin:8px 0 0">규격을 누르면 그 규격의 옵션(Part No)이 아래에 나온다 — 여러 개 고를 수 있다.</div>' +
-      '<div class="lp-supc-lg"><span class="lp-sc s-L">라이선스로 활성화</span><span class="lp-sc s-B">하드웨어 기본 (SW 지원 별도일 수 있음)</span><span class="lp-sc s-C">C/N · Stacked · 868/915 · 시그널링 등 제한</span></div></details>' : '';
+      '<div class="lp-supc-lg"><span class="lp-sc s-inc">본체 포함 (본체 설명 기준)</span><span class="lp-sc s-L">라이선스로 활성화</span><span class="lp-sc s-B">하드웨어 기본 (SW 지원 별도일 수 있음)</span><span class="lp-sc s-C">C/N · Stacked · 868/915 · 시그널링 등 제한</span></div></details>' : '';
   r.list = lpByKind(r.list);
   if(LP_SUPSEL_AT !== id + '|' + LP_BODY){ LP_SUPSEL = {}; LP_SUPSEL_AT = id + '|' + LP_BODY; }
   var selKeys = dmc ? Object.keys(LP_SUPSEL).filter(function(k){ return dmc.sup[k]; }) : [];
