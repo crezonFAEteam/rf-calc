@@ -331,6 +331,22 @@ body[data-page="tune"] #boardScroll,body[data-page="tune"] .board-bar,body[data-
 .songbar select{flex:1 1 150px;min-width:0;width:auto!important;padding:6px 8px}
 .ghost.sm{padding:4px 12px;font-size:.85rem;min-height:0}
 .ghost.sm:disabled{opacity:.4;cursor:default}
+.ad-srch{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.pdf-box{margin:10px 0 0;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:8px}
+.pdf-bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.pdf-name{flex:1 1 120px;min-width:0;font-size:.85rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pdf-view{margin-top:8px;max-height:72vh;overflow:auto;background:#fff;border-radius:6px}
+.pdf-view canvas{display:block;margin:0 auto 6px;box-shadow:0 0 0 1px #ccc}
+.pdf-view .sdesc{padding:10px;color:#555}
+.pdf-pg{display:inline-flex;align-items:center;gap:4px;font-size:.85rem;color:var(--muted)}
+.pdf-pg input{width:3.8em;padding:2px 4px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);min-height:0}
+.pdf-diff{margin-top:8px;font-size:.85rem}
+.pdf-diff .pd-sum{color:var(--muted);margin:0 0 6px;line-height:1.5}
+.pdf-chips{display:flex;flex-wrap:wrap;gap:4px;max-height:150px;overflow:auto}
+.pd{border:1px solid var(--line);border-radius:6px;padding:1px 6px;background:none;font-size:.82rem;cursor:pointer;color:var(--muted);min-height:0}
+.pd-add{color:#c0392b;border-color:#e08a80;font-weight:700}
+.pd-del{color:#b06d00;border-color:#dba657;text-decoration:line-through}
+.pd-sum .pd-add,.pd-sum .pd-del{border:0;padding:0;cursor:default}
 /* ---- 스마트폰 ---- */
 button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 @media (max-width:640px){
@@ -527,9 +543,25 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
           <button id="songImp" class="ghost sm" title="내보낸 파일에서 곡 가져오기">가져오기</button>
           <input type="file" id="songFile" accept=".json,application/json" hidden>
         </div>
-        <label class="flabel" for="adSrc">곡의 코드 진행</label>
+        <div class="ad-srch"><label class="flabel" for="adSrc">곡의 코드 진행</label>
+          <button id="pdfOpen" class="ghost sm" title="PDF 악보를 띄워 놓고 코드 진행과 비교 (악보집이면 곡이 있는 쪽만 지정 · 글자가 있는 PDF면 코드를 자동으로 대조)">📄 PDF 악보</button>
+          <input type="file" id="pdfFile" accept="application/pdf,.pdf" hidden></div>
         <textarea id="adSrc" rows="9" spellcheck="false"></textarea>
         <p class="sdesc" style="margin:6px 0 0">코드 줄 아래에 숫자를 쓰면 각 코드의 길이가 됩니다(가사 줄을 사이에 둬도 됩니다). 8은 한 마디, 16은 두 마디, 4는 반 마디이고, 숫자가 없으면 한 마디로 칩니다. 빈 줄로 구간을 나누고 (전주)처럼 괄호로 이름을 붙이세요.</p>
+        <div id="pdfBox" class="pdf-box" hidden>
+          <div class="pdf-bar">
+            <span id="pdfName" class="pdf-name"></span>
+            <span class="pdf-pg" title="이 곡이 있는 쪽 (악보집이면 곡마다 지정 — 곡 저장 때 함께 저장)">쪽 <input id="pdfFrom" type="number" min="1" inputmode="numeric" aria-label="시작 쪽"> ~ <input id="pdfTo" type="number" min="1" inputmode="numeric" aria-label="끝 쪽"> <span id="pdfN"></span>
+              <button id="pdfAll" class="ghost sm" title="모든 쪽 보기">전체</button></span>
+            <button id="pdfCmp" class="ghost sm" aria-pressed="true" title="PDF 속 코드와 위 코드 진행을 차례대로 대조">코드 대조</button>
+            <button id="pdfFill" class="ghost sm" title="PDF에서 읽은 코드 · 가사로 위 코드 진행을 채우기">PDF로 채우기</button>
+            <button id="pdfZo" class="ghost sm" title="작게">−</button><button id="pdfZi" class="ghost sm" title="크게">+</button>
+            <button id="pdfWin" class="ghost sm" title="PDF를 새 창(탭)으로 — PC에서는 창을 옆에 나란히">새 창</button>
+            <button id="pdfX" class="ghost sm" title="PDF 닫기">닫기</button>
+          </div>
+          <div id="pdfDiff" class="pdf-diff" hidden></div>
+          <div id="pdfView" class="pdf-view"></div>
+        </div>
         <div class="field" style="margin-top:14px"><span class="flabel">만들 것</span><div id="adMode" class="chips"></div></div>
         <div class="field"><span class="flabel" id="adSecsLbl">애드리브 넣을 구간</span><div id="adSecs" class="chips"></div></div>
         <div class="field"><label class="flabel" for="adKey">키</label><select id="adKey"></select></div>
@@ -3308,6 +3340,7 @@ function songLoad(s){
   if(Array.isArray(s.licks)&&s.licks.length){ad.licks=s.licks;renderAdTab();drawBoard()}   /* 저장한 프레이즈 그대로 */
   renderAdControls();
   curSong=s.name;store.set('chordcalc-cursong',curSong);renderSongs();uiLater();
+  pdfForSong(s.name);
 }
 function songFlash(b,t){const o=b.textContent;b.textContent=t;setTimeout(()=>b.textContent=o,1400)}
 document.getElementById('songSel').addEventListener('change',e=>{
@@ -3325,10 +3358,11 @@ document.getElementById('songSave').addEventListener('click',e=>{
   if(i>=0&&name!==curSong&&!confirm(`"${name}" 곡이 이미 있습니다. 덮어쓸까요?`))return;
   const p=songPack(name);if(i>=0)a[i]=p;else a.push(p);
   songsPut(a);curSong=name;store.set('chordcalc-cursong',name);renderSongs();songFlash(e.currentTarget,'저장됨');
+  {const r=pdfRef();(r?pdfKv.put('pdf:'+name,r):pdfKv.del('pdf:'+name)).then(pdfGc)}   /* 띄워 둔 PDF 악보 · 쪽도 곡과 함께 */
 });
 document.getElementById('songDel').addEventListener('click',()=>{
   if(!curSong||!confirm(`"${curSong}" 곡을 삭제할까요?`))return;
-  songsPut(songs().filter(s=>s.name!==curSong));curSong='';store.set('chordcalc-cursong','');renderSongs();
+  pdfKv.del('pdf:'+curSong).then(pdfGc);songsPut(songs().filter(s=>s.name!==curSong));curSong='';store.set('chordcalc-cursong','');renderSongs();
 });
 
 /* 내보낸 파일 위치 기억: PC 크롬 · 엣지는 파일 선택 창(File System Access)으로 저장하고, 그 파일 핸들을 IndexedDB 에 둔다.
@@ -3379,7 +3413,212 @@ document.getElementById('songFile').addEventListener('change',e=>{
   const f=e.target.files&&e.target.files[0];if(!f)return;
   f.text().then(songImport).finally(()=>{e.target.value=''});
 });
+/* ---------- PDF 악보: 코드 진행 아래에 띄워 놓고 비교. 악보집이면 곡이 있는 쪽 범위만 보이게 하고,
+   글자가 들어 있는 PDF면 그 쪽의 코드를 위 코드 진행과 차례대로 대조 · 빈 코드 진행은 PDF 내용으로 채움.
+   이 브라우저(IndexedDB)에만 보관: 'pdfb:이름|크기' = PDF 파일 (같은 악보집은 한 번만),
+   'pdf:cur' = 지금 띄운 것, 'pdf:곡이름' = 곡에 딸린 것 {key,name,from,to}. 내보내기 파일에는 안 들어감 */
+const PDFJS='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+const PDF={doc:null,blob:null,name:'',key:'',from:1,to:1,zoom:1,ch:null,tk:0,rt:0,w:0,tx:{}};
+const pdfEl=id=>document.getElementById(id);
+const pdfKv={get:k=>idb('readonly',s=>s.get(k)).catch(()=>null),put:(k,v)=>idb('readwrite',s=>s.put(v,k)).catch(()=>{}),
+  del:k=>idb('readwrite',s=>s.delete(k)).catch(()=>{}),keys:()=>idb('readonly',s=>s.getAllKeys()).catch(()=>[])};
+let pdfLibP=null;
+function pdfLib(){return pdfLibP=pdfLibP||new Promise((res,rej)=>{
+  if(window.pdfjsLib)return res(window.pdfjsLib);
+  const s=document.createElement('script');s.src=PDFJS+'pdf.min.js';
+  s.onload=async()=>{const L=window.pdfjsLib;L.GlobalWorkerOptions.workerSrc=PDFJS+'pdf.worker.min.js';
+    try{const t=await (await fetch(PDFJS+'pdf.worker.min.js')).text();   /* 다른 주소의 워커는 막히므로 같은 출처(blob)로 */
+      L.GlobalWorkerOptions.workerSrc=URL.createObjectURL(new Blob([t],{type:'text/javascript'}))}catch(e){}
+    res(L)};
+  s.onerror=()=>{pdfLibP=null;s.remove();rej(new Error('PDF 보기 프로그램을 받지 못했습니다 (인터넷 연결 확인)'))};
+  document.head.appendChild(s)})}
+function pdfRef(){return PDF.doc?{key:PDF.key,name:PDF.name,from:PDF.from,to:PDF.to}:null}
+function pdfSaveCur(){const r=pdfRef();return r?pdfKv.put('pdf:cur',r):pdfKv.del('pdf:cur')}
+async function pdfGc(){                                   /* 어느 곡도 안 쓰는 PDF 파일은 지움 */
+  const ks=await pdfKv.keys()||[],used=new Set();
+  for(const k of ks)if(typeof k==='string'&&k.startsWith('pdf:')){const r=await pdfKv.get(k);if(r&&r.key)used.add(r.key)}
+  for(const k of ks)if(typeof k==='string'&&k.startsWith('pdfb:')&&!used.has(k))await pdfKv.del(k);
+}
+async function pdfOpenFile(f){const key='pdfb:'+f.name+'|'+f.size;await pdfKv.put(key,f);await pdfOpen({key,name:f.name},f)}
+async function pdfOpenRef(r){
+  if(!r||!r.key)return false;
+  if(PDF.doc&&PDF.key===r.key){pdfRange(r.from,r.to);return true}   /* 같은 악보집이면 쪽만 바꿈 */
+  const b=await pdfKv.get(r.key);if(!b)return false;await pdfOpen(r,b);return true;
+}
+async function pdfOpen(r,blob){
+  const tk=++PDF.tk;
+  pdfEl('pdfBox').hidden=false;pdfEl('pdfName').textContent=r.name;pdfEl('pdfName').title=r.name;
+  pdfEl('pdfView').innerHTML='<p class="sdesc">PDF 여는 중…</p>';pdfEl('pdfDiff').hidden=true;pdfEl('pdfFill').disabled=true;
+  try{
+    const lib=await pdfLib();
+    const doc=await lib.getDocument({data:new Uint8Array(await blob.arrayBuffer())}).promise;
+    if(tk!==PDF.tk){doc.destroy();return}
+    if(PDF.doc)PDF.doc.destroy();
+    Object.assign(PDF,{doc,blob,name:r.name,key:r.key,ch:null,tx:{},zoom:1});
+    pdfRange(r.from,r.to);
+  }catch(e){if(tk===PDF.tk)pdfEl('pdfView').innerHTML=`<p class="sdesc">PDF를 열지 못했습니다: ${esc(e&&e.message||e)}</p>`}
+}
+function pdfRange(f,t){
+  if(!PDF.doc)return;const n=PDF.doc.numPages;
+  f=Math.min(n,Math.max(1,Math.round(+f)||1));t=Math.min(n,Math.max(f,Math.round(+t)||n));
+  PDF.from=f;PDF.to=t;pdfEl('pdfFrom').value=f;pdfEl('pdfTo').value=t;pdfEl('pdfFrom').max=pdfEl('pdfTo').max=n;
+  pdfEl('pdfN').textContent='/ '+n;pdfEl('pdfAll').disabled=f===1&&t===n;
+  pdfRender(false);pdfSaveCur();pdfScan();
+}
+function pdfClose(){
+  PDF.tk++;PDF.rt++;if(PDF.doc)PDF.doc.destroy();Object.assign(PDF,{doc:null,blob:null,name:'',key:'',ch:null,tx:{}});
+  pdfEl('pdfBox').hidden=true;pdfEl('pdfView').innerHTML='';pdfEl('pdfDiff').hidden=true;pdfKv.del('pdf:cur').then(pdfGc);
+}
+/* 쪽은 화면 가까이 올 때만 그리고, 멀어지면 지움 (100쪽짜리 악보집도 가볍게) */
+let pdfIO=null;
+function pdfRender(keep){
+  const v=pdfEl('pdfView'),doc=PDF.doc;if(!doc)return;
+  const cw=v.clientWidth;PDF.w=cw;if(!cw)return;            /* 탭이 숨어 있으면 보일 때 다시 (ResizeObserver) */
+  const rt=++PDF.rt,top=keep?v.scrollTop/(v.scrollHeight||1):0;
+  if(pdfIO)pdfIO.disconnect();
+  doc.getPage(PDF.from).then(p1=>{
+    if(rt!==PDF.rt)return;
+    const vp0=p1.getViewport({scale:1}),W=Math.floor((cw-4)*PDF.zoom),H=Math.floor(W*vp0.height/vp0.width);
+    v.innerHTML='';
+    pdfIO=new IntersectionObserver(es=>es.forEach(e=>{const c=e.target;
+      if(e.isIntersecting){if(!c._d){c._d=1;pdfDraw(c,rt)}}
+      else if(c._d===2){c._d=0;c.width=c.height=1}}),{root:v,rootMargin:'900px 0px'});
+    for(let i=PDF.from;i<=PDF.to;i++){const c=document.createElement('canvas');c.dataset.pg=i;c.width=c.height=1;c.style.width=W+'px';c.style.height=H+'px';v.appendChild(c);pdfIO.observe(c)}
+    v.scrollTop=top*v.scrollHeight;
+  });
+}
+async function pdfDraw(c,rt){
+  try{
+    const pg=await PDF.doc.getPage(+c.dataset.pg);if(rt!==PDF.rt)return;
+    const W=parseFloat(c.style.width),vp0=pg.getViewport({scale:1}),sc=W/vp0.width,dpr=Math.min(window.devicePixelRatio||1,2.5),vp=pg.getViewport({scale:sc*dpr});
+    const o=document.createElement('canvas');o.width=Math.floor(vp.width);o.height=Math.floor(vp.height);
+    await pg.render({canvasContext:o.getContext('2d'),viewport:vp}).promise;if(rt!==PDF.rt||!c._d)return;
+    c.width=o.width;c.height=o.height;c.style.height=Math.floor(vp0.height*sc)+'px';c.getContext('2d').drawImage(o,0,0);c._d=2;
+  }catch(e){c._d=0}
+}
+if(window.ResizeObserver)new ResizeObserver(()=>{const cw=pdfEl('pdfView').clientWidth;
+  if(PDF.doc&&cw&&Math.abs(cw-PDF.w)>30){clearTimeout(PDF.rz);PDF.rz=setTimeout(()=>pdfRender(true),200)}}).observe(pdfEl('pdfView'));
+async function pdfScan(){
+  const tk=PDF.tk,f=PDF.from,t=PDF.to;
+  try{const ch=await pdfChords(PDF.doc,f,t);if(tk!==PDF.tk||f!==PDF.from||t!==PDF.to)return;
+    PDF.ch=ch;pdfEl('pdfFill').disabled=!ch.toks.length;pdfDiff()}catch(e){}
+}
+
+/* PDF 글자 → 줄 (같은 높이끼리) → 코드 줄 / 구간 이름 / 코드 바로 아래 가사 줄 */
+const PDF_LAB=/^[\[(]?\s*(intro|verse|pre-?chorus|chorus|bridge|interlude|solo|outro|ending|전주|간주|후주|후렴|브릿지|엔딩|코러스|[1-4]\s*절)[^\])]{0,12}[\])]?$/i;
+function chKey(n){const m=n.match(CH);if(!m)return null;return mod(BASEPC[m[1]]+accv(m[2]))+':'+toQ(m[3])+':'+(m[4]?mod(BASEPC[m[4]]+accv(m[5])):'')}
+function chTok(s){return s.replace(/^[(\[]+|[)\],.:]+$/g,'')}
+async function pdfChords(doc,f,t){
+  const out=[],toks=[];let started=false,lastY=null,gaps=[];
+  for(let i=f;i<=t;i++){
+    const tc=PDF.tx[i]||(PDF.tx[i]=await (await doc.getPage(i)).getTextContent());
+    const its=tc.items.filter(t=>t.str&&t.str.trim()).map(t=>({s:t.str,x:t.transform[4],y:t.transform[5],h:Math.abs(t.transform[3])||Math.hypot(t.transform[2],t.transform[3])||10,w:t.width||0}));
+    its.sort((a,b)=>b.y-a.y||a.x-b.x);
+    const pl=[];
+    its.forEach(t=>{const L=pl.find(l=>Math.abs(l.y-t.y)<Math.min(l.h,t.h)*0.5);if(L){L.it.push(t);L.h=Math.max(L.h,t.h)}else pl.push({y:t.y,h:t.h,it:[t],pg:i})});
+    pl.sort((a,b)=>b.y-a.y);
+    pl.forEach(l=>{
+      l.it.sort((a,b)=>a.x-b.x);
+      const ws=[];                                         /* 낱말 + 그 x 위치 (붙어 있는 조각은 한 낱말로) */
+      l.it.forEach(t=>{const n=t.s.length||1,cw=t.w?t.w/n:t.h*0.5;
+        t.s.replace(/\S+/g,(m,k)=>{const x=t.x+k*cw,last=ws[ws.length-1];
+          if(last&&k===0&&!/^\s/.test(t.s)&&x-last.e<t.h*0.12){last.s+=m;last.e=x+m.length*cw}else ws.push({s:m,x,e:x+m.length*cw});return m})});
+      l.ws=ws;l.x0=ws.length?ws[0].x:0;
+    });
+    const x0=Math.min(...pl.map(l=>l.x0),1e9);
+    for(let j=0;j<pl.length;j++){
+      const l=pl[j],tx=l.ws.map(w=>w.s).join(' ').trim();
+      if(lastY!=null&&l.pg===lastY.pg)gaps.push(lastY.y-l.y);
+      const real=l.ws.map(w=>chTok(w.s)).filter(s=>s&&!/^([|\/\-–%:‖]+|x\d+|n\.?c\.?)$/i.test(s));
+      const hit=real.filter(s=>CH.test(s));
+      if(PDF_LAB.test(tx)&&tx.length<=20){out.push({t:'lab',s:tx.replace(/^[\[(]\s*|\s*[\])]$/g,''),pg:i,y:l.y});lastY=l;continue}
+      if(hit.length&&hit.length>=real.length*0.75){
+        started=true;const cw=l.h*0.55;let line='';
+        l.ws.forEach(w=>{const s=chTok(w.s);if(!CH.test(s))return;
+          const col=Math.max(Math.round((w.x-x0)/cw),line.length?line.length+2:0);line=line.padEnd(col,' ')+s;toks.push({n:s,k:chKey(s),pg:i})});
+        out.push({t:'ch',s:line,pg:i,y:l.y,h:l.h});lastY=l;continue;
+      }
+      const prev=out[out.length-1];
+      if(started&&prev&&prev.t==='ch'&&prev.pg===i&&prev.y-l.y<l.h*3){
+        const cw=prev.h*0.55;let line='';l.ws.forEach(w=>{const col=Math.max(Math.round((w.x-x0)/cw),line.length?line.length+1:0);line=line.padEnd(col,' ')+w.s});
+        out.push({t:'ly',s:line,pg:i,y:l.y});
+      }
+      lastY=l;
+    }
+  }
+  /* 구간 나누기: 구간 이름 앞, 또는 줄 사이가 보통보다 많이 벌어진 곳 */
+  gaps.sort((a,b)=>a-b);const gm=gaps.length?gaps[gaps.length>>1]:20;
+  let text='',prev=null;
+  out.forEach(o=>{
+    if(prev&&(o.t==='lab'||(o.t==='ch'&&(o.pg!==prev.pg||prev.y-o.y>gm*2.6))))text=text.replace(/\n*$/,'\n\n');
+    text+=(o.t==='lab'?`(${o.s})`:o.s.replace(/\s+$/,''))+'\n';prev=o;
+  });
+  return {toks,text:text.replace(/^\n+/,'').replace(/\n{3,}/g,'\n\n').trim()};
+}
+/* 입력칸의 코드 (adParse 와 같은 기준: 줄의 모든 칸이 코드인 줄) + 글자 위치 */
+function srcChords(){
+  const v=pdfEl('adSrc').value,r=[];let off=0;
+  v.split('\n').forEach(line=>{
+    const t=line.trim(),toks=t.split(/[\s|]+/).filter(Boolean);
+    if(t&&!/^[([].*[)\]]$/.test(t)&&toks.every(x=>CH.test(x)))line.replace(/[^\s|]+/g,(m,i)=>{r.push({n:m,k:chKey(m),at:off+i,len:m.length});return m});
+    off+=line.length+1;
+  });
+  return r;
+}
+function pdfDiff(){
+  const box=pdfEl('pdfDiff');
+  if(!PDF.ch||pdfEl('pdfCmp').getAttribute('aria-pressed')!=='true'){box.hidden=true;return}
+  box.hidden=false;
+  const B=PDF.ch.toks,A=srcChords();
+  if(!B.length){box.innerHTML=`<p class="pd-sum">이 PDF(${PDF.from===PDF.to?PDF.from:PDF.from+'~'+PDF.to}쪽)에는 글자 정보가 없어서(스캔 · 사진 악보) 코드를 자동으로 대조할 수 없습니다. 악보를 보면서 직접 비교해 주세요.</p>`;return}
+  if(!A.length){box.innerHTML=`<p class="pd-sum">PDF에서 코드 ${B.length}개를 읽었습니다. 위 코드 진행이 비어 있으니 [PDF로 채우기]로 시작해 보세요.</p>`;return}
+  const n=A.length,m=B.length;let ops=[];
+  if(n*m<=4e6){
+    const L=new Uint16Array((n+1)*(m+1)),W=m+1;
+    for(let i=n-1;i>=0;i--)for(let j=m-1;j>=0;j--)L[i*W+j]=A[i].k===B[j].k?L[(i+1)*W+j+1]+1:Math.max(L[(i+1)*W+j],L[i*W+j+1]);
+    let i=0,j=0;
+    while(i<n&&j<m){if(A[i].k===B[j].k){ops.push({t:'=',a:i++,b:j++})}else if(L[(i+1)*W+j]>=L[i*W+j+1])ops.push({t:'-',a:i++});else ops.push({t:'+',b:j++})}
+    while(i<n)ops.push({t:'-',a:i++});while(j<m)ops.push({t:'+',b:j++});
+  }else ops=B.map((_,j)=>({t:'+',b:j}));
+  const eq=ops.filter(o=>o.t==='=').length,add=ops.filter(o=>o.t==='+').length,del=ops.length-eq-add;
+  let lastA=-1;
+  const chips=ops.map(o=>{if(o.t==='=')lastA=o.a;
+    const nm=o.t==='+'?B[o.b].n:A[o.a].n,cls=o.t==='='?'pd':o.t==='+'?'pd pd-add':'pd pd-del';
+    const tip=o.t==='='?'같음':o.t==='+'?`PDF ${B[o.b].pg}쪽에만 있음 — 위 코드 진행에 빠짐`:'위 코드 진행에만 있음 — PDF에는 없음';
+    return `<button class="${cls}" data-a="${o.t==='+'?'':o.a}" data-p="${o.t==='+'?lastA:''}" data-b="${o.t==='-'?'':o.b}" title="${tip}">${o.t==='+'?'+':''}${esc(nm)}</button>`}).join('');
+  box.innerHTML=`<p class="pd-sum">${add||del?`코드 ${eq}개 같음 · <span class="pd-add">PDF에만 ${add}</span> · <span class="pd-del">입력에만 ${del}</span> — 눌러서 위치 보기`:`코드 ${eq}개가 PDF와 모두 같습니다 ✓`}</p><div class="pdf-chips">${chips}</div>`;
+}
+pdfEl('pdfDiff').addEventListener('click',e=>{
+  const b=e.target.closest('button.pd');if(!b)return;
+  const A=srcChords(),ta=pdfEl('adSrc');
+  const a=b.dataset.a!==''?A[+b.dataset.a]:null,pa=b.dataset.p!==''&&+b.dataset.p>=0?A[+b.dataset.p]:null;
+  if(a){ta.focus();ta.setSelectionRange(a.at,a.at+a.len)}
+  else if(b.dataset.p!==''){ta.focus();const at=pa?pa.at+pa.len:0;ta.setSelectionRange(at,at)}
+  if(b.dataset.b!==''&&PDF.ch){const pg=PDF.ch.toks[+b.dataset.b].pg,c=pdfEl('pdfView').querySelector(`canvas[data-pg="${pg}"]`);
+    if(c){const v=pdfEl('pdfView');v.scrollTop=c.offsetTop-v.offsetTop}}
+});
+pdfEl('pdfOpen').addEventListener('click',()=>pdfEl('pdfFile').click());
+pdfEl('pdfFile').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;
+  if(!/pdf$/i.test(f.type)&&!/\.pdf$/i.test(f.name)){alert('PDF 파일을 골라 주세요.');return}
+  pdfOpenFile(f)});
+pdfEl('pdfX').addEventListener('click',pdfClose);
+pdfEl('pdfFrom').addEventListener('change',e=>{const f=+e.target.value;pdfRange(f,Math.max(f,PDF.to))});
+pdfEl('pdfTo').addEventListener('change',e=>pdfRange(PDF.from,+e.target.value));
+pdfEl('pdfAll').addEventListener('click',()=>pdfRange(1,PDF.doc?PDF.doc.numPages:1));
+pdfEl('pdfZi').addEventListener('click',()=>{PDF.zoom=Math.min(3,PDF.zoom*1.25);pdfRender(true)});
+pdfEl('pdfZo').addEventListener('click',()=>{PDF.zoom=Math.max(0.5,PDF.zoom/1.25);pdfRender(true)});
+pdfEl('pdfWin').addEventListener('click',()=>{if(!PDF.blob)return;const u=URL.createObjectURL(PDF.blob);window.open(u+'#page='+PDF.from,'_blank');setTimeout(()=>URL.revokeObjectURL(u),60000)});
+pdfEl('pdfCmp').addEventListener('click',e=>{const b=e.currentTarget;b.setAttribute('aria-pressed',b.getAttribute('aria-pressed')==='true'?'false':'true');pdfDiff()});
+pdfEl('pdfFill').addEventListener('click',()=>{
+  if(!PDF.ch||!PDF.ch.text)return;const ta=pdfEl('adSrc');
+  if(ta.value.trim()&&!confirm('지금 코드 진행을 PDF에서 읽은 코드 · 가사로 바꿀까요?\n(PDF에는 박자 숫자가 없어서 각 코드를 한 마디로 둡니다. 다르면 코드 줄 아래에 숫자를 적어 주세요.)'))return;
+  ta.value=PDF.ch.text;ta.dispatchEvent(new Event('input'));pdfDiff();
+});
+pdfEl('adSrc').addEventListener('input',()=>{if(PDF.ch){clearTimeout(PDF.dt);PDF.dt=setTimeout(pdfDiff,400)}});
+/* 곡을 불러오면 그 곡에 지정해 둔 PDF · 쪽으로. 지정이 없으면 띄운 악보는 그대로 둠 (악보집에서 그 곡 쪽을 찾아 지정 후 저장) */
+function pdfForSong(name){pdfKv.get('pdf:'+name).then(r=>{if(r&&r.key)pdfOpenRef(r)})}
 function adInit(){
+  pdfKv.get('pdf:cur').then(r=>{if(r&&r.key&&!PDF.doc)pdfOpenRef(r)});
   document.getElementById('adSrc').value=store.get('chordcalc-adsrc')||'(전주)\nDmadd9  Gdim  A  Dm  Dmadd9\n8 8 8 8 8\n\n(간주)\nDmadd9  Gdim  A  Dm  Gdim  Dm  Gdim  A\n8 8 8 16 8 8 8 8';
   document.getElementById('adBpm').value=ad.bpm;
   adGenerate();renderAdControls();
