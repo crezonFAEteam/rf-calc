@@ -261,6 +261,9 @@ table#wf-list tbody tr.sel td{background:var(--accent-soft)}
 .lp-supc{padding:10px 14px}.lp-supc-h{margin-bottom:6px}.lp-supc-h small{color:var(--ink-mid)}
 .lp-supg{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:3px 0}.lp-supg-n{font-size:11.5px;color:var(--ink-mid);min-width:92px;font-weight:700}
 .lp-sc{font-size:11.5px;padding:1px 7px;border-radius:6px;border:1px solid transparent}.lp-sc.s-L{background:#e3f1e7;color:#14613a;border-color:#b9dcc4}.lp-sc.s-B{background:#e6eef9;color:#1f4f8a;border-color:#c3d4ee}
+.lp-sc[data-supk]{cursor:pointer;user-select:none}.lp-sc[data-supk]:hover{filter:brightness(.95);text-decoration:underline}
+.lp-sc.on{outline:2px solid var(--accent);outline-offset:1px;font-weight:700}
+.lp-selc{margin:8px 0 10px}.lp-selc-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;margin:0 0 6px}
 .lp-sc.s-C,.lp-sc.s-S,.lp-sc.s-H,.lp-sc.s-Sig{background:#fdf0df;color:#8a4b0c;border-color:#f1d3ab}.lp-supc-lg{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;font-size:11px}
 .lp-supd>summary{cursor:pointer;list-style:none}.lp-supd>summary::-webkit-details-marker{display:none}
 .lp-supd>summary::before{content:'▸ ';color:var(--ink-mid)}.lp-supd[open]>summary::before{content:'▾ '}
@@ -2913,6 +2916,8 @@ function lpInsTag(r){
 function lpRow(it, line, showLine, view){
   var pn = it[0], k0 = $('lp-std').value, dm0 = view !== undefined && k0 && LP_DET_KEY[k0] ? lpDetModel(line, it[1]) : null;
   var hit = dm0 ? !!dm0.sup[k0] : lpItemStd(it, k0);
+  var selHit = view === undefined && !lpIsBody(it) ? Object.keys(LP_SUPSEL).filter(function(k){ return lpItemStd(it, k); }) : [];
+  if(!hit && selHit.length){ hit = true; k0 = selHit[0]; }
   var ins = LP_INST && LP_INST.line === line ? LP_INST.map[pn] : null;
   var insC = !ins ? '' : ins.inst === '✔' ? ' lp-ins-y' : ins.inst === '✘' ? ' lp-ins-n' : ins.inst === '≈' ? ' lp-ins-b' : '';
   return '<tr class="' + (hit ? 'lp-hit' : '') + (pn === LP_FOCUS ? ' lp-focus' : '') + insC + '"' + (hit ? ' title="' + lpEsc(LP_STD_BY[k0][1]) + ' 해당"' : '') +
@@ -3361,6 +3366,7 @@ lpuStatus();
 window.postMessage({src:'rfcalc', type:'lpc-hello'}, LPU_TO());   /* 확장이 있으면 '연결됨' 표시 */
 
 /* ---- 화면 2가지: 개요 / 라인 세부 ---- */
+var LP_SUPSEL = {}, LP_SUPSEL_AT = '';   /* 지원 규격 칩에서 고른 규격 (본체가 바뀌면 지움) */
 var LP_CUR = null, LP_BODY = null, LP_FOCUS = null;   /* LP_FOCUS = 콤보로 고른 SW 품목 Part No */
 function lpOverview(){
   var active = lpCondOn(), hid = 0;
@@ -3422,9 +3428,24 @@ function lpDetail(id){
   var supCard = dmc ? '<details class="card lp-supc lp-supd"' + (lpSupOpen() ? ' open' : '') + '><summary class="lp-supc-h"><b>' + lpEsc(dmc.n) + '</b> 지원 규격 <small>(' + lpEsc(LP_DET.src || 'Product Determinator') + ' 기준)</small>' +
       (dmc.mimo ? ' <span class="lp-k k-B">MIMO 최대 ' + dmc.mimo + 'x' + dmc.mimo + '</span>' : '') + (dmc.dut ? ' <small>동시 DUT · 포트: ' + lpEsc(dmc.dut) + '</small>' : '') + ' <span class="lp-fold">보기</span></summary>' +
       LP_STD.map(function(g){ var xs = g[1].filter(function(x){ return dmc.sup[x[0]]; });
-        return xs.length ? '<div class="lp-supg"><span class="lp-supg-n">' + lpEsc(g[0]) + '</span>' + xs.map(function(x){ return '<span class="lp-sc s-' + dmc.sup[x[0]] + '" title="' + lpEsc(LP_SUP[dmc.sup[x[0]]][1]) + '">' + lpEsc(x[1]) + (dmc.sup[x[0]] === 'L' || dmc.sup[x[0]] === 'B' ? '' : ' · ' + LP_SUP[dmc.sup[x[0]]][0]) + '</span>'; }).join('') + '</div>' : ''; }).join('') +
+        return xs.length ? '<div class="lp-supg"><span class="lp-supg-n">' + lpEsc(g[0]) + '</span>' + xs.map(function(x){ return '<span class="lp-sc s-' + dmc.sup[x[0]] + (LP_SUPSEL[x[0]] ? ' on' : '') + '" data-supk="' + x[0] + '" role="button" tabindex="0" title="' + lpEsc(LP_SUP[dmc.sup[x[0]]][1]) + ' — 누르면 이 규격의 옵션 보기">' + lpEsc(x[1]) + (dmc.sup[x[0]] === 'L' || dmc.sup[x[0]] === 'B' ? '' : ' · ' + LP_SUP[dmc.sup[x[0]]][0]) + '</span>'; }).join('') + '</div>' : ''; }).join('') +
+      '<div class="note" style="margin:8px 0 0">규격을 누르면 그 규격의 옵션(Part No)이 아래에 나온다 — 여러 개 고를 수 있다.</div>' +
       '<div class="lp-supc-lg"><span class="lp-sc s-L">라이선스로 활성화</span><span class="lp-sc s-B">하드웨어 기본 (SW 지원 별도일 수 있음)</span><span class="lp-sc s-C">C/N · Stacked · 868/915 · 시그널링 등 제한</span></div></details>' : '';
   r.list = lpByKind(r.list);
+  if(LP_SUPSEL_AT !== id + '|' + LP_BODY){ LP_SUPSEL = {}; LP_SUPSEL_AT = id + '|' + LP_BODY; }
+  var selKeys = dmc ? Object.keys(LP_SUPSEL).filter(function(k){ return dmc.sup[k]; }) : [];
+  var selCard = selKeys.length ? '<div class="card lp-selc"><div class="lp-selc-h"><b>고른 규격의 옵션</b> <small>(' + lpEsc(dmc.n) + ' 옵션 목록에서)</small>' +
+      ' <button class="btn gh sm" data-supclr>고른 규격 지우기</button></div>' +
+      selKeys.map(function(k){
+        var sup = dmc.sup[k], hits = r.list.filter(function(it){ return !lpIsBody(it) && lpItemStd(it, k); });
+        var byName = hits.filter(function(it){ return LP_STD_BY[k][2].test(it[1]); }), rel = byName.length ? hits.filter(function(it){ return byName.indexOf(it) < 0; }) : [];
+        if(!byName.length) byName = hits;   /* 이름에 없으면 설명에서 찾은 것 그대로 */
+        var head = LP_STD_BY[k][1] + ' — ' + LP_SUP[sup][0];
+        return hits.length ? lpTable(head, byName.map(function(it){ return lpRow(it, id); })) +
+            (rel.length ? lpTable(LP_STD_BY[k][1] + ' 관련 — 설명에 함께 나오는 옵션', rel.map(function(it){ return lpRow(it, id); })) : '')
+          : '<div class="note' + (sup === 'B' ? '' : ' w') + '"><b>' + lpEsc(LP_STD_BY[k][1]) + '</b> — ' +
+            (sup === 'B' ? '하드웨어 기본 탑재라 따로 살 라이선스 품목이 없다 (IQfact+ 등 SW 지원은 별도일 수 있음)' : '이 본체 옵션 목록에서 해당 품목을 찾지 못함 — 번들 · 상위 라이선스에 포함됐을 수 있으니 확인 필요') + '</div>';
+      }).join('') + '</div>' : '';
   /* 조건(규격 · MIMO)에 맞는 SW 만: 고른 규격 라이선스 + MIMO 2x2 이상이면 WLAN MIMO 라이선스 */
   var k = $('lp-std').value, mi = +$('lp-mimo').value, swAll = r.list.filter(function(it){ return lpClass(it[0]) === 'SW'; }), swHid = 0, cfg = '';
   var isMimoLic = function(it){ return /MIMO/i.test(it[1]) && !/MU-?MIMO|Kit/i.test(it[1]); };
@@ -3447,7 +3468,7 @@ function lpDetail(id){
   if(swHid) by.SW.push('<tr class="lp-swg"><td colspan="3">조건과 관계없는 SW ' + swHid + '개 숨김 — 「숨긴 것도 보기」로 전체</td></tr>');
   var inl = bSel >= 0;   /* 본체를 골랐으면 그 행 바로 아래에 들여 쓴 묶음으로 */
   return head + step1 + (inl ? '<div class="lp-inl g-' + lpGroup(id) + '">' : '') +
-    supCard + cfg + (swHid ? lpAllBtn(swHid, 'SW 품목') : '') + (LP_BODY ? '<div class="lp-gh g-' + lpGroup(id) + '">② ' + lpEsc(LP_BODY) + ' 에 붙는 품목</div>' : '') +
+    supCard + selCard + cfg + (swHid ? lpAllBtn(swHid, 'SW 품목') : '') + (LP_BODY ? '<div class="lp-gh g-' + lpGroup(id) + '">② ' + lpEsc(LP_BODY) + ' 에 붙는 품목</div>' : '') +
     (r.ref ? '<div class="note w">이 제품 전용 옵션 목록이 엑셀에 없어 같은 라인 <b>' + lpEsc(r.ref) + '</b> 의 옵션을 참고로 보여준다.</div>' : '') +
     LP_CLS.map(function(c){ return by[c[0]].length ? lpTable(c[1], by[c[0]]) : ''; }).join('') + (inl ? '</div>' : '') + newSec;
 }
@@ -3479,15 +3500,28 @@ function lpOpen(id, body){
   (f || $('p-lp')).scrollIntoView({block:f ? 'center' : 'start'});
 }
 
+/* 지원 규격 칩: 누르면 그 규격의 옵션을 더 보이고, 다시 누르면 뺀다. 화면이 튀지 않게 칩 자리를 그대로 */
+function lpSupToggle(k){
+  var el = document.querySelector('#lp-view [data-supk="' + k + '"]'), top = el ? el.getBoundingClientRect().top : 0;
+  if(LP_SUPSEL[k]) delete LP_SUPSEL[k]; else LP_SUPSEL[k] = 1;
+  lpRender();
+  var n = document.querySelector('#lp-view [data-supk="' + k + '"]');
+  if(n && el) window.scrollBy(0, n.getBoundingClientRect().top - top);
+}
 $('lp-view').addEventListener('click', function(ev){
   var t = ev.target, card = t.closest('[data-line].lp-card');
   if(card){ lpOpen(card.getAttribute('data-line')); return; }
   if(t.hasAttribute('data-insoff')){ LP_INST = null; lpRender(); return; }
+  var sk = t.closest('[data-supk]');
+  if(sk){ lpSupToggle(sk.getAttribute('data-supk')); return; }
+  if(t.hasAttribute('data-supclr')){ LP_SUPSEL = {}; lpRender(); return; }
   if(t.hasAttribute('data-showall')){ LP_SHOWALL = !LP_SHOWALL; lpRender(); return; }
   if(t.hasAttribute('data-back')){ LP_CUR = null; LP_BODY = null; LP_FOCUS = null; lpRender(); return; }
   if(t.hasAttribute('data-desc')){ var d = t.closest('tr').nextElementSibling; d.hidden = !d.hidden; }
 });
 $('lp-view').addEventListener('keydown', function(ev){
+  var sk = ev.target.closest && ev.target.closest('[data-supk]');
+  if(sk && (ev.key === 'Enter' || ev.key === ' ')){ ev.preventDefault(); lpSupToggle(sk.getAttribute('data-supk')); return; }
   var card = ev.target.closest && ev.target.closest('.lp-card');
   if(card && (ev.key === 'Enter' || ev.key === ' ')){ ev.preventDefault(); lpOpen(card.getAttribute('data-line')); }
 });
