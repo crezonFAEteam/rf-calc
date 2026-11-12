@@ -3359,12 +3359,25 @@ function songLoad(s){
   curSong=s.name;store.set('chordcalc-cursong',curSong);renderSongs();uiLater();
   pdfForSong(s.name);
 }
+/* PDF 에서 쪽 범위만 잘라 새 PDF (pdf-lib, 처음 쓸 때만 받음) */
+let pdfLibW=null;
+function pdfLibWrite(){return pdfLibW=pdfLibW||new Promise((res,rej)=>{if(window.PDFLib)return res(window.PDFLib);
+  const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';
+  s.onload=()=>res(window.PDFLib);s.onerror=()=>{pdfLibW=null;s.remove();rej(new Error('PDF 자르기 프로그램을 받지 못했습니다'))};document.head.appendChild(s)})}
+async function pdfCut(blob,f,t){
+  const L=await pdfLibWrite(),src=await L.PDFDocument.load(await blob.arrayBuffer(),{ignoreEncryption:true}),out=await L.PDFDocument.create();
+  const pages=await out.copyPages(src,Array.from({length:t-f+1},(_,i)=>f-1+i));pages.forEach(x=>out.addPage(x));
+  return new Blob([await out.save()],{type:'application/pdf'});
+}
 async function pcSongPush(name){
   try{if(!(await sgHelperOn()))return false}catch(e){return false}
   const u=o=>SG_HELPER+'/song-file?'+new URLSearchParams(o),post=(o,body)=>fetch(u(o),{method:'POST',body}).then(r=>r.ok).catch(()=>false);
   const jobs=[post({song:name,kind:'chords'},document.getElementById('adSrc').value)];
   if(PDF.blob){
-    jobs.push(post({song:name,kind:pdfEl('pdfKind').value,name:PDF.name,pages:PDF.from===PDF.to?String(PDF.from):PDF.from+'-'+PDF.to},PDF.blob));
+    const pg=PDF.from===PDF.to?String(PDF.from):PDF.from+'-'+PDF.to,whole=PDF.from===1&&PDF.to===PDF.doc.numPages;
+    let part=PDF.blob,fname=PDF.name;
+    if(!whole){try{part=await pdfCut(PDF.blob,PDF.from,PDF.to);fname=`${name} (${PDF.name.replace(/\.pdf$/i,'')} ${pg}쪽).pdf`}catch(e){part=PDF.blob}}   /* 곡 쪽만 잘라서 */
+    jobs.push(post({song:name,kind:pdfEl('pdfKind').value,name:fname,pages:pg,src:PDF.name},part));
     if(PDF.ch&&PDF.ch.toks&&PDF.ch.toks.length)jobs.push(post({song:name,kind:'out',name:'악보코드.txt'},
       `# 악보에서 읽은 코드 진행 — ${PDF.name} ${PDF.from}~${PDF.to}쪽${PDF.omr?' (스캔 악보 읽기)':''} · 박자 ${ad.meter===6?'3/4':'4/4'}\n`+(PDF.omr?omrText(PDF.omr,ad.meter):PDF.ch.text)));
   }
