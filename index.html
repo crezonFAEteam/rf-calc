@@ -2821,6 +2821,11 @@ function lpStdText(it){ return /^0(100|150|300)/.test(it[0]) && !/참조/.test(i
 function lpItemStd(it, k){ var t = lpStdText(it); return !!(k && t && LP_STD_BY[k][2].test(t)); }
 /* 본체 설명에 이미 포함으로 적힌 규격 — "supports …" · "Includes … software …" 문장만 보고, "can be upgraded …" 문장은 뺀다 */
 var LP_INCL = {};
+/* 영업팀 확인 후 설명과 다른 본체는 여기서 고친다 — 본체 이름: {add:[규격 키], del:[규격 키]}
+   규격 키: abgn ac80 ac160 ax be160 be320 bn ah af / tmimo mumimo … / bt btadv / zigbee … / gsm wcdma ltefdd nr … (LP_STD 참고)
+   예) 'IQxel-M8X (2x4)': {add:['ax'], del:['ac80']} */
+var LP_INCL_FIX = {
+};
 function lpBodyIncl(line, body){
   var key = line + '|' + body;
   if(key in LP_INCL) return LP_INCL[key];
@@ -2831,6 +2836,8 @@ function lpBodyIncl(line, body){
     if(/^★/.test(x[1]) || x[0] === 'band6') return;          /* "6 GHz test system" 같은 이름 때문에 대역은 보지 않음 */
     if(x[0] === 'tmimo' ? /MIMO (SW|software|license)/i.test(txt) : x[0] === 'ac160' ? /11ac.{0,40}160 ?MHz/i.test(txt) : x[2].test(txt)) out[x[0]] = 1;
   }); });
+  var fx = LP_INCL_FIX[body];
+  if(fx){ (fx.add || []).forEach(function(k){ out[k] = 1; }); (fx.del || []).forEach(function(k){ delete out[k]; }); }
   return (LP_INCL[key] = out);
 }
 /* 이름에 나오는 규격이 모두 본체 포함인 SW 품목 = 따로 살 필요 없음 */
