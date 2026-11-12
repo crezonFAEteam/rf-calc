@@ -554,7 +554,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
             <span class="pdf-pg" title="이 곡이 있는 쪽 (악보집이면 곡마다 지정 — 곡 저장 때 함께 저장)">쪽 <input id="pdfFrom" type="number" min="1" inputmode="numeric" aria-label="시작 쪽"> ~ <input id="pdfTo" type="number" min="1" inputmode="numeric" aria-label="끝 쪽"> <span id="pdfN"></span>
               <button id="pdfAll" class="ghost sm" title="모든 쪽 보기">전체</button></span>
             <button id="pdfCmp" class="ghost sm" aria-pressed="true" title="PDF 속 코드와 위 코드 진행을 차례대로 대조">코드 대조</button>
-            <button id="pdfFill" class="ghost sm" title="PDF에서 읽은 코드 · 가사로 위 코드 진행을 채우기">PDF로 채우기</button>
+            <button id="pdfFill" class="ghost sm" title="악보에서 읽은 코드(와 길이)로 위 코드 진행을 채우기 — 악보가 기준">악보대로 채우기</button>
             <button id="pdfZo" class="ghost sm" title="작게">−</button><button id="pdfZi" class="ghost sm" title="크게">+</button>
             <button id="pdfWin" class="ghost sm" title="PDF를 새 창(탭)으로 — PC에서는 창을 옆에 나란히">새 창</button>
             <button id="pdfX" class="ghost sm" title="PDF 닫기">닫기</button>
@@ -3466,7 +3466,7 @@ function pdfRange(f,t){
   pdfRender(false);pdfSaveCur();pdfScan();
 }
 function pdfClose(){
-  PDF.tk++;PDF.rt++;if(PDF.doc)PDF.doc.destroy();Object.assign(PDF,{doc:null,blob:null,name:'',key:'',ch:null,tx:{}});
+  PDF.tk++;PDF.rt++;if(PDF.doc)PDF.doc.destroy();Object.assign(PDF,{doc:null,blob:null,name:'',key:'',ch:null,tx:{},omr:null});
   pdfEl('pdfBox').hidden=true;pdfEl('pdfView').innerHTML='';pdfEl('pdfDiff').hidden=true;pdfKv.del('pdf:cur').then(pdfGc);
 }
 /* 쪽은 화면 가까이 올 때만 그리고, 멀어지면 지움 (100쪽짜리 악보집도 가볍게) */
@@ -3499,9 +3499,198 @@ async function pdfDraw(c,rt){
 if(window.ResizeObserver)new ResizeObserver(()=>{const cw=pdfEl('pdfView').clientWidth;
   if(PDF.doc&&cw&&Math.abs(cw-PDF.w)>30){clearTimeout(PDF.rz);PDF.rz=setTimeout(()=>pdfRender(true),200)}}).observe(pdfEl('pdfView'));
 async function pdfScan(){
-  const tk=PDF.tk,f=PDF.from,t=PDF.to;
+  const tk=PDF.tk,f=PDF.from,t=PDF.to;PDF.omr=null;
   try{const ch=await pdfChords(PDF.doc,f,t);if(tk!==PDF.tk||f!==PDF.from||t!==PDF.to)return;
+    if(!ch.toks.length){ch.scan=true;PDF.ch=ch;pdfEl('pdfFill').disabled=true;pdfDiff();if(t-f<4)pdfOmr();return}  /* 스캔 악보: 곡 쪽만이면 바로 읽기 */
     PDF.ch=ch;pdfEl('pdfFill').disabled=!ch.toks.length;pdfDiff()}catch(e){}
+}
+/* ---------- 스캔(사진) 악보 읽기: 오선을 찾고 그 위 코드 글자를 OCR, 마디줄로 코드 길이까지.
+   읽기 프로그램(tesseract.js)은 처음 쓸 때만 받음. 결과는 쪽 범위별로 이 브라우저에 보관 ---------- */
+let tessP=null;
+function tessLib(){return tessP=tessP||new Promise((res,rej)=>{
+  if(window.Tesseract)return res(window.Tesseract);
+  const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+  s.onload=()=>res(window.Tesseract);s.onerror=()=>{tessP=null;s.remove();rej(new Error('악보 읽기 프로그램을 받지 못했습니다 (인터넷 연결 확인)'))};
+  document.head.appendChild(s)})}
+/* ---- 스캔 악보 읽기 (OMR): 오선 → 코드 글자 줄 → 낱말별 OCR → 마디줄로 길이 ---- */
+const OMR_CH=/^([A-G])([#b]?)((?:maj|min|dim|aug|sus|add|m|M|[0-9]|[#b+\-()])*)(?:\/([A-G])([#b]?))?$/;
+function omrGray(cv){
+  const W=cv.width,H=cv.height,d=cv.getContext('2d').getImageData(0,0,W,H).data,g=new Uint8Array(W*H);
+  for(let i=0,j=0;i<g.length;i++,j+=4)g[i]=(d[j]*0.299+d[j+1]*0.587+d[j+2]*0.114)<150?1:0;
+  return {W,H,g};
+}
+function omrStaves(im){
+  const {W,H,g}=im,rows=new Float32Array(H);
+  for(let y=0;y<H;y++){let run=0,best=0;for(let x=0;x<W;x++){if(g[y*W+x]){if(++run>best)best=run}else run=0}rows[y]=best}
+  const lines=[];
+  for(let y=0;y<H;){if(rows[y]>W*0.3){let y2=y;while(y2+1<H&&rows[y2+1]>W*0.3)y2++;lines.push({y:(y+y2)/2,t:y,b:y2});y=y2+1}else y++}
+  const st=[];
+  for(let i=0;i+4<lines.length;){
+    const L=lines.slice(i,i+5),gs=[1,2,3,4].map(k=>L[k].y-L[k-1].y),m=gs.reduce((a,b)=>a+b)/4;
+    if(m>4&&m<W*0.03&&gs.every(v=>Math.abs(v-m)<m*0.3)){
+      const on=x=>L.filter(l=>{for(let y=l.t-1;y<=l.b+1;y++)if(g[y*W+x])return true;return false}).length>=4;
+      let xL=-1,xR=-1;for(let x=0;x<W;x++)if(on(x)){if(xL<0)xL=x;xR=x}
+      st.push({y0:L[0].y,y4:L[4].y,s:m,xL,xR,L});i+=5;
+    }else i++;
+  }
+  return st;
+}
+function omrBars(im,S){
+  const {W,g}=im,a=Math.round(S.y0),b=Math.round(S.y4),h=b-a+1,out=[];
+  const up=Math.round(S.y0-S.s*0.7),dn=Math.round(S.y4+S.s*0.7);
+  let run=null;
+  for(let x=S.xL;x<=S.xR;x++){
+    let c=0;for(let y=a;y<=b;y++)c+=g[y*W+x];
+    if(c>=h*0.92&&!g[up*W+x]&&!g[dn*W+x]){if(run&&x-run.e<=1)run.e=x;else{if(run)out.push(run);run={s:x,e:x}}}
+  }
+  if(run)out.push(run);
+  let m=[];
+  for(const r of out){if(r.e-r.s>S.s*0.8)continue;const x=(r.s+r.e)/2,p=m[m.length-1];
+    if(p&&x-p.x2<S.s*1.2){p.x2=x;p.dbl=true}else m.push({x,x2:x,dbl:r.e-r.s+1>S.s*0.35})}
+  m=m.filter(b=>b.x>S.xL+S.s*12);                        /* 음자리표 · 박자표 자리는 빼고 */
+  const k=[];for(const b of m){const p=k[k.length-1];if(p&&b.x-p.x2<S.s*4&&!b.dbl)continue;if(p&&b.x-p.x2<S.s*4&&b.dbl){k[k.length-1]=b;continue}k.push(b)}
+  /* 마디 폭이 고르지 않게 쪼개는 줄(음표 기둥)은 빼기 */
+  for(let it=0;it<4;it++){
+    const xs=[S.xL+S.s*8,...k.map(b=>b.x)],ws=xs.slice(1).map((x,i)=>x-xs[i]).sort((a,b)=>a-b),med=ws[ws.length>>1];
+    let rm=-1;for(let i=0;i+1<k.length;i++){if(k[i].dbl)continue;const w1=k[i].x-(i?k[i-1].x2:xs[0]),w2=k[i+1].x-k[i].x2;
+      if(w1<med*0.62&&w2<med*0.62&&Math.abs(w1+w2-med)<med*0.35){rm=i;break}}
+    if(rm<0)break;k.splice(rm,1);
+  }
+  return k;
+}
+function omrFix(t){
+  if(!t)return null;
+  t=t.replace(/[♯]/g,'#').replace(/[♭]/g,'b').replace(/^[^A-G]+/,'').replace(/[^A-Za-z0-9#\/\-+()]+$/,'');
+  const v=x=>OMR_CH.test(x)&&!/[0-9]{2,}/.test(x.replace(/add9|add11|7-5|7\+5|11|13/g,''));
+  const tries=[t,
+    t.replace(/^([A-G])a(?=dim)/,'$1#').replace(/^([A-G])aim/,'$1dim'),
+    t.replace(/^([A-G])[iIl1|4H#](?=dim|m|M|7|$)/,'$1#').replace(/^([A-G])#im/,'$1dim'),
+    t.replace(/ad[a-z0-9]*$/,'add9'),
+    t.replace(/m7[-.~]?[56S]$/,'m7-5').replace(/m7[-.~]5$/,'m7-5'),
+    t.replace(/\/$/,'7')];
+  for(const x of tries)if(v(x))return x;
+  return null;
+}
+let omrWk=null;
+async function omrWorker(log){return omrWk||(omrWk=await Tesseract.createWorker('eng',1,{logger:log||(()=>{})}))}
+async function omrRead(w,cv,x0,y0,x1,y1,psm,wl,wipe){
+  const sc=Math.max(1,Math.min(4,70/(y1-y0))),c=document.createElement('canvas');
+  c.width=Math.round((x1-x0)*sc)+40;c.height=Math.round((y1-y0)*sc)+40;
+  const cx=c.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,c.width,c.height);cx.drawImage(cv,x0,y0,x1-x0,y1-y0,20,20,c.width-40,c.height-40);
+  (wipe||[]).forEach(q=>cx.fillRect(20+(q.x0-x0-1)*sc,20+(q.y0-y0-1)*sc,(q.x1-q.x0+3)*sc,(q.y1-q.y0+3)*sc));
+  await w.setParameters({tessedit_pageseg_mode:psm,tessedit_char_whitelist:wl||''});
+  const {data}=await w.recognize(c);
+  return (data.words||[]).map(o=>({t:o.text,c:o.confidence}));
+}
+const OMR_WL='ABCDEFGmajdinsugM0123456789#b/-+()';
+/* 띠 안의 연결 성분 → 글자 크기인 것만 → 같은 밑줄끼리 낱말로 */
+function omrWords(im,S,yA,yB){
+  const {W,g}=im,x0=Math.max(0,Math.round(S.xL-S.s*2)),x1=Math.min(W-1,Math.round(S.xR+S.s)),bw=x1-x0+1,bh=yB-yA+1;
+  if(bh<4)return [];
+  const lab=new Int32Array(bw*bh),cc=[],st=[];
+  for(let y=0;y<bh;y++)for(let x=0;x<bw;x++){
+    if(!g[(yA+y)*W+x0+x]||lab[y*bw+x])continue;
+    const c={x0:x,x1:x,y0:y,y1:y,n:0};cc.push(c);lab[y*bw+x]=cc.length;st.push(y*bw+x);
+    while(st.length){const p=st.pop(),py=(p/bw)|0,px=p-py*bw;c.n++;
+      if(px<c.x0)c.x0=px;if(px>c.x1)c.x1=px;if(py<c.y0)c.y0=py;if(py>c.y1)c.y1=py;
+      for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const qx=px+dx,qy=py+dy;if(qx<0||qy<0||qx>=bw||qy>=bh)continue;const q=qy*bw+qx;
+        if(!lab[q]&&g[(yA+qy)*W+x0+qx]){lab[q]=cc.length;st.push(q)}}}
+  }
+  const s=S.s,let_=cc.filter(c=>{const h=c.y1-c.y0+1,w=c.x1-c.x0+1;return h>=s*0.35&&w<=s*2.2&&(h<=s*2.1||(h<=s*2.8&&w<=s*1.3))&&c.y0>0&&c.y1<bh-1})
+    .map(c=>({x0:c.x0+x0,x1:c.x1+x0,y0:c.y0+yA,y1:c.y1+yA,n:c.n,big:c.y1-c.y0+1>=s*0.75}));
+  let_.sort((a,b)=>a.x0-b.x0);
+  const words=[];
+  for(const c of let_){
+    const w=words.find(w=>c.x0-w.x1<s*1.0&&c.x0>=w.x0-1&&Math.abs(c.y1-w.yb)<s*0.55&&!(c.y1<w.y0));
+    if(w){w.x1=Math.max(w.x1,c.x1);w.y0=Math.min(w.y0,c.y0);w.y1=Math.max(w.y1,c.y1);if(c.big)w.yb=Math.max(w.yb,c.y1);w.n++;w.big|=c.big;w.cc.push(c)}
+    else words.push({x0:c.x0,x1:c.x1,y0:c.y0,y1:c.y1,yb:c.y1,n:1,big:c.big,cc:[c]});
+  }
+  return words.filter(w=>w.big&&w.x1-w.x0<s*7);
+}
+async function omrPage(cv,log){
+  const im=omrGray(cv),st=omrStaves(im),w=await omrWorker(log),res=[];
+  for(let k=0;k<st.length;k++){
+    const S=st[k],top=Math.round(k?st[k-1].y4+S.s*3.5:Math.max(0,S.y0-S.s*9));
+    const ws=omrWords(im,S,Math.max(top,Math.round(S.y0-S.s*8)),Math.round(S.y0-S.s*0.35));
+    const got=[];
+    for(const q of ws){
+      const a=q.x0,b=q.x1,y0=Math.round(q.y0-S.s*0.25),y1=Math.round(q.y1+S.s*0.25);
+      const med=a=>{a=a.slice().sort((x,y)=>x-y);return a[(a.length-1)>>1]},bigs=q.cc.filter(c=>c.y1-c.y0+1>=S.s*0.75),capH=bigs.length?med(bigs.map(c=>c.y1-c.y0+1)):S.s,base=bigs.length?med(bigs.map(c=>c.y1)):q.yb;
+      /* ♯: 앞 글자보다 길고 밑줄 아래로 내려오며 잉크가 빽빽한 것 */
+      const sh=q.cc.filter((c,i)=>i>0&&c.y1>=base-1&&c.y0<base-capH*1.15&&(c.y1-c.y0+1)>capH*1.25&&(c.x1-c.x0+1)>S.s*0.45&&c.n/((c.x1-c.x0+1)*(c.y1-c.y0+1))>0.4);
+      const isCap=d=>!sh.includes(d)&&d.y1-d.y0+1>=capH*0.85&&!(d.n/((d.x1-d.x0+1)*(d.y1-d.y0+1))<0.3&&d.x1-d.x0+1<S.s*0.8&&d.y1>base+1),shAt=sh.map(c=>q.cc.filter(d=>d.x1<c.x0+1&&isCap(d)).length);
+      const addSh=t=>{if(!sh.length||!t)return t;let k=0,o='';const at=new Set(shAt);for(const ch of t.replace(/#/g,'')){o+=ch;if(/[A-Z0-9]/.test(ch)){k++;if(at.has(k)&&/[A-G]/.test(ch))o+='#'}}return o};
+      let r=await omrRead(w,cv,a-3,y0,b+4,y1,'8',OMR_WL,sh),t=addSh(r.map(o=>o.t).join('').replace(/^[a-g]/,u=>u.toUpperCase())),n=omrFix(t),c=r.length?Math.min(...r.map(o=>o.c)):0;
+      if(!n&&b-a<S.s*1.4){r=await omrRead(w,cv,a-3,y0,b+4,y1,'10',OMR_WL);t=r.map(o=>o.t).join('');n=omrFix(t);c=r.length?r[0].c:0}
+      if((!n||c<60)&&b-a>=S.s*1.4){const r2=await omrRead(w,cv,a-3,y0,b+4,y1,'7','',sh),t2=addSh(r2.map(o=>o.t).join('').replace(/^[a-g]/,u=>u.toUpperCase())),n2=omrFix(t2),c2=r2.length?Math.min(...r2.map(o=>o.c)):0;
+        if(n2&&(!n||c2>c||n2.length>n.length)){n=n2;c=c2;t=t2}}   /* 글자 제한 없이 한 번 더 (♯ · / 같은 기호) */
+      if(n&&n.length===1&&c<55&&q.y1-q.y0<S.s*1.05)n=null;                     /* 한 글자는 확실할 때만 (음표 머리 오인 방지) */
+      if(n)got.push({n,x:a,x1:b,c,raw:t});
+    }
+    /* 같은 자리에 겹친 후보는 하나만 */
+    got.sort((p,q)=>p.x-q.x);
+    const fin=[];for(const g of got){const p=fin[fin.length-1];if(p&&g.x<p.x1){if(g.c>p.c)fin[fin.length-1]=g}else fin.push(g)}
+    res.push({S,bars:omrBars(im,S),chords:fin});
+  }
+  return res;
+}
+/* 쪽들의 결과 → 코드 진행 글 (meter: 8=4/4, 6=3/4) */
+function omrText(pages,meter){
+  const beats=meter/2,rows=[];let cur=null;
+  pages.forEach(P=>P.forEach(R=>{
+    const S=R.S,bx=[S.xL,...R.bars.map(b=>b.x)];
+    if(S.xR-(R.bars.length?R.bars[R.bars.length-1].x2:S.xL)>S.s*3)bx.push(S.xR);
+    const segs=[],last=R.bars[R.bars.length-1],row={segs,brk:!!(last&&last.dbl&&S.xR-last.x2<S.s*3)};
+    for(let i=0;i+1<bx.length;i++){
+      const a=bx[i],b=bx[i+1];
+      const cs=R.chords.filter(c=>{const m=(c.x+c.x1)/2;return m>=a&&m<b});
+      if(!cs.length){if(cur)cur.len+=meter;continue}
+      cs.forEach((c,j)=>{
+        let s=j===0?0:Math.round(((c.x+c.x1)/2-a)/(b-a)*beats);
+        s=Math.min(beats-1,Math.max(j,s));
+        if(j>0){const p=segs[segs.length-1];p.len=(s-p.b0)*2}
+        const seg={n:c.n,b0:s,len:(beats-s)*2};segs.push(seg);cur=seg;
+      });
+    }
+    rows.push(row);
+  }));
+  let out='',sec=[];
+  const flush=()=>{if(!sec.length)return;out+=(out?'\n':'')+sec.join('\n')+'\n';sec=[]};
+  rows.forEach(r=>{
+    if(r.segs.length){sec.push(r.segs.map(s=>s.n).join('  '));if(r.segs.some(s=>s.len!==meter))sec.push(r.segs.map(s=>s.len).join(' '))}
+    if(r.brk)flush();
+  });
+  flush();
+  return out.trim();
+}
+
+async function pdfOmr(){
+  const tk=PDF.tk,f=PDF.from,t=PDF.to,key='pdfo:'+PDF.key+'|'+f+'-'+t+'|v1',same=()=>tk===PDF.tk&&f===PDF.from&&t===PDF.to;
+  const box=pdfEl('pdfDiff'),say=m=>{if(same()){box.hidden=false;box.innerHTML=`<p class="pd-sum">${m}</p>`}};
+  try{
+    let pages=await pdfKv.get(key);
+    if(!pages){
+      say('🔍 악보 읽는 중… (처음 한 번은 읽기 프로그램을 받느라 조금 더 걸립니다)');
+      await tessLib();pages=[];
+      for(let i=f;i<=t;i++){
+        say(`🔍 악보 읽는 중… ${i}쪽 (${i-f+1}/${t-f+1})`);
+        const pg=await PDF.doc.getPage(i),v0=pg.getViewport({scale:1}),vp=pg.getViewport({scale:1785/v0.width}),c=document.createElement('canvas');
+        c.width=Math.round(vp.width);c.height=Math.round(vp.height);
+        const cx=c.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,c.width,c.height);
+        await pg.render({canvasContext:cx,viewport:vp}).promise;
+        const r=await omrPage(c);if(!same())return;
+        pages.push(r.map(R=>({S:{xL:R.S.xL,xR:R.S.xR,s:R.S.s},bars:R.bars,pg:i,chords:R.chords.map(c=>({n:c.n,x:c.x,x1:c.x1}))})));
+      }
+      pdfKv.put(key,pages);
+    }
+    if(!same())return;
+    PDF.omr=pages;
+    const toks=[];pages.forEach(P=>P.forEach(R=>R.chords.forEach(c=>toks.push({n:c.n,k:chKey(c.n),pg:R.pg}))));
+    PDF.ch={toks,text:omrText(pages,ad.meter),omr:true};
+    pdfEl('pdfFill').disabled=!toks.length;
+    if(toks.length&&!srcChords().length){const ta=pdfEl('adSrc');ta.value=omrText(pages,ad.meter);ta.dispatchEvent(new Event('input'))}  /* 비어 있으면 악보대로 */
+    pdfDiff();
+  }catch(e){say('악보를 읽지 못했습니다: '+esc(e&&e.message||e))}
 }
 
 /* PDF 글자 → 줄 (같은 높이끼리) → 코드 줄 / 구간 이름 / 코드 바로 아래 가사 줄 */
@@ -3570,8 +3759,10 @@ function pdfDiff(){
   if(!PDF.ch||pdfEl('pdfCmp').getAttribute('aria-pressed')!=='true'){box.hidden=true;return}
   box.hidden=false;
   const B=PDF.ch.toks,A=srcChords();
-  if(!B.length){box.innerHTML=`<p class="pd-sum">이 PDF(${PDF.from===PDF.to?PDF.from:PDF.from+'~'+PDF.to}쪽)에는 글자 정보가 없어서(스캔 · 사진 악보) 코드를 자동으로 대조할 수 없습니다. 악보를 보면서 직접 비교해 주세요.</p>`;return}
-  if(!A.length){box.innerHTML=`<p class="pd-sum">PDF에서 코드 ${B.length}개를 읽었습니다. 위 코드 진행이 비어 있으니 [PDF로 채우기]로 시작해 보세요.</p>`;return}
+  const pgs=PDF.from===PDF.to?PDF.from:PDF.from+'~'+PDF.to;
+  if(PDF.ch.scan){box.innerHTML=`<p class="pd-sum">스캔(사진) 악보입니다. ${PDF.to-PDF.from<4?'':'곡이 있는 쪽만 지정하면 바로 읽습니다. '}<button class="ghost sm" id="pdfOmrGo">🔍 ${pgs}쪽 악보 읽기</button></p>`;return}
+  if(!B.length){box.innerHTML=`<p class="pd-sum">${pgs}쪽에서 코드를 찾지 못했습니다. 곡이 있는 쪽이 맞는지 확인해 주세요.</p>`;return}
+  if(!A.length){box.innerHTML=`<p class="pd-sum">악보에서 코드 ${B.length}개를 읽었습니다. [악보대로 채우기]로 시작하세요.</p>`;return}
   const n=A.length,m=B.length;let ops=[];
   if(n*m<=4e6){
     const L=new Uint16Array((n+1)*(m+1)),W=m+1;
@@ -3584,11 +3775,12 @@ function pdfDiff(){
   let lastA=-1;
   const chips=ops.map(o=>{if(o.t==='=')lastA=o.a;
     const nm=o.t==='+'?B[o.b].n:A[o.a].n,cls=o.t==='='?'pd':o.t==='+'?'pd pd-add':'pd pd-del';
-    const tip=o.t==='='?'같음':o.t==='+'?`PDF ${B[o.b].pg}쪽에만 있음 — 위 코드 진행에 빠짐`:'위 코드 진행에만 있음 — PDF에는 없음';
+    const tip=o.t==='='?'같음':o.t==='+'?`악보 ${B[o.b].pg}쪽에 있음 — 위 코드 진행에 빠짐`:'위 코드 진행에만 있음 — 악보에는 없음';
     return `<button class="${cls}" data-a="${o.t==='+'?'':o.a}" data-p="${o.t==='+'?lastA:''}" data-b="${o.t==='-'?'':o.b}" title="${tip}">${o.t==='+'?'+':''}${esc(nm)}</button>`}).join('');
-  box.innerHTML=`<p class="pd-sum">${add||del?`코드 ${eq}개 같음 · <span class="pd-add">PDF에만 ${add}</span> · <span class="pd-del">입력에만 ${del}</span> — 눌러서 위치 보기`:`코드 ${eq}개가 PDF와 모두 같습니다 ✓`}</p><div class="pdf-chips">${chips}</div>`;
+  box.innerHTML=`<p class="pd-sum">${add||del?`악보 기준: 코드 ${eq}개 같음 · <span class="pd-add">악보에만 ${add}</span> · <span class="pd-del">입력에만 ${del}</span> — 눌러서 위치 보기 (다르면 악보가 맞음${PDF.ch.omr?' · 스캔 악보를 읽은 결과라 ♯ · 작은 글씨는 악보를 보고 확인':''})`:`코드 ${eq}개가 악보와 모두 같습니다 ✓`}</p><div class="pdf-chips">${chips}</div>`;
 }
 pdfEl('pdfDiff').addEventListener('click',e=>{
+  if(e.target.closest('#pdfOmrGo')){pdfOmr();return}
   const b=e.target.closest('button.pd');if(!b)return;
   const A=srcChords(),ta=pdfEl('adSrc');
   const a=b.dataset.a!==''?A[+b.dataset.a]:null,pa=b.dataset.p!==''&&+b.dataset.p>=0?A[+b.dataset.p]:null;
@@ -3611,8 +3803,9 @@ pdfEl('pdfWin').addEventListener('click',()=>{if(!PDF.blob)return;const u=URL.cr
 pdfEl('pdfCmp').addEventListener('click',e=>{const b=e.currentTarget;b.setAttribute('aria-pressed',b.getAttribute('aria-pressed')==='true'?'false':'true');pdfDiff()});
 pdfEl('pdfFill').addEventListener('click',()=>{
   if(!PDF.ch||!PDF.ch.text)return;const ta=pdfEl('adSrc');
-  if(ta.value.trim()&&!confirm('지금 코드 진행을 PDF에서 읽은 코드 · 가사로 바꿀까요?\n(PDF에는 박자 숫자가 없어서 각 코드를 한 마디로 둡니다. 다르면 코드 줄 아래에 숫자를 적어 주세요.)'))return;
-  ta.value=PDF.ch.text;ta.dispatchEvent(new Event('input'));pdfDiff();
+  const text=PDF.omr?omrText(PDF.omr,ad.meter):PDF.ch.text;
+  if(ta.value.trim()&&!confirm(PDF.omr?`지금 코드 진행을 악보에서 읽은 코드로 바꿀까요? (악보 기준)\n코드 길이는 지금 박자(${ad.meter===6?'3/4':'4/4'})로 계산합니다. 박자가 다르면 먼저 [박자]를 바꾸고 다시 눌러 주세요.`:'지금 코드 진행을 악보(PDF)의 코드 · 가사로 바꿀까요? (악보 기준)\n(PDF에는 박자 숫자가 없어서 각 코드를 한 마디로 둡니다. 다르면 코드 줄 아래에 숫자를 적어 주세요.)'))return;
+  ta.value=text;ta.dispatchEvent(new Event('input'));pdfDiff();
 });
 pdfEl('adSrc').addEventListener('input',()=>{if(PDF.ch){clearTimeout(PDF.dt);PDF.dt=setTimeout(pdfDiff,400)}});
 /* 곡을 불러오면 그 곡에 지정해 둔 PDF · 쪽으로. 지정이 없으면 띄운 악보는 그대로 둠 (악보집에서 그 곡 쪽을 찾아 지정 후 저장) */
