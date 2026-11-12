@@ -196,7 +196,6 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 /* 곡연습 */
 .sg-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
 .sg-deep{margin:0 0 10px;padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-size:.9rem}.sg-deep progress{width:160px;vertical-align:middle;margin:0 6px}
-.sg-lan{margin:-4px 0 10px;font-size:.8rem;color:var(--muted)}.sg-lan b{color:var(--ink)}
 .sg-deep.done{border-color:#2f9a5c;color:#2f9a5c;font-weight:600}.sg-deep.err{border-color:#c0392b;color:#c0392b}.sg-deep.off{color:var(--muted)}
 .sg-autochk{margin:0 0 8px}
 .sg-key{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;margin:10px 0 0;font-size:.92rem}.sg-key b{color:var(--accent)}.sg-k0{color:var(--muted);font-size:.82rem;margin-left:4px}
@@ -591,7 +590,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
       <button id="sgOpen" class="ghost" title="PC 분석기가 만든 결과 열기 (PC: '… 분석' 폴더, 휴대폰: '휴대폰용 ….zip')">📂 분석 결과 열기</button>
       <select id="sgList" class="sg-list" aria-label="이미 분석한 곡 고르기"><option value="">분석된 곡 ▼</option></select>
       <button id="sgRecent" class="ghost sm" hidden>최근 곡</button>
-      <button id="sgUrl" class="ghost" title="유튜브 등 영상 링크를 PC 분석 도우미가 받아서 바로 분석 (재생 · 녹음 필요 없음)">🔗 링크로 분석</button>
+      <button id="sgUrl" class="ghost" title="PC: 유튜브 등 영상 링크를 분석 도우미가 받아서 바로 분석 (재생 · 녹음 필요 없음)">🔗 링크로 분석</button>
       <button id="sgRec" class="ghost" title="Edge · Chrome: 재생 중인 탭(유튜브 등)의 소리를 원음 그대로 녹음">🔴 탭 소리 녹음</button>
       <span id="sgRecT" class="sg-rect" hidden></span>
       <input type="file" id="sgDirIn" webkitdirectory multiple hidden>
@@ -601,7 +600,6 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
     <label class="check sg-autochk" id="sgAutoL" title="PC 분석 도우미가 켜져 있으면 음원을 열 때 이어서 트랙 분리 · 가사 · TAB까지 자동 분석"><input type="checkbox" id="sgAuto"> 음원을 열면 PC 정밀 분석도 자동으로</label>
     <div id="sgStat" class="sg-stat" hidden></div>
     <div id="sgDeep" class="sg-deep" hidden></div>
-    <div id="sgLan" class="sg-lan" hidden></div>
     <div id="sgHelp" class="sg-help">
       <b class="sg-h1">곡에 맞춰 코드 · 가사 · TAB을 보며 따라 치기</b>
       <div class="sg-steps">
@@ -2743,7 +2741,7 @@ sgEl('sgTab').addEventListener('click',e=>{
   el.addEventListener('wheel',e=>{if(!e.ctrlKey)return;e.preventDefault();setTabFs(tabFsNow()*Math.exp(-e.deltaY*0.01));clearTimeout(setTabFs.t);setTabFs.t=setTimeout(tabFsDone,250)},{passive:false});
 });
 window.addEventListener('resize',()=>{clearTimeout(sgShow.t);sgShow.t=setTimeout(()=>{if(st.tab==='song'&&SG.song&&SG.view!=='sheet')sgTabView()},200)});
-function sgShow(){sgApplyZ();sgListFill();sgLoadLast();const pc=!sgPhone();sgEl('sgAutoL').hidden=!pc;sgEl('sgAuto').checked=SG.auto;sgEl('sgRec').hidden=!(navigator.mediaDevices&&navigator.mediaDevices.getDisplayMedia)||matchMedia('(pointer:coarse)').matches;sgRecentBtn();sgRender();if(!SG.raf&&SG.song)SG.raf=requestAnimationFrame(sgTick)}
+function sgShow(){sgApplyZ();sgListFill();sgLoadLast();const pc=!sgPhone();sgEl('sgAutoL').hidden=!pc;sgEl('sgUrl').hidden=!pc;sgEl('sgAuto').checked=SG.auto;sgEl('sgRec').hidden=!(navigator.mediaDevices&&navigator.mediaDevices.getDisplayMedia)||matchMedia('(pointer:coarse)').matches;sgRecentBtn();sgRender();if(!SG.raf&&SG.song)SG.raf=requestAnimationFrame(sgTick)}
 /* ---------- 이미 있는 음원 파일(mp3 · mp4 · m4a · wav …)을 이 기기에서 바로 분석: 박자 · 마디 · 코드 (PC · 휴대폰 공통) ----------
    PC 분석기(analyze.py)의 박자 · 코드 방법을 그대로 옮긴 간이판. 트랙 분리 · 가사 · TAB 은 PC 분석에서만 */
 function sgStat(msg,pct){const e=sgEl('sgStat');if(msg==null){e.hidden=true;return}e.hidden=false;e.innerHTML=esc(msg)+(pct!=null?` <progress max="100" value="${Math.round(pct)}"></progress>`:'')}
@@ -2911,7 +2909,7 @@ async function sgListFill(){
   if(pcOnly.length)h+=`<optgroup label="PC 분석 도우미 (음악\\쎄이기타 분석)">${pcOnly.map(x=>`<option value="p:${esc(x.key)}">${esc(x.title)} · ${d2(x.mtime*1000)}${(x.parts||[]).includes('harmonica')?' · 하모니카':''}</option>`).join('')}</optgroup>`;
   const pcDev=!sgPhone();
   if(!dev.length&&!pcOnly.length&&pcDev)h=`<option value="">분석된 곡 ▼ (0) — ${SG.helperOn?'아직 없음':'PC 분석 도우미가 꺼져 있음'}</option>`;
-  sel.innerHTML=h;sel.hidden=!dev.length&&!pcOnly.length&&!pcDev;sgLanShow();
+  sel.innerHTML=h;sel.hidden=!dev.length&&!pcOnly.length&&!pcDev;
 }
 async function sgFindKnown(title){   /* 같은 이름의 분석 결과 → 열 값('d:…' 기기 저장본 / 'p:…' PC 도우미, 더 새로운 쪽) 또는 null */
   try{
@@ -2938,32 +2936,12 @@ async function sgOpenKey(v){
 (function(){const g=sgEl('sgGuide');if(!g)return;if(store.get('chordcalc-sgguide')==='0')g.open=false;g.addEventListener('toggle',()=>store.set('chordcalc-sgguide',g.open?'1':'0'))})();
 sgEl('sgAuto').addEventListener('change',e=>{SG.auto=e.target.checked;store.set('chordcalc-sgauto',SG.auto?'1':'0');if(!SG.auto)sgEl('sgDeep').hidden=true});
 /* ---------- PC 분석 도우미(127.0.0.1:52525)가 켜져 있으면: 음원을 열 때 이어서 정밀 분석(트랙 분리 · 가사 · TAB) 자동 진행 ---------- */
-/* 도우미가 앱을 직접 내준 주소(http://PC:52525)로 열었으면 그 주소가 도우미 — 휴대폰도 같은 와이파이에서 이렇게 씀 */
-const SG_HELPER=location.port==='52525'&&location.protocol==='http:'?location.origin:'http://127.0.0.1:52525';
-function sgPhone(){return matchMedia('(pointer:coarse)').matches&&location.port!=='52525'}   /* 도우미 없이 쓰는 휴대폰 */
-async function sgPair(force){   /* 휴대폰: PC 도우미 창에 나온 PIN 4자리 → 쿠키 (한 번만) */
-  if(sgPair.no&&!force)return false;
-  const pin=prompt('PC 분석 도우미 PIN 4자리\n(PC의 도우미 창 또는 PC 쎄이기타 [곡연습] 화면에 나와 있습니다)');
-  if(!pin){sgPair.no=true;return false}
-  try{const r=await fetch(SG_HELPER+'/pair?pin='+encodeURIComponent(pin.trim()),{cache:'no-store'});if(r.ok)return true}catch(e){}
-  alert('PIN 이 맞지 않습니다.');return false;
-}
-function sgLanShow(){   /* PC: 휴대폰에서 쓰는 주소 · PIN 안내 */
-  const e=sgEl('sgLan');if(!e)return;const p=SG.helperOn&&SG.ping;
-  if(!p||!p.lan||!p.lan.length||!p.pin){e.hidden=true;return}
-  e.hidden=false;e.innerHTML='📱 휴대폰에서 링크 분석: 같은 와이파이에서 휴대폰 브라우저로 <b>'+p.lan.map(esc).join('</b> 또는 <b>')+'</b> 을 열고 PIN <b>'+esc(p.pin)+'</b>';
-}
-SG.auto=store.get('chordcalc-sgauto')!=='0';
-async function sgHelperOn(force){try{const r=await fetch(SG_HELPER+'/ping',{cache:'no-store',signal:AbortSignal.timeout(1500)});const j=await r.json();
-  if(!(j&&j.app==='saygita'))return SG.helperOn=false;SG.ping=j;
-  if(j.needPin&&!(await sgPair(force)))return SG.helperOn=false;
-  return SG.helperOn=true}catch(e){return SG.helperOn=false}}
+const SG_HELPER='http://127.0.0.1:52525';
+function sgPhone(){return matchMedia('(pointer:coarse)').matches}   /* 휴대폰은 간이 분석만 (PC 도우미는 PC에서) */
+async function sgHelperOn(){try{const r=await fetch(SG_HELPER+'/ping',{cache:'no-store',signal:AbortSignal.timeout(1500)});const j=await r.json();return SG.helperOn=!!(j&&j.app==='saygita')}catch(e){return SG.helperOn=false}}
 /* 링크(유튜브 등)로 분석: 도우미가 오디오만 받아 정밀 분석 → 끝나면 바로 열기 */
-async function sgUrlGo(){
-  if(!(await sgHelperOn(true))){
-    if(matchMedia('(pointer:coarse)').matches)alert('휴대폰에서는 PC 분석 도우미 주소로 쎄이기타를 열어야 링크 분석을 쓸 수 있습니다.\n\n1) PC에서 분석 도우미를 켭니다.\n2) PC 쎄이기타 [곡연습] 화면(또는 도우미 창)에 나온 주소(예: http://192.168.0.5:52525)를 휴대폰 브라우저에 입력합니다. (같은 와이파이)\n3) PIN 4자리를 넣으면 됩니다.');
-    else sgDeepUi('off');
-    return}
+async function sgUrlGo(){   /* PC 전용 (휴대폰에서는 버튼이 숨겨짐) */
+  if(!(await sgHelperOn())){sgDeepUi('off');return}
   const url=(prompt('분석할 영상 링크 (유튜브 등 공개 영상)','')||'').trim();if(!url)return;
   if(!/^https?:\/\//i.test(url)){alert('http:// 또는 https:// 로 시작하는 링크를 넣어 주세요.');return}
   try{
