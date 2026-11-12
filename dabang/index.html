@@ -338,6 +338,7 @@ body[data-page="tune"] #boardScroll,body[data-page="tune"] .board-bar,body[data-
 .pdf-view{margin-top:8px;max-height:72vh;overflow:auto;background:#fff;border-radius:6px}
 .pdf-view canvas{display:block;margin:0 auto 6px;box-shadow:0 0 0 1px #ccc}
 .pdf-view .sdesc{padding:10px;color:#555}
+.pdf-kind{font-size:.85rem;padding:2px 4px;min-height:0;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink)}
 .pdf-pg{display:inline-flex;align-items:center;gap:4px;font-size:.85rem;color:var(--muted)}
 .pdf-pg input{width:3.8em;padding:2px 4px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);min-height:0}
 .pdf-diff{margin-top:8px;font-size:.85rem}
@@ -537,7 +538,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
       <div>
         <div class="songbar">
           <select id="songSel" aria-label="저장된 곡 불러오기"></select>
-          <button id="songSave" class="ghost sm" title="지금 코드 진행 · 설정 · 프레이즈를 곡으로 저장">저장</button>
+          <button id="songSave" class="ghost sm" title="지금 코드 진행 · 설정 · 프레이즈를 곡으로 저장 (PC 분석 도우미가 켜져 있으면 음악\쎄이기타 분석\곡명 의 입력에도 — 악보 PDF · 코드 진행)">저장</button>
           <button id="songDel" class="ghost sm" title="고른 곡 삭제">삭제</button>
           <button id="songExp" class="ghost sm" title="저장한 곡 전체를 파일로 (다른 기기로 옮길 때)">내보내기</button>
           <button id="songImp" class="ghost sm" title="내보낸 파일에서 곡 가져오기">가져오기</button>
@@ -551,6 +552,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
         <div id="pdfBox" class="pdf-box" hidden>
           <div class="pdf-bar">
             <span id="pdfName" class="pdf-name"></span>
+            <select id="pdfKind" class="pdf-kind" aria-label="악보 종류" title="곡 저장 때 PC 곡 폴더의 입력에 이 종류로 들어감"><option value="score_jj">잔잔 악보</option><option value="score_gt">기타 악보</option></select>
             <span class="pdf-pg" title="이 곡이 있는 쪽 (악보집이면 곡마다 지정 — 곡 저장 때 함께 저장)">쪽 <input id="pdfFrom" type="number" min="1" inputmode="numeric" aria-label="시작 쪽"> ~ <input id="pdfTo" type="number" min="1" inputmode="numeric" aria-label="끝 쪽"> <span id="pdfN"></span>
               <button id="pdfAll" class="ghost sm" title="모든 쪽 보기">전체</button></span>
             <button id="pdfCmp" class="ghost sm" aria-pressed="true" title="PDF 속 코드와 위 코드 진행을 차례대로 대조">코드 대조</button>
@@ -619,7 +621,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
   <section id="p-song" role="tabpanel" hidden>
     <div class="sg-top">
       <button id="sgFileBtn" class="play" title="mp3 · mp4 · m4a · wav 등 이미 있는 음원을 이 기기에서 바로 분석 (박자 · 코드)">🎵 음원 파일 열기</button>
-      <button id="sgOpen" class="ghost" title="PC 분석기가 만든 결과 열기 (PC: '… 분석' 폴더, 휴대폰: '휴대폰용 ….zip')">📂 분석 결과 열기</button>
+      <button id="sgOpen" class="ghost" title="PC 분석기가 만든 결과 열기 (PC: 곡 폴더, 휴대폰: saysay 의 '곡명.zip')">📂 분석 결과 열기</button>
       <select id="sgList" class="sg-list" aria-label="이미 분석한 곡 고르기"><option value="">분석된 곡 ▼</option></select>
       <button id="sgRecent" class="ghost sm" hidden>최근 곡</button>
       <button id="sgUrl" class="ghost" title="PC: 유튜브 등 영상 링크를 분석 도우미가 받아서 바로 분석 (재생 · 녹음 필요 없음)">🔗 링크로 분석</button>
@@ -640,7 +642,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
           <ul>
             <li><b>[분석된 곡 ▼]</b> 목록에서 고르기. 목록에는 <b>이 기기에 저장된 곡</b>(전에 열었던 곡)과, PC 분석 도우미가 켜져 있으면 <b>PC에서 분석한 모든 곡</b>(음악\쎄이기타 분석)이 나옵니다.</li>
             <li>같은 곡을 [🎵 음원 파일 열기]로 다시 열면 <b>"새로 분석할지"</b> 물어봅니다. [확인] = 기존 분석을 지우고 최신 분석기로 새로 (분석기가 좋아졌을 때) · [취소] = 기존 결과 바로 열기.</li>
-            <li>다른 PC에서 분석한 곡: <b>[📂 분석 결과 열기]</b> → PC는 <b>"… 분석"</b> 폴더, 휴대폰은 <b>"휴대폰용 ….zip"</b> 파일을 고르기. 한 번 열면 [분석된 곡 ▼]에 남습니다.</li>
+            <li>다른 PC에서 분석한 곡: <b>[📂 분석 결과 열기]</b> → PC는 <b>곡 폴더</b>(음악\쎄이기타 분석\곡명), 휴대폰은 <b>"곡명.zip"</b> 파일을 고르기. 한 번 열면 [분석된 곡 ▼]에 남습니다.</li>
           </ul>
           <div class="sg-sub"><b>처음 여는 곡</b> → 열면 2단계 분석이 자동으로</div>
           <ul>
@@ -653,7 +655,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
             <tr><td>보이는 것</td><td>박자 · 코드 + <b>가사 · 기타 TAB · 베이스 TAB · 하모니카</b><br>+ 트랙 나누기 (노래 · 기타 · 베이스 · 드럼)</td><td>박자 · 코드</td></tr>
             <tr><td>걸리는 시간</td><td>박자 · 코드는 수십 초 만에 먼저 보이고,<br>나머지는 곡당 몇 분 뒤 자동으로 바뀜 (위 진행 표시)</td><td>수십 초</td></tr></table>
           <ul>
-            <li><b>휴대폰에서 정밀 분석 결과 보기</b>: PC에서 분석하면 생기는 <b>"휴대폰용 ….zip"</b> 파일(PC에서 분석하면 OneDrive <b>saysay</b> 폴더에 자동 복사 — 휴대폰의 OneDrive · Teams 앱에서 받기)을 휴대폰으로 옮겨 1단계의 <b>[📂 분석 결과 열기]</b>로 고릅니다.</li>
+            <li><b>휴대폰에서 정밀 분석 결과 보기</b>: PC에서 분석하면 곡 폴더 전체(입력 · 출력 · 목록)가 묶여 OneDrive <b>saysay\곡명.zip</b> 으로 자동 복사됩니다. 휴대폰의 OneDrive · Teams 앱에서 받아 1단계의 <b>[📂 분석 결과 열기]</b>로 고릅니다.</li>
             <li><b>도우미가 없는 PC</b>: 도우미가 꺼져 있다는 안내가 뜨면 그 안의 [설치 파일 받기]로 한 번만 설치하세요.</li>
           </ul></div></div>
         <div class="sg-step"><span class="sg-no">3</span><div><b>키 · 카포 맞추기</b> — 악보 위 <b>곡 키</b> 줄에서
@@ -2343,17 +2345,23 @@ async function sgOpen(handle){
     let dir=handle;
     if(!dir){if(!window.showDirectoryPicker||matchMedia('(pointer:coarse)').matches){sgEl('sgZipIn').click();return}   /* 휴대폰: 폴더 대신 zip 파일 고르기 */dir=await window.showDirectoryPicker({id:'saygita-song',mode:'read',startIn:SG.lastDir||SG.lastAudio||'music'})}
     if(dir.queryPermission&&(await dir.queryPermission({mode:'read'}))!=='granted'&&(await dir.requestPermission({mode:'read'}))!=='granted')return;
-    const files={};for await(const [n,h] of dir.entries())if(h.kind==='file')files[n]=h;
-    if(!files['song.json']){alert('이 폴더에 song.json 이 없습니다. "○○ 분석" 폴더를 골라 주세요.');return}
+    const ls=async d=>{const f={};for await(const [n,h] of d.entries())if(h.kind==='file')f[n]=h;return f};
+    let files=await ls(dir);
+    for(const path of [['출력','음원분석'],['음원분석']]){   /* 곡 폴더(음악\쎄이기타 분석\곡명)나 출력 폴더를 골라도 → 출력\음원분석 */
+      if(files['song.json'])break;
+      try{let d=dir;for(const n of path)d=await d.getDirectoryHandle(n);files=await ls(d)}catch(e){}
+    }
+    if(!files['song.json']){alert('이 폴더에서 분석 결과(song.json)를 찾지 못했습니다. 곡 폴더(음악\\쎄이기타 분석\\곡명)를 골라 주세요.');return}
     const song=JSON.parse(await (await files['song.json'].getFile()).text());
     const urls={};for(const st of song.stems||[])if(files[st.file])urls[st.id]=URL.createObjectURL(await files[st.file].getFile());
     sgLoad(song,urls);SG.lastDir=dir;sgDB.set('lastDir',dir);sgDB.set('lastName',dir.name);sgRecentBtn();
   }catch(e){if(!(e&&e.name==='AbortError'))alert('폴더를 열지 못했습니다: '+(e&&e.message||e))}
 }
 sgEl('sgDirIn').addEventListener('change',async e=>{
-  const fs=[...e.target.files],sj=fs.find(f=>f.name==='song.json');e.target.value='';
-  if(!sj){alert('song.json 이 들어 있는 "○○ 분석" 폴더를 골라 주세요.');return}
-  const song=JSON.parse(await sj.text()),urls={};for(const st of song.stems||[]){const f=fs.find(x=>x.name===st.file);if(f)urls[st.id]=URL.createObjectURL(f)}
+  const fs=[...e.target.files],dirOf=f=>(f.webkitRelativePath||f.name).replace(/[^/]*$/,'');e.target.value='';
+  const sj=fs.find(f=>f.name==='song.json'&&/음원분석\/$/.test(dirOf(f)))||fs.find(f=>f.name==='song.json');
+  if(!sj){alert('분석 결과(song.json)가 들어 있는 곡 폴더(음악\\쎄이기타 분석\\곡명)를 골라 주세요.');return}
+  const song=JSON.parse(await sj.text()),urls={};for(const st of song.stems||[]){const f=fs.find(x=>x.name===st.file&&dirOf(x)===dirOf(sj))||fs.find(x=>x.name===st.file);if(f)urls[st.id]=URL.createObjectURL(f)}
   sgLoad(song,urls);
 });
 async function sgRecentBtn(){const b=sgEl('sgRecent'),n=await sgDB.get('lastName');b.hidden=true;if(0)if(n)b.textContent='최근 곡: '+n.replace(/ 분석$/,'')}
@@ -2871,10 +2879,10 @@ async function sgUnzip(file){
   for(let i=0;i<n;i++){
     if(dv.getUint32(p,true)!==0x02014b50)break;
     const flag=dv.getUint16(p+8,true),meth=dv.getUint16(p+10,true),csz=dv.getUint32(p+20,true),nl=dv.getUint16(p+28,true),xl=dv.getUint16(p+30,true),cl=dv.getUint16(p+32,true),lo=dv.getUint32(p+42,true);
-    const name=new TextDecoder(flag&0x800?'utf-8':'utf-8').decode(buf.subarray(p+46,p+46+nl)).split('/').pop();
+    const full=new TextDecoder('utf-8').decode(buf.subarray(p+46,p+46+nl)),name=full.split('/').pop(),prio=/(^|\/)음원분석\/[^/]+$/.test(full)||!full.includes('/');
     const ds=lo+30+dv.getUint16(lo+26,true)+dv.getUint16(lo+28,true);let data=buf.subarray(ds,ds+csz);
     if(meth===8)data=new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());
-    if(name)out[name]=new Blob([data],{type:/\.mp3$/i.test(name)?'audio/mpeg':'application/octet-stream'});
+    if(name&&(prio||!out[name]))out[name]=new Blob([data],{type:/\.mp3$/i.test(name)?'audio/mpeg':'application/octet-stream'});
     p+=46+nl+xl+cl;
   }
   return out;
@@ -3342,6 +3350,17 @@ function songLoad(s){
   curSong=s.name;store.set('chordcalc-cursong',curSong);renderSongs();uiLater();
   pdfForSong(s.name);
 }
+async function pcSongPush(name){
+  try{if(!(await sgHelperOn()))return false}catch(e){return false}
+  const u=o=>SG_HELPER+'/song-file?'+new URLSearchParams(o),post=(o,body)=>fetch(u(o),{method:'POST',body}).then(r=>r.ok).catch(()=>false);
+  const jobs=[post({song:name,kind:'chords'},document.getElementById('adSrc').value)];
+  if(PDF.blob){
+    jobs.push(post({song:name,kind:pdfEl('pdfKind').value,name:PDF.name,pages:PDF.from===PDF.to?String(PDF.from):PDF.from+'-'+PDF.to},PDF.blob));
+    if(PDF.ch&&PDF.ch.toks&&PDF.ch.toks.length)jobs.push(post({song:name,kind:'out',name:'악보코드.txt'},
+      `# 악보에서 읽은 코드 진행 — ${PDF.name} ${PDF.from}~${PDF.to}쪽${PDF.omr?' (스캔 악보 읽기)':''} · 박자 ${ad.meter===6?'3/4':'4/4'}\n`+(PDF.omr?omrText(PDF.omr,ad.meter):PDF.ch.text)));
+  }
+  return (await Promise.all(jobs)).every(Boolean);
+}
 function songFlash(b,t){const o=b.textContent;b.textContent=t;setTimeout(()=>b.textContent=o,1400)}
 document.getElementById('songSel').addEventListener('change',e=>{
   const a=songs(),s=a[+e.target.value];if(e.target.value===''||!s){renderSongs();return}
@@ -3357,7 +3376,8 @@ document.getElementById('songSave').addEventListener('click',e=>{
   const i=a.findIndex(s=>s.name===name);
   if(i>=0&&name!==curSong&&!confirm(`"${name}" 곡이 이미 있습니다. 덮어쓸까요?`))return;
   const p=songPack(name);if(i>=0)a[i]=p;else a.push(p);
-  songsPut(a);curSong=name;store.set('chordcalc-cursong',name);renderSongs();songFlash(e.currentTarget,'저장됨');
+  const btn=e.currentTarget;songsPut(a);curSong=name;store.set('chordcalc-cursong',name);renderSongs();songFlash(btn,'저장됨');
+  pcSongPush(name).then(ok=>{if(ok)setTimeout(()=>songFlash(btn,'PC 곡 폴더에도 ✓'),1500)});   /* PC 도우미가 켜져 있으면 곡 폴더 입력에도 */
   {const r=pdfRef();(r?pdfKv.put('pdf:'+name,r):pdfKv.del('pdf:'+name)).then(pdfGc)}   /* 띄워 둔 PDF 악보 · 쪽도 곡과 함께 */
 });
 document.getElementById('songDel').addEventListener('click',()=>{
@@ -3432,7 +3452,7 @@ function pdfLib(){return pdfLibP=pdfLibP||new Promise((res,rej)=>{
     res(L)};
   s.onerror=()=>{pdfLibP=null;s.remove();rej(new Error('PDF 보기 프로그램을 받지 못했습니다 (인터넷 연결 확인)'))};
   document.head.appendChild(s)})}
-function pdfRef(){return PDF.doc?{key:PDF.key,name:PDF.name,from:PDF.from,to:PDF.to}:null}
+function pdfRef(){return PDF.doc?{key:PDF.key,name:PDF.name,from:PDF.from,to:PDF.to,kind:pdfEl('pdfKind').value}:null}
 function pdfSaveCur(){const r=pdfRef();return r?pdfKv.put('pdf:cur',r):pdfKv.del('pdf:cur')}
 async function pdfGc(){                                   /* 어느 곡도 안 쓰는 PDF 파일은 지움 */
   const ks=await pdfKv.keys()||[],used=new Set();
@@ -3454,7 +3474,7 @@ async function pdfOpen(r,blob){
     const doc=await lib.getDocument({data:new Uint8Array(await blob.arrayBuffer())}).promise;
     if(tk!==PDF.tk){doc.destroy();return}
     if(PDF.doc)PDF.doc.destroy();
-    Object.assign(PDF,{doc,blob,name:r.name,key:r.key,ch:null,tx:{},zoom:1});
+    Object.assign(PDF,{doc,blob,name:r.name,key:r.key,ch:null,tx:{},zoom:1});if(r.kind)pdfEl('pdfKind').value=r.kind;
     pdfRange(r.from,r.to);
   }catch(e){if(tk===PDF.tk)pdfEl('pdfView').innerHTML=`<p class="sdesc">PDF를 열지 못했습니다: ${esc(e&&e.message||e)}</p>`}
 }
@@ -3794,6 +3814,7 @@ pdfEl('pdfFile').addEventListener('change',e=>{const f=e.target.files&&e.target.
   if(!/pdf$/i.test(f.type)&&!/\.pdf$/i.test(f.name)){alert('PDF 파일을 골라 주세요.');return}
   pdfOpenFile(f)});
 pdfEl('pdfX').addEventListener('click',pdfClose);
+pdfEl('pdfKind').addEventListener('change',()=>pdfSaveCur());
 pdfEl('pdfFrom').addEventListener('change',e=>{const f=+e.target.value;pdfRange(f,Math.max(f,PDF.to))});
 pdfEl('pdfTo').addEventListener('change',e=>pdfRange(PDF.from,+e.target.value));
 pdfEl('pdfAll').addEventListener('click',()=>pdfRange(1,PDF.doc?PDF.doc.numPages:1));
