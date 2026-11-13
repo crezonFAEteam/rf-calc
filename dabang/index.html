@@ -3312,9 +3312,16 @@ function cePickBase(x){const ord=[CE.base,...CE_ORD.map(o=>o[0]).filter(k=>k!==C
 function ceRhySug(){
   const R=CE.rhy;if(!R)return;const D=CE.D,tot=CE.song.bars*16,segs=[];
   R.lines.forEach(L=>{const cs=L.orig?L.orig.chords:L.chords;let p=L.s;cs.forEach(c=>{const e=p+(c.len||0)*R.k;segs.push({n:c.n,s:p,e});p=e})});
+  /* 악보 기준으로 바꾼 줄(L.src)은 악보 코드의 박 위치도 정확함 → 그 칸의 악보 제안으로 */
+  const sk=(CE.srcs||[]).find(S=>S.label===R.scoreSrc),gsegs=[];if(sk)R.lines.forEach(L=>{if(!L.src)return;L.chords.forEach(c=>gsegs.push({n:chAlias(c.n),s:c.s,e:c.e}))});
+  /* 리듬악보 코드가 바뀌는 자리마다 결정 칸을 나눔 (나뉜 칸은 앞 칸의 결정을 그대로 물려받음 → 다른 출처 결과는 그대로) */
+  segs.concat(gsegs).forEach(g=>{if(g.s<0||g.s>=tot||D.some(x=>x.s===g.s))return;let q=null;for(const x of D){if(x.s<g.s)q=x;else break}if(!q)return;
+    D.push({s:g.s,audio:q.audio,sug:Object.fromEntries(Object.entries(q.sug).filter(([k])=>k!=='rhy')),k:q.k,pick:q.pick,name:q.name,add:true,auto:true})});
+  D.sort((a,b)=>a.s-b.s);
   let hit=0,n=0;
-  D.forEach((x,i)=>{delete x.sug.rhy;const e=i+1<D.length?D[i+1].s:tot,m=Math.floor((x.s+e)/2),g=segs.find(g=>m>=g.s&&m<g.e);if(!g)return;
+  D.forEach((x,i)=>{delete x.sug.rhy;const g=segs.find(g=>x.s>=g.s&&x.s<g.e);if(!g)return;
     const v=scSim(x.audio||x.name,chAlias(g.n)),k=v>=3?'ok':v>=2?'type':'diff';x.sug.rhy={name:chAlias(g.n),k};n++;if(k!=='diff')hit++});
+  if(sk)D.forEach(x=>{const g=gsegs.find(g=>x.s>=g.s&&x.s<g.e);if(!g)return;const v=scSim(x.audio||x.name,g.n);x.sug[sk.k]={name:g.n.replace(/ma9$/,'madd9'),k:v>=3?'ok':v>=2?'type':'diff'}});
   CE.rhyMatch=n?hit/n:0;CE.rhyN=n;
 }
 function ceSrcTable(){
