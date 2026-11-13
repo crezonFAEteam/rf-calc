@@ -3752,7 +3752,7 @@ function sgRender(){
   sgEl('sgFrom').innerHTML=opt(SG.from);sgEl('sgTo').innerHTML=opt(SG.to<0?s.bars-1:SG.to);
   sgEl('sgRate').value=String(SG.rate);sgEl('sgLoop').setAttribute('aria-pressed',SG.loop);
   /* 보기 고르기: 코드 · 가사 / 각 TAB */
-  const views=[['sheet','코드 · 가사']].concat(s.backing?[['final','🎸 최종 반주 TAB']]:[]).concat(s.backing&&s.backing.rhythm&&s.backing.rhythm.blocks?[['rhythm','📜 리듬악보']]:[]).concat(Object.entries(s.parts||{}).filter(([k,p])=>p.kind!=='harmonica').map(([k,p])=>[k,p.name.split(' — ')[0]+' TAB']));   /* 하모니카는 노래와 같이 불지 않으므로 코드 · 가사 보기의 노래 없는 마디에 */
+  const views=[['sheet','코드 · 가사']].concat(s.backing?[['final','🎸 최종 반주 TAB']]:[]).concat((s.backing&&s.backing.rhythm&&s.backing.rhythm.blocks)||(s.chords&&s.chords.length)?[['rhythm','📜 리듬악보']]:[]).concat(Object.entries(s.parts||{}).filter(([k,p])=>p.kind!=='harmonica').map(([k,p])=>[k,p.name.split(' — ')[0]+' TAB']));   /* 하모니카는 노래와 같이 불지 않으므로 코드 · 가사 보기의 노래 없는 마디에 */
   if(!views.some(v=>v[0]===SG.view))SG.view='sheet';
   sgEl('sgViews').innerHTML=views.map(([k,l])=>`<button class="chip" data-sgview="${k}" aria-pressed="${SG.view===k}">${esc(l)}</button>`).join('');
   sgEl('sgKey').innerHTML=sgKeyBar();
@@ -3894,8 +3894,22 @@ function sgFinalView(){   /* 곡편집 › 기타반주보정 결과(주법 · �
   }catch(e){sgEl('sgTab').innerHTML='<p class="sdesc">최종 반주를 만들지 못했습니다: '+esc(e.message||e)+'</p>'}
   finally{Object.keys(CE).forEach(k=>{if(!(k in keep))delete CE[k]});Object.assign(CE,keep)}
 }
-function sgRhyView(){   /* 곡편집에서 저장한 완성 리듬악보 */
-  const R=SG.song.backing.rhythm,el=sgEl('sgTab');
+function sgRhyAuto(){
+  const s=SG.song;if(SG._rhy&&SG._rhy.t===s.title)return SG._rhy.R;
+  const keep={...CE};let R=null;
+  try{
+    CE.song=s;CE.D=(s.chords||[]).map(c=>({s:c.s,name:c.name,audio:c.name,sug:{},k:'ok',pick:'audio'}));CE.vmap={};CE.sec={};CE.srcs=[];CE.tabEl='sgTab';
+    CE.rhy=ceRhyGen((s.lyrics||[]).length<10);if(CE.rhy){CE.rhy.lines.forEach(L=>ceRhyEval(L));
+      const d=document.createElement('div');d.innerHTML=ceRhyHtml(true);
+      R={file:'자동 — 분석한 코드 · 가사 (곡편집에서 고쳐 저장하면 그것으로)',blocks:[...d.querySelectorAll('.ce-rtx')].map(b=>{const r=b.querySelector('[data-cerange]'),[s0,e0]=(r?r.dataset.cerange:'0,0').split(',').map(Number);
+        return {s:s0,e:e0,gen:b.classList.contains('gen'),pre:b.querySelector('pre')?b.querySelector('pre').innerHTML:[...b.querySelectorAll('.ce-gl')].map(x=>x.innerHTML).join('\n')}})}}
+  }catch(e){R=null}
+  finally{Object.keys(CE).forEach(k=>{if(!(k in keep))delete CE[k]});Object.assign(CE,keep)}
+  SG._rhy={t:s.title,R};return R;
+}
+function sgRhyView(){   /* 곡편집에서 저장한 완성 리듬악보 — 없으면 분석 결과로 자동 */
+  const R=(SG.song.backing&&SG.song.backing.rhythm&&SG.song.backing.rhythm.blocks)?SG.song.backing.rhythm:sgRhyAuto(),el=sgEl('sgTab');
+  if(!R){el.innerHTML='<p class="sdesc">리듬악보를 만들지 못했습니다 (코드가 없음).</p>';return}
   el.innerHTML=`<div class="tabttl" style="cursor:default">📜 리듬악보 — ${esc(R.file||'')}${(SG.kc.t||SG.kc.c)?' (조옮김 · 카포는 이 보기에 적용되지 않음)':''}</div><div class="ce-rtxs ce-rsheet sg-rhy">`+
     R.blocks.map((b,i)=>`<div class="ce-rtx${b.gen?' gen':''}" data-sgrb="${i}" data-s="${b.s}" data-e="${b.e}"><pre>${b.pre}</pre></div>`).join('')+'</div>';
 }
