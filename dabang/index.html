@@ -338,6 +338,15 @@ body[data-page="tune"] #boardScroll,body[data-page="tune"] .board-bar,body[data-
 .pdf-view{margin-top:8px;max-height:72vh;overflow:auto;background:#fff;border-radius:6px}
 .pdf-view canvas{display:block;margin:0 auto 6px;box-shadow:0 0 0 1px #ccc}
 .pdf-view .sdesc{padding:10px;color:#555}
+.sg-score{margin:4px 0 8px}
+.sg-score-out{margin-top:6px;font-size:.85rem;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--surface)}
+.sg-score-out .sc-sum{margin:0 0 6px;line-height:1.6}
+.sg-score-out .sc-bar{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 6px}
+.sg-score-out table{border-collapse:collapse;width:100%}
+.sg-score-out .sc-list{max-height:260px;overflow:auto}
+.sg-score-out td,.sg-score-out th{padding:2px 6px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+.sg-score-out tr[data-t]{cursor:pointer}.sg-score-out tr[data-t]:hover{background:var(--chip)}
+.sc-ok{color:#2e7d32}.sc-type{color:#b06d00}.sc-diff{color:#c0392b;font-weight:700}.sc-extra{color:var(--muted)}
 .pdf-kind{font-size:.85rem;padding:2px 4px;min-height:0;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink)}
 .pdf-pg{display:inline-flex;align-items:center;gap:4px;font-size:.85rem;color:var(--muted)}
 .pdf-pg input{width:3.8em;padding:2px 4px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);min-height:0}
@@ -684,6 +693,11 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
     </div>
     <div id="sgMain" hidden>
       <div class="sg-head"><b id="sgTitle"></b><span id="sgMeta" class="sg-meta"></span></div>
+      <div class="sg-score">
+        <button id="sgScoreGo" class="ghost sm" title="악보(PDF · 스캔 악보도)를 기준으로 음원 분석 코드와 차이를 비교하고, 원하면 악보대로 고침">🎼 악보로 개선</button>
+        <input type="file" id="sgScoreFile" accept="application/pdf,.pdf" hidden>
+        <div id="sgScoreOut" class="sg-score-out" hidden></div>
+      </div>
       <div class="sg-tr">
         <button id="sgPlay" class="play">재생</button>
         <button id="sgBack" class="ghost sm" title="5초 뒤로">⏪ 5초</button>
@@ -2563,7 +2577,145 @@ function sgFitNote(n,T,C){
   return best?{i:best.i,f:best.f}:null;
 }
 function sgChordAt(sl){const cs=sgCh();let c=null;for(const x of cs){if(x.s<=sl)c=x;else break}return c}
+/* ---------- 🎼 악보로 개선: 악보(기준) ↔ 음원 분석 코드 비교 · 보정 ----------
+   악보 찾기: PC 곡 폴더의 출력\악보코드.txt → 입력의 악보 PDF(스캔이면 읽기) → 없으면 PDF 고르기(쪽 지정, 곡 폴더 입력에도 저장).
+   키가 다르면 반음 차이를 찾아 맞춘 뒤, 악보 순서(반복 허용)에 음원 코드를 맞춰 차이를 보여 줌 */
+const SCO={res:null,orig:null};
+function scThird(s){s=s||'';return /^(dim|m7-5|m7b5|ø|°)/.test(s)?'d':/^(aug|\+)/.test(s)?'a':/^m(?!aj)/.test(s)?'m':/^sus/.test(s)?'s':'M'}
+function scParse(text,meter){   /* 코드 진행 글 → [{n,len}] (adParse 와 같은 규칙, # 줄은 설명) */
+  const out=[];let last=null;
+  text.replace(/\r/g,'').split('\n').forEach(line=>{
+    const t=line.trim();if(!t||t.startsWith('#')||/^[(\[].*[)\]]$/.test(t))return;
+    const toks=t.split(/[\s|]+/).filter(Boolean);
+    if(toks.every(x=>CH.test(x))){last=toks.map(n=>({n,len:meter}));out.push(...last);return}
+    if(/^\d+(\s|$)/.test(t)&&last){toks.forEach((x,k)=>{if(last[k]&&/^\d+$/.test(x))last[k].len=+x});last=null}
+  });
+  return out;
+}
+function scMerge(a){const o=[];a.forEach(x=>{const p=o[o.length-1];if(p&&p.n===x.n){p.len+=x.len;if(x.idx)p.idx.push(...x.idx)}else o.push({...x,idx:x.idx?[...x.idx]:undefined})});return o}
+function scHist(seq,shift){const v=new Float64Array(24);seq.forEach(x=>{const c=blChord(x.n);if(!c)return;v[mod(c.r+shift)*2+(scThird(c.s)==='m'||scThird(c.s)==='d'?1:0)]+=x.len});
+  const n=Math.hypot(...v)||1;return v.map(z=>z/n)}
+function scSim(a,b){   /* a = 음원(악보 키로 옮긴 것), b = 악보 */
+  const x=blChord(a),y=blChord(b);if(!x||!y)return -1;
+  if(x.r!==y.r)return -1.2;
+  if(a===b)return 3;
+  return scThird(x.s)===scThird(y.s)?2:0.3;
+}
+function scAlign(A,B){   /* 음원 A 전체를, 악보 B 를 여러 번 이어 붙인 것에 맞춤 (앞뒤 빈칸은 공짜) */
+  const r=Math.max(2,Math.ceil(A.length/Math.max(1,B.length))+2),BB=[];for(let i=0;i<r;i++)BB.push(...B.map((x,j)=>({...x,j})));
+  const n=A.length,m=BB.length,W=m+1,S=new Float32Array((n+1)*W),T=new Uint8Array((n+1)*W),GA=-0.9,GB=-0.6;
+  for(let i=1;i<=n;i++){S[i*W]=S[(i-1)*W]+GA;T[i*W]=1}
+  for(let i=1;i<=n;i++)for(let j=1;j<=m;j++){
+    const d=S[(i-1)*W+j-1]+scSim(A[i-1].t,BB[j-1].n),u=S[(i-1)*W+j]+GA,l=S[i*W+j-1]+GB;
+    if(d>=u&&d>=l){S[i*W+j]=d;T[i*W+j]=0}else if(u>=l){S[i*W+j]=u;T[i*W+j]=1}else{S[i*W+j]=l;T[i*W+j]=2}}
+  let j=0,best=-1e9;for(let k=0;k<=m;k++)if(S[n*W+k]>best){best=S[n*W+k];j=k}
+  const pairs=[];let i=n;
+  while(i>0){const t=j>0?T[i*W+j]:1;if(t===0){pairs.push({a:i-1,b:BB[j-1]});i--;j--}else if(t===1){pairs.push({a:i-1,b:null});i--}else j--}
+  return pairs.reverse();
+}
+async function scOmrBlob(blob,f,t,say){
+  const lib=await pdfLib(),doc=await lib.getDocument({data:new Uint8Array(await blob.arrayBuffer())}).promise,pages=[];
+  try{
+    f=Math.max(1,f||1);t=Math.min(doc.numPages,t||doc.numPages);
+    await tessLib();
+    for(let i=f;i<=t;i++){
+      say(`🔍 악보 읽는 중… ${i}쪽 (${i-f+1}/${t-f+1})`);
+      const pg=await doc.getPage(i),v0=pg.getViewport({scale:1}),vp=pg.getViewport({scale:1785/v0.width}),c=document.createElement('canvas');
+      c.width=Math.round(vp.width);c.height=Math.round(vp.height);const cx=c.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,c.width,c.height);
+      await pg.render({canvasContext:cx,viewport:vp}).promise;
+      const r=await omrPage(c);pages.push(r.map(R=>({S:{xL:R.S.xL,xR:R.S.xR,s:R.S.s},bars:R.bars,pg:i,chords:R.chords.map(c=>({n:c.n,x:c.x,x1:c.x1}))})));
+    }
+    return {text:omrText(pages,8),omr:true};
+  }finally{doc.destroy()}
+}
+function scPickPdf(){return new Promise(res=>{const el=sgEl('sgScoreFile');el.value='';el.onchange=()=>res(el.files&&el.files[0]||null);el.click()})}
+async function scRun(){
+  const box=sgEl('sgScoreOut'),say=m=>{box.hidden=false;box.innerHTML=`<p class="sc-sum">${m}</p>`},title=SG.song.title;
+  try{
+    let text=null,src='',helper=!sgPhone()&&await sgHelperOn();
+    const base=SG_HELPER+'/song/'+encodeURIComponent(title)+'/';
+    if(helper){
+      say('PC 곡 폴더에서 악보 찾는 중…');
+      const m=await (await fetch(SG_HELPER+'/list/'+encodeURIComponent(title),{cache:'no-store'})).json().catch(()=>null);
+      if(m&&!m.error){
+        if((m.outputs||[]).some(o=>o.file==='악보코드.txt')){text=await (await fetch(base+encodeURIComponent('출력')+'/'+encodeURIComponent('악보코드.txt'),{cache:'no-store'})).text();src='곡 폴더 출력\\악보코드.txt'}
+        else{const sc=(m.inputs||[]).find(x=>x.kind==='score_jj')||(m.inputs||[]).find(x=>x.kind==='score_gt');
+          if(sc){const b=await (await fetch(base+encodeURIComponent('입력')+'/'+encodeURIComponent(sc.file))).blob();
+            const r=await scOmrBlob(b,0,0,say);text=r.text;src='곡 폴더 입력\\'+sc.file;
+            fetch(SG_HELPER+'/song-file?'+new URLSearchParams({song:title,kind:'out',name:'악보코드.txt'}),{method:'POST',body:`# 악보에서 읽은 코드 진행 — ${sc.file}\n`+text}).catch(()=>{})}}
+      }
+    }
+    if(!text){
+      say('이 곡의 악보가 아직 없습니다. 악보 PDF를 골라 주세요 (악보집이면 다음에 쪽 번호를 묻습니다).');
+      const f=await scPickPdf();if(!f){say('악보를 고르지 않았습니다.');return}
+      const lib=await pdfLib(),d0=await lib.getDocument({data:new Uint8Array(await f.arrayBuffer())}).promise,N=d0.numPages;d0.destroy();
+      let a=1,b=N;
+      if(N>4){const q=(prompt(`이 곡이 있는 쪽 (전체 ${N}쪽). 예: 34-35`,'')||'').trim();if(!q){say('쪽을 지정하지 않았습니다.');return}
+        const mm=q.match(/(\d+)\s*(?:[-~]\s*(\d+))?/);if(!mm){say('쪽 번호를 알아보지 못했습니다.');return}a=Math.max(1,+mm[1]);b=Math.min(N,+(mm[2]||mm[1]))}
+      const r=await scOmrBlob(f,a,b,say);text=r.text;src=`${f.name} ${a===b?a:a+'-'+b}쪽`;
+      if(helper){   /* 곡 폴더에도: 입력 = 그 쪽만 자른 악보, 출력 = 악보코드.txt */
+        const pg=a===b?String(a):a+'-'+b;let part=f,fname=f.name;
+        if(!(a===1&&b===N)){try{part=await pdfCut(f,a,b);fname=`${title} (${f.name.replace(/\.pdf$/i,'')} ${pg}쪽).pdf`}catch(e){}}
+        const post=(o,body)=>fetch(SG_HELPER+'/song-file?'+new URLSearchParams(o),{method:'POST',body}).catch(()=>{});
+        post({song:title,kind:'score_jj',name:fname,pages:pg,src:f.name},part);
+        post({song:title,kind:'out',name:'악보코드.txt'},`# 악보에서 읽은 코드 진행 — ${src}\n`+text);
+      }
+    }
+    const B=scMerge(scParse(text,8));
+    if(!B.length){say(`악보(${esc(src)})에서 코드를 읽지 못했습니다. 쪽이 맞는지 확인해 주세요.`);return}
+    /* 음원 분석 코드 (원래 이름 · 이어진 같은 코드는 하나로) */
+    if(!SCO.orig||SCO.title!==title){SCO.orig=SG.song.chords.map(c=>({...c}));SCO.title=title;SCO.changed=false}
+    const cs=SG.song.chords,tot=SG.song.bars*16;
+    const A=scMerge(cs.map((c,i)=>({n:c.name,s:c.s,len:(i+1<cs.length?cs[i+1].s:tot)-c.s,idx:[i]})));
+    /* 키 차이: 반음 shift 를 음원에 더하면 악보 키 */
+    const hb=scHist(B,0);let shift=0,bs=-1;for(let k=0;k<12;k++){const ha=scHist(A,k);let d=0;for(let i=0;i<24;i++)d+=ha[i]*hb[i];if(d>bs){bs=d;shift=k}}
+    if(shift>6)shift-=12;
+    A.forEach(x=>x.t=sgTrName(x.n,shift));
+    const pairs=scAlign(A,B),rows=[];let ok=0,ty=0,df=0,ex=0;
+    pairs.forEach(p=>{const a=A[p.a],b=p.b;let k;
+      if(!b){k='extra';ex++}else{const v=scSim(a.t,b.n);if(v>=3){k='ok';ok++}else if(v>=2){k='type';ty++}else{k='diff';df++}}
+      rows.push({a,b,k,fix:b?sgTrName(b.n,-shift):null})});
+    SCO.res={rows,shift,src,title};
+    const kname=k=>({ok:'✓ 같음',type:'~ 종류 다름',diff:'✗ 다름',extra:'– 음원에만'}[k]);
+    const sh=shift?`<br>키: 음원이 악보보다 <b>${shift>0?'반음 '+shift+'개 낮게':'반음 '+(-shift)+'개 높게'}</b> 연주됨 (악보 ${nn(mod(sgKey0()+shift))} · 음원 ${nn(sgKey0())}) — 맞춰서 비교했습니다`:'';
+    const bad=rows.filter(r=>r.k!=='ok');
+    box.hidden=false;
+    box.innerHTML=`<p class="sc-sum">🎼 악보 기준 비교 — 악보: ${esc(src)} (코드 ${B.length}개)${sh}<br>
+      음원 코드 ${rows.length}개 중 <span class="sc-ok">같음 ${ok}</span> · <span class="sc-type">종류 다름 ${ty}</span> · <span class="sc-diff">다름 ${df}</span> · <span class="sc-extra">음원에만 ${ex}</span>
+      — 줄을 누르면 그 위치로</p>
+      <div class="sc-bar"><button class="ghost sm" id="scFix" ${ty+df?'':'disabled'} title="종류 다름 · 다름인 곳을 악보 코드로 (음원 키에 맞춰)">악보대로 고치기 (${ty+df}곳)</button>
+        <button class="ghost sm" id="scFixType" ${ty?'':'disabled'} title="뿌리음이 같은 곳만 (Em → Em7 같은 종류만)">종류만 고치기 (${ty}곳)</button>
+        <button class="ghost sm" id="scUndo" ${SCO.changed?'':'disabled'}>되돌리기</button>
+        <button class="ghost sm" id="scAll" aria-pressed="false">같은 것도 보기</button><button class="ghost sm" id="scClose">닫기</button></div>
+      <div class="sc-list"><table><thead><tr><th>시간</th><th>마디</th><th>음원</th><th>악보</th><th></th></tr></thead><tbody>${scRows(false)}</tbody></table></div>`;
+  }catch(e){say('악보 비교를 하지 못했습니다: '+esc(e&&e.message||e))}
+}
+function scRows(all){
+  const R=SCO.res;if(!R)return '';
+  return R.rows.filter(r=>all||r.k!=='ok').map(r=>{const t=sgTime(r.a.s);
+    return `<tr data-t="${t}"><td>${sgFmt(t)}</td><td>${Math.floor(r.a.s/16)+1}</td><td>${esc(r.a.n)}</td><td>${r.b?esc(r.fix):'—'}</td><td class="sc-${r.k}">${({ok:'✓ 같음',type:'~ 종류 다름',diff:'✗ 다름',extra:'– 음원에만'})[r.k]}</td></tr>`}).join('')||'<tr><td colspan="5">다른 곳이 없습니다 ✓</td></tr>';
+}
+function scApply(kinds){
+  const R=SCO.res;if(!R)return;let n=0;
+  R.rows.forEach(r=>{if(r.b&&kinds.includes(r.k))r.a.idx.forEach(i=>{if(SG.song.chords[i].name!==r.fix){SG.song.chords[i].name=r.fix;n++}})});
+  SCO.changed=true;SG._ch=null;SG._k0=null;sgRender();
+  if(!sgPhone())sgHelperOn().then(on=>{if(!on)return;
+    fetch(SG_HELPER+'/song-file?'+new URLSearchParams({song:R.title,kind:'out',name:'보정코드.json'}),{method:'POST',
+      body:JSON.stringify({kind:'saygita-chordfix',version:1,from:R.src,shift:R.shift,made:new Date().toISOString(),
+        chords:SG.song.chords,changes:R.rows.filter(r=>r.b&&kinds.includes(r.k)).map(r=>({s:r.a.s,from:r.a.n,to:r.fix,kind:r.k}))},null,1)}).catch(()=>{})});
+  return n;
+}
+sgEl('sgScoreGo').addEventListener('click',scRun);
+sgEl('sgScoreOut').addEventListener('click',e=>{
+  const tr=e.target.closest('tr[data-t]');if(tr){sgSeek(+tr.dataset.t);return}
+  const b=e.target.closest('button');if(!b)return;
+  if(b.id==='scClose'){sgEl('sgScoreOut').hidden=true;return}
+  if(b.id==='scAll'){const on=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',on);sgEl('sgScoreOut').querySelector('tbody').innerHTML=scRows(on);return}
+  if(b.id==='scFix'||b.id==='scFixType'){const n=scApply(b.id==='scFix'?['type','diff']:['type']);b.textContent=`고침 ${n}곳 ✓`;sgEl('scUndo').disabled=false;return}
+  if(b.id==='scUndo'&&SCO.orig){SG.song.chords=SCO.orig.map(c=>({...c}));SCO.changed=false;SG._ch=null;SG._k0=null;sgRender();b.disabled=true;scRun();return}
+});
 function sgRender(){
+  if(SCO.res&&SG.song&&SCO.res.title!==SG.song.title){sgEl('sgScoreOut').hidden=true;SCO.res=null}
   const s=SG.song;sgEl('sgMain').hidden=!s;sgEl('sgHelp').hidden=!!s;if(!s)return;
   sgEl('sgTitle').textContent=s.title;
   const chs=[...new Set(sgCh().map(c=>c.name))];
