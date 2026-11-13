@@ -311,6 +311,7 @@ body[data-page="edit"] #boardScroll,body[data-page="edit"] .board-bar,body[data-
 .ce-cmp{border:2px solid var(--accent-fill);border-radius:8px;padding:6px 10px;margin:4px 0 8px}
 [data-cecmp][aria-pressed="true"]{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent)}
 .ce-srct .ce-none{opacity:.5}.ce-srct .ce-base{background:color-mix(in srgb,var(--accent-fill) 12%,transparent)}.ce-srct .ce-f{max-width:22em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ce-ks{padding:0 7px;margin:0 2px}.ce-ksv{display:inline-block;min-width:2.6em;text-align:center}
 [data-cebase][aria-pressed="true"]{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent)}
 .ce-rt{font-weight:700;border-radius:3px}.sg-rhy .ce-rt[data-rs]{cursor:pointer}.sg-rhy .ce-rt[data-rs]:hover{outline:2px solid var(--accent-fill)}.sg-rhy .ce-rtx{cursor:default}.sg-rhy .ce-rtx.now{background:color-mix(in srgb,var(--accent-fill) 14%,transparent)}
 .ce-rt.now{background:var(--accent-fill)!important;color:var(--on-accent)!important;outline:2px solid var(--accent-fill)}.ce-rt.gen{color:var(--ink)}.ce-hp{color:#1f6fb2;font-weight:600}.ce-rtx.gen pre{opacity:.92}.ce-rth i{font-style:normal;color:var(--muted)}.ce-rt.ok{color:#2e7d32}.ce-rt.type{color:#a67c00;background:color-mix(in srgb,#c79100 14%,transparent)}.ce-rt.diff{color:#c0392b;background:color-mix(in srgb,#c0392b 14%,transparent)}
@@ -2688,7 +2689,7 @@ function sgKeyBar(){
     ${C?`<span>→ <b>${nn(shape)}</b> 코드 모양으로 연주</span>`:''}
     <span class="sg-kgrp sg-shapes">쉬운 모양 ${sgShapes(key).map(o=>`<button class="ghost sm" data-sgcapo="${o.c}" aria-pressed="${o.c===C}" title="${o.c?'카포 '+o.c+'프렛에 ':''}${nn(o.sh)} 코드 모양으로 치기">${nn(o.sh)}${o.c?' · 카포 '+o.c:''}</button>`).join('')}</span>
     ${(()=>{const hp=sgHarp();return hp?`<span class="sg-kgrp">하모니카 <select id="sgHarpKey"><option value="auto"${SG.harpKey==='auto'?' selected':''}>자동 (${NOTE_K(hp.auto)})</option>${SHARP.map((_,i)=>`<option value="${i}"${SG.harpKey===String(i)?' selected':''}>${NOTE_K(i)} 하모니카</option>`).join('')}</select></span>`:''})()}
-    <span class="sg-kgrp">지판에 <button class="ghost sm" data-sgbd="sc" aria-pressed="${SG.bd.sc}" title="곡 키의 스케일 음을 지판 전체에 흐리게">🎼 스케일</button><button class="ghost sm" data-sgbd="ch" aria-pressed="${SG.bd.ch}" title="지금 코드의 구성음을 지판 전체에 색으로">🎸 코드</button><button class="ghost sm" data-sgbd="ez" aria-pressed="${SG.bd.ez}" title="지금 코드를 운지가 가장 쉬운 오픈 코드 모양으로 (곡편집에서 고른 운지가 있으면 그것)">🤚 쉬운 코드</button></span>
+    <span class="sg-kgrp">지판에 <button class="ghost sm" data-sgbd="sc" aria-pressed="${SG.bd.sc}" title="곡 키의 스케일 음을 지판 전체에 흐리게 — 지금 ${nn(key)} 메이저 (= ${nn(mod(key+9))}m 내추럴 마이너와 같은 음)">🎼 스케일 · ${nn(key)} 메이저 (${nn(mod(key+9))}m)</button><button class="ghost sm" data-sgbd="ch" aria-pressed="${SG.bd.ch}" title="지금 코드의 구성음을 지판 전체에 색으로">🎸 코드</button><button class="ghost sm" data-sgbd="ez" aria-pressed="${SG.bd.ez}" title="지금 코드를 운지가 가장 쉬운 오픈 코드 모양으로 (곡편집에서 고른 운지가 있으면 그것)">🤚 쉬운 코드</button></span>
     ${T||C?`<button class="ghost sm" data-sgkreset="1">원래대로</button>`:''}
     ${T&&!S?`<span class="sg-knote">※ 지금은 악보만 바뀌고 소리는 원곡(${nn(k0)}) 그대로입니다 — [🔊 음원도 같이]를 켜면 소리도 ${nn(key)} 키로</span>`:''}
     ${T&&S?`<span class="sg-knote sg-knote-on">🔊 음원도 ${nn(k0)} → <b>${nn(key)}</b> 키로 재생 중 (빠르기 그대로)</span>`:''}</div>`;
@@ -3061,7 +3062,7 @@ function ceRhyPlace(){
     ceApplyRhyLyrics();return}
   ceRhyScore();const D=CE.D,tot=CE.song.bars*16;
   const at=sl=>{let c=null;for(const x of D){if(x.s<=sl)c=x;else break}return c};
-  if(R.shift==null)R.shift=ceRhyShift(R);
+  if(R.shift==null){const rs=CE.rec&&CE.rec.rhyFile===R.file?CE.rec.rhyShift:null;if(rs!=null){R.shift=rs;R.shiftMan=true}else R.shift=ceRhyShift(R)}
   const ev=[];let u=0;R.lines.forEach((L,li)=>{L.u0=u;L.chords.forEach((c,j)=>{ev.push({li,j,u,len:c.len});u+=c.len})});R.units=u;
   const fl=R.lines.findIndex(L=>L.ly);let vs=((CE.song.lines||[])[0]||{}).s;
   if((CE.song.lyrics||[]).length<10&&CE.ph&&CE.ph.length){const t=CE.ph.find(t=>t>=3)||CE.ph[0];vs=ceSlotAt(t)}   /* 받아 적은 가사가 부족 → 노래 트랙의 첫 구절 */
@@ -3072,7 +3073,9 @@ function ceRhyPlace(){
   const simC=new Map(),simOf=(an,rn)=>{const key=an+'|'+rn;let v=simC.get(key);if(v==null){const x=scSim(ceRK(an),chAlias(rn));v=x>=3?1:x>=2?0.8:0;simC.set(key,v)}return v};
   const PH=(CE.ph||[]).map(t=>ceSlotAt(t)),phAt=(a,b)=>PH.some(x=>x>=a&&x<b);   /* 노래 트랙의 구절 시작 (가사 줄 자리 잡기 도움) */
   let best=null;const NB=Math.ceil(tot/16),GAP=0.35,VOX=3;   /* 건너뛴 마디 하나 = 코드 0.35개 덜 맞은 것으로 */
-  for(const k of [2,1,4]){
+  /* 박자 비율은 먼저 길이로: 리듬악보 길이 × 비율이 곡 길이의 70~120% 인 것만 (없으면 셋 다) — 짧게 읽으면 줄 사이를 건너뛰며 아무 데나 붙는 것 막기 */
+  let KS=[2,1,4].filter(k=>{const r=R.units*k/16/NB;return r>=0.7&&r<=1.2});if(!KS.length)KS=[2,1,4];R.lenFit=KS.length<3;
+  for(const k of KS){
     const lines=R.lines.map(L=>{let cu=0;const cs=L.chords.map(c=>{const o={n:c.n,u:cu,len:c.len};cu+=c.len;return o});return {cs,lb:Math.max(1,Math.round(cu*k/16)),ly:!!L.ly}});
     const score=(i,b)=>{let s=0,n=0;for(const c of lines[i].cs){const sl=b*16+c.u*k+Math.floor(c.len*k/2);if(sl>=tot)break;const j=atI(sl);if(j<0)continue;n++;s+=simOf(D[j].name,c.n)}
       const x=lines[i].ly&&PH.length&&phAt(b*16-4,b*16+4*k*3)?VOX:0;return {s:s+x,n,x}};   /* 가사 줄 앞부분(첫 3박 안)에 실제 노래 시작이 있으면 가산점 */
@@ -3400,7 +3403,7 @@ function ceRhySug(){
   D.sort((a,b)=>a.s-b.s);
   let hit=0,n=0;
   D.forEach((x,i)=>{delete x.sug.rhy;const g=segs.find(g=>x.s>=g.s&&x.s<g.e);if(!g)return;
-    const nm=ceAK(chAlias(g.n)),v=scSim(x.audio||x.name,nm),k=v>=3?'ok':v>=2?'type':'diff';x.sug.rhy={name:nm,k};n++;if(k!=='diff')hit++});
+    const nm=ceAK(chAlias(g.n)),v=scSim(x.audio||x.name,nm),k=v>=3?'ok':v>=2?'type':'diff';x.sug.rhy={name:nm,k,orig:chAlias(g.n)};n++;if(k!=='diff')hit++});
   if(sk)D.forEach(x=>{const g=gsegs.find(g=>x.s>=g.s&&x.s<g.e);if(!g)return;const nm=ceAK(g.n.replace(/ma9$/,'madd9')),v=scSim(x.audio||x.name,nm);x.sug[sk.k]={name:nm,k:v>=3?'ok':v>=2?'type':'diff'}});
   CE.rhyMatch=n?hit/n:0;CE.rhyN=n;
 }
@@ -3409,10 +3412,11 @@ function ceSrcTable(){
     if(k==='audio'){has=true;file=CE.song.source||'';match=1}
     else if(k==='rhy'){has=!!CE.rhy;file=CE.rhy?CE.rhy.file:'';match=CE.rhyMatch}
     else{const S=(CE.srcs||[]).find(S=>S.k===k);has=!!S;file=S?S.file:'';match=S?S.match:null}
+    const keyCtl=k==='rhy'&&CE.rhy&&!CE.rhy.auto?(()=>{const bS=(CE.srcs||[]).find(S=>S.k===CE.base),s=(CE.rhy.shift||0)-(CE.base==='rhy'||CE.base==='audio'||!bS?0:(bS.shift||0));return ` · 키 <button class="ghost sm ce-ks" data-ceks="-1" title="리듬악보가 음원보다 반음 낮은 쪽으로">−</button><b class="ce-ksv" title="리듬악보 키 − 1단계 기준 키 (반음)">${s?(s>0?'+':'')+s:'같음'}</b><button class="ghost sm ce-ks" data-ceks="1" title="리듬악보가 음원보다 반음 높은 쪽으로">+</button><span class="mt">기준 대비 · ${CE.rhy.shiftMan?'직접':'자동'}</span>`})():'';
     const c={ok:0,type:0,diff:0};let n=0;if(has&&k!=='audio')D.forEach(x=>{const g=x.sug[k];if(g){n++;c[g.k]=(c[g.k]||0)+1}});
     const used=D.filter(x=>x.pick===k).length;
     return `<tr class="${has?'':'ce-none'}${CE.base===k?' ce-base':''}"><td><b>${l}</b></td><td class="ce-f">${has?esc(file):'없음 — 곡편집 입력에 넣으면 비교'}</td>
-      <td>${has?(k==='audio'?'기준 (음원분석)':`음원과 <b>${Math.round((match||0)*100)}%</b> 일치 · <span class="sc-ok">같음 ${c.ok}</span> · <span class="sc-type">종류 다름 ${c.type}</span> · <span class="sc-diff">다름 ${c.diff}</span>`):''}</td>
+      <td>${has?(k==='audio'?'기준 (음원분석)':`음원과 <b>${Math.round((match||0)*100)}%</b> 일치 · <span class="sc-ok">같음 ${c.ok}</span> · <span class="sc-type">종류 다름 ${c.type}</span> · <span class="sc-diff">다름 ${c.diff}</span>${keyCtl}`):''}</td>
       <td>${has?`<button class="ghost sm" data-cebase="${k}" aria-pressed="${CE.base===k}">${CE.base===k?'✔ 1단계 기준':'기준으로'}</button>`:''}</td>
       <td>${has&&CE.base!==k&&k!=='audio'||has&&CE.base!==k&&k==='audio'?`<button class="ghost sm" data-cecmp="${k}" aria-pressed="${CE.cmp===k}">${(CE.cmpDone||[]).includes(k)?'✔ 비교함':CE.cmp===k?'비교 중':'비교하기'}</button>`:''}</td><td class="mt">${has?'결정 '+used:''}</td></tr>`}).join('');
   const st=1+(CE.cmpDone||[]).length+(CE.cmp?1:0);
@@ -3424,7 +3428,7 @@ function ceCmpPanel(){
   const df=D.map((x,i)=>({x,i})).filter(o=>{const n=nm(o.x);return n&&n!==o.x.name});
   const srcL=o=>({tab:'타브',gt:'악보',audio:'음원',rhy:'리듬',custom:'직접'}[o]||o);
   const rows=df.map(({x,i})=>{const b=Math.floor(x.s/16),bt=Math.floor((x.s%16)/4)+1;
-    return `<tr><td><button class="ghost sm" data-cebar="${b}" title="이 마디 원곡 듣기">▶</button> ${b+1}마디 ${bt}박</td><td>지금 <b>${esc(x.name)}</b> <span class="mt">(${srcL(x.pick)})</span></td><td>→ ${esc(lab)} <b>${esc(nm(x))}</b></td><td><button class="ghost sm" data-cecmpone="${i}">바꾸기</button></td></tr>`}).join('');
+    return `<tr><td><button class="ghost sm" data-cebar="${b}" title="이 마디 원곡 듣기">▶</button> ${b+1}마디 ${bt}박</td><td>지금 <b>${esc(x.name)}</b> <span class="mt">(${srcL(x.pick)})</span></td><td>→ ${esc(lab)} <b>${esc(nm(x))}</b>${k==='rhy'&&x.sug.rhy&&x.sug.rhy.orig&&x.sug.rhy.orig!==x.sug.rhy.name?` <span class="mt">(적힌 ${esc(x.sug.rhy.orig)})</span>`:''}</td><td><button class="ghost sm" data-cecmpone="${i}">바꾸기</button></td></tr>`}).join('');
   return `<div class="ce-cmp"><div class="ce-sum"><b>${st}단계 — ${esc(lab)} 비교</b>: 지금 결정과 다른 곳 <b>${df.length}</b>곳. 들어 보고 맞는 쪽으로 바꾸세요.</div>
     ${df.length?`<div class="sc-list"><table class="ce-ly"><tbody>${rows}</tbody></table></div>`:'<p class="ce-sum">다른 곳이 없습니다.</p>'}
     <div class="ce-bar-tools">${df.length?`<button class="ghost sm" data-cecmpall="1">모두 ${esc(lab)}대로 바꾸기</button>`:''}<button class="ghost sm" data-cecmpend="1">✔ ${st}단계 끝 → 다음</button></div></div>`;
@@ -3517,6 +3521,7 @@ async function ceSave(markDone){
     rec.rhythm={file:CE.rhy.file,blocks:[...d.querySelectorAll('.ce-rtx')].map(b=>{const r=b.querySelector('[data-cerange]'),[s0,e0]=(r?r.dataset.cerange:'0,0').split(',').map(Number),hd=b.querySelector('.ce-rth').cloneNode(true);
       hd.querySelectorAll('button').forEach(x=>x.remove());return {s:s0,e:e0,gen:b.classList.contains('gen'),h:hd.innerHTML.trim(),pre:b.querySelector('pre')?b.querySelector('pre').innerHTML:[...b.querySelectorAll('.ce-gl')].map(x=>x.innerHTML).join('\n')}})}}
   rec.strum={pat:CE.pat,name:ARP[CE.pat].n,auto:CE.patAuto};rec.ezTab=CE.ez!==false;rec.syncOff=CE.off||0;rec.lyShift={...CE.lyShift};
+  if(CE.rhy&&CE.rhy.shiftMan){rec.rhyFile=CE.rhy.file;rec.rhyShift=CE.rhy.shift}else delete rec.rhyShift;
   if(CE.rhy&&CE.lyFromRhy){rec.rhyFile=CE.rhy.file;rec.rhyPos=CE.rhy.k+":"+(CE.rhy.pos||[CE.rhy.st]).join(",");rec.rhyLy=CE.rhy.lines.map(L=>L.lw?L.lw.map(w=>[w.w,w.s]):null);rec.rhyCh=CE.rhy.lines.map(L=>L.edCh?L.chords.map(c=>[c.n,c.s]):null);
     rec.lyFrom='rhythm';rec.lyrics=CE.song.lyrics;rec.lines=CE.song.lines}else{delete rec.lyFrom;delete rec.lyrics;delete rec.lines}rec.lyAuto=rec.lyAuto||!!CE.lyAuto;rec.sections={...CE.sec};rec.voicings={...CE.vmap};
   rec.chords={base:CE.base,cmpDone:CE.cmpDone||[],media:CE.song.source,sources:CE.srcs.map(S=>({kind:S.k,file:S.file,shift:S.shift})),decisions:D.map(x=>({s:x.s,name:x.name,pick:x.pick,audio:x.audio,add:x.add||undefined,tab:(x.sug.tab||{}).name||null,gt:(x.sug.gt||{}).name||null,k:x.k}))};
@@ -3559,6 +3564,8 @@ sgEl('ceBox').addEventListener('click',async e=>{
       CE.lyAuto={n,of:CE.rhy.lines.filter(L=>L.lw&&L.lw.length).length,ph:CE.ph.length};ceApplyRhyLyrics();ceRender()})();return}
   if(t.closest('[data-celyauto]')){const b=t.closest('[data-celyauto]');b.disabled=true;b.textContent='맞추는 중…';ceLyAuto().then(()=>ceRender()).catch(er=>{alert('노래 트랙을 읽지 못했습니다: '+(er.message||er));ceRender()});return}
   const of=t.closest('[data-ceoff]');if(of){const v=+of.dataset.ceoff;CE.off=v?Math.round(((CE.off||0)+v)*1000)/1000:0;CE.song.beats=CE.beats0.map(b=>b+CE.off);ceRender();return}
+  const ks=t.closest('[data-ceks]');if(ks&&CE.rhy){let s=(CE.rhy.shift||0)+(+ks.dataset.ceks);if(s>6)s-=12;if(s<-6)s+=12;
+    CE.rhy.shift=s;CE.rhy.shiftMan=true;CE.rhy.lines.forEach(L=>{delete L.lw});ceRhyPlace();ceRhySug();if(CE.base==='rhy')CE.D.forEach(cePickBase);ceRender();return}
   const bs=t.closest('[data-cebase]');if(bs){CE.base=bs.dataset.cebase;CE.cmp=null;CE.cmpDone=[];CE.D.forEach(cePickBase);ceRender();return}
   const cm=t.closest('[data-cecmp]');if(cm){CE.cmp=CE.cmp===cm.dataset.cecmp?null:cm.dataset.cecmp;ceRender();return}
   const pickCmp=x=>{const k=CE.cmp;if(k==='audio'){x.pick='audio';x.name=x.audio}else if(x.sug[k]){x.pick=k;x.name=x.sug[k].name;x.k=x.sug[k].k}};
