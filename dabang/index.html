@@ -269,6 +269,8 @@ body[data-page="edit"] #boardScroll,body[data-page="edit"] .board-bar,body[data-
 .ed-pick input[type=number]{width:4.2em;padding:2px 4px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink)}
 .ed-pick canvas{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:6px;background:#fff}
 .ed-pick .pk-in{outline:3px solid #2e7d32;outline-offset:-3px}
+.ed-paste{width:100%;min-height:18em;font-family:'Nanum Gothic Coding','D2Coding',monospace;font-size:.92rem;line-height:1.5;white-space:pre;overflow:auto;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
+.ed-pname{width:16em;padding:2px 6px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink)}
 .ed-pick .pk-sum{font-size:.85rem;color:var(--muted)}
 .ce{margin-top:12px;border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:10px 12px}
 .ce-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px;justify-content:space-between}
@@ -2707,7 +2709,7 @@ const ED_KINDS=[
   {k:'video',n:'매체영상',d:'영상 (mp4 …) — 소리를 뽑아 분석',add:[['파일 추가','video/*,.mp4,.mkv,.mov,.avi,.m4v,.wmv']]},
   {k:'link',n:'매체링크',d:'유튜브 등 주소 + 받은 원음',add:[['링크 추가','@link']]},
   {k:'rec',n:'매체녹음',d:'탭 소리 녹음 — 재생되는 소리를 원음 그대로',add:[['🔴 녹음','@rec']]},
-  {k:'jj',n:'리듬악보',d:'리듬악보 TXT — 코드 · 가사 · 박자',add:[['TXT 추가','.txt,text/plain'],['애드립에서 가져오기','@adlib']]},
+  {k:'jj',n:'리듬악보',d:'리듬악보 TXT — 코드 · 가사 · 박자',add:[['TXT 추가','.txt,text/plain'],['붙여넣기','@paste']]},
   {k:'gt',n:'기타악보',d:'기타 악보 PDF — 코드 · 가사 (스캔도 읽음)',add:[['PDF 추가','application/pdf,.pdf']]},
   {k:'tab',n:'기타타브',d:'기타 TAB 악보 PDF — 주법 · 전주 · 간주 · 후주',add:[['PDF 추가','application/pdf,.pdf']]}];
 const ED_RULES=`전주 · 간주 · 후주 결정 — 우선순위 (음원 · 영상 · 링크 &gt; 기타타브 &gt; 기타악보)<br>
@@ -2829,12 +2831,40 @@ async function edAddPdf(song,k,blob,fname){   /* 악보 PDF → (쪽 고르기) 
   return true;
 }
 function edPick(accept){return new Promise(res=>{const el=sgEl('edFile');el.accept=accept;el.value='';el.onchange=()=>res(el.files&&el.files[0]||null);el.click()})}
+/* 리듬악보 붙여넣기: 창에 TXT 를 붙여넣고 저장 → 입력\리듬악보 - ….txt (다른 리듬악보는 '출력에 사용' 끔) */
+function edPasteRhy(song){
+  return new Promise(res=>{
+    const box=sgEl('edPick');box.hidden=false;
+    box.innerHTML=`<div><b>${esc(song)} — 리듬악보 붙여넣기</b>
+      <p class="pk-sum">코드 줄 / 가사 줄(또는 [전주] 같은 구간 이름) / 길이 숫자 줄(4 = 반 마디, 8 = 한 마디)을 묶음마다 빈 줄로 나눠 붙여넣으세요. Ema9 = Em add9.</p>
+      <textarea class="ed-paste" spellcheck="false" placeholder="G     D        Ema9 G      D          Ema9&#10; 그대 보내고 멀리    가을 새와 작별하듯&#10;4 4 8 4 4 8"></textarea>
+      <div class="pk-bar">파일 이름 <input type="text" class="ed-pname" value="${esc(song)} 붙여넣기"> .txt <span class="pk-sum ed-pinfo"></span></div>
+      <div class="pk-bar" style="justify-content:flex-end"><button class="ghost sm" data-pk="cancel">취소</button><button class="play" data-pk="ok">저장</button></div></div>`;
+    const ta=box.querySelector('textarea'),info=box.querySelector('.ed-pinfo');
+    const chk=()=>{const L=ceRhyParse(ta.value).filter(x=>x.chords.length);info.textContent=ta.value.trim()?(L.length?`읽힌 묶음 ${L.length}개 · 가사 줄 ${L.filter(x=>x.ly).length}개`:'코드 줄을 찾지 못했습니다'):'';return L.length};
+    ta.addEventListener('input',chk);setTimeout(()=>ta.focus(),50);
+    const done=v=>{box.hidden=true;box.innerHTML='';res(v)};
+    box.onchange=null;box.onclick=async e=>{const t=e.target.closest('[data-pk]');if(!t){if(e.target===box&&!ta.value.trim())done(false);return}
+      if(t.dataset.pk==='cancel')return done(false);
+      if(!chk()){alert('코드 줄을 찾지 못했습니다. 코드 줄 · 가사 줄 · 길이 숫자 줄 형식인지 확인하세요.');return}
+      const nm=(box.querySelector('.ed-pname').value||'붙여넣기').trim().replace(/\.txt$/i,'').replace(/[\\/:*?"<>|]/g,' ');
+      t.disabled=true;t.textContent='저장하는 중…';
+      try{const txt='\ufeff'+ta.value.replace(/\r?\n/g,'\r\n');
+        const r=await edApi('/song-file',{song,kind:'jj',name:nm+'.txt'},new Blob([txt],{type:'text/plain;charset=utf-8'}));
+        /* 새로 넣은 것을 쓰게: 다른 리듬악보는 출력에 사용 끔 */
+        const m=await (await fetch(SG_HELPER+'/list/'+encodeURIComponent(song),{cache:'no-store'})).json().catch(()=>null);
+        const mine=r&&r.file?r.file.split(/[\\/]/).pop():'';
+        for(const x of (m&&m.inputs)||[])if((x.kind==='jj'||x.kind==='chords')&&x.file!==mine&&x.use!==false)await edApi('/song-use',{song,file:x.file,use:'0'},'').catch(()=>{});
+        done(true)}catch(er){alert('저장하지 못했습니다: '+(er.message||er));t.disabled=false;t.textContent='저장'}};
+  });
+}
 async function edAdd(k,i){
   const song=ED.song;if(!song)return;const a=ED_KINDS.find(x=>x.k===k).add[i][1];
   try{
     if(a==='@link'){const url=(prompt('유튜브 등 링크 주소 (원음을 받아 입력에 넣습니다. 분석은 [곡 분석])','')||'').trim();if(!url)return;
       const j=await edApi('/song-link',{song,url},'');ED.busy[song]='링크에서 원음 받는 중…';edRender();edPoll(j.id,song,'링크 받기');return}
     if(a==='@rec'){SG.recTarget=song;sgRecord();return}
+    if(a==='@paste'){if(await edPasteRhy(song))return edLoad(song);return}
     if(a==='@adlib'){const t=document.getElementById('adSrc').value;if(!t.trim()){alert('애드립 탭의 코드 진행이 비어 있습니다.');return}
       await edApi('/song-file',{song,kind:'chords'},t);return edLoad(song)}
     const f=await edPick(a);if(!f)return;
