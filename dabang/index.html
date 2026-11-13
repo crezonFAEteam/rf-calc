@@ -3308,10 +3308,10 @@ function ceSrcOk(k){if(k==='audio')return true;if(k==='rhy')return !!CE.rhy&&(CE
 function ceBaseDefault(){for(const [k] of CE_ORD){if(k==='rhy')continue;if(k==='audio'||((CE.srcs||[]).some(S=>S.k===k)&&ceSrcOk(k)))return k}return 'audio'}
 function cePickBase(x){const ord=[CE.base,...CE_ORD.map(o=>o[0]).filter(k=>k!==CE.base)];
   for(const k of ord){if(k==='audio'){x.pick='audio';x.name=x.audio;return}if(x.sug[k]&&(k===CE.base||ceSrcOk(k))){x.pick=k;x.name=x.sug[k].name;x.k=x.sug[k].k;return}}}
-/* 리듬악보를 코드 출처로: 리듬악보에 적힌 그대로(악보 기준으로 바꾸기 전) 코드 → 음원 코드마다 */
+/* 리듬악보를 코드 출처로: 리듬악보 보기에 보이는 코드(악보 기준 · 직접 고친 것) → 결정 칸마다 */
 function ceRhySug(){
   const R=CE.rhy;if(!R)return;const D=CE.D,tot=CE.song.bars*16,segs=[];
-  R.lines.forEach(L=>{const cs=L.orig?L.orig.chords:L.chords;let p=L.s;cs.forEach(c=>{const e=p+(c.len||0)*R.k;segs.push({n:c.n,s:p,e});p=e})});
+  R.lines.forEach(L=>{L.chords.forEach(c=>{if(c.s!=null&&c.e>c.s)segs.push({n:c.n,s:c.s,e:c.e})})});   /* 지금 리듬악보 보기의 코드 (악보 기준으로 바꾼 것 · 직접 고친 것 포함) */
   /* 악보 기준으로 바꾼 줄(L.src)은 악보 코드의 박 위치도 정확함 → 그 칸의 악보 제안으로 */
   const sk=(CE.srcs||[]).find(S=>S.label===R.scoreSrc),gsegs=[];if(sk)R.lines.forEach(L=>{if(!L.src)return;L.chords.forEach(c=>gsegs.push({n:chAlias(c.n),s:c.s,e:c.e}))});
   /* 리듬악보 코드가 바뀌는 자리마다 결정 칸을 나눔 (나뉜 칸은 앞 칸의 결정을 그대로 물려받음 → 다른 출처 결과는 그대로) */
@@ -3457,7 +3457,7 @@ sgEl('ceBox').addEventListener('focusout',e=>{const g=e.target.closest&&e.target
   else{const ts=ceTok(txt).map(o=>({n:chAlias(o.t),s:S+o.c})),bad=ts.find(x=>!CH.test(x.n));
     if(bad){alert('코드 이름으로 알아보지 못했습니다: '+bad.n);ceRender();return}
     if(!ts.length){ceRender();return}if(ts[0].s>S)ts[0].s=S;
-    L.chords=ts.map(x=>({n:x.n,s:x.s,len:0,ly:''}));L.edCh=true;ceRhyEval(L);L.nl=L.chords.map(c=>c.len).join(' ');ceRhyChordsToD(L)}
+    L.chords=ts.map(x=>({n:x.n,s:x.s,len:0,ly:''}));L.edCh=true;ceRhyEval(L);L.nl=L.chords.map(c=>c.len).join(' ');ceRhyChordsToD(L);ceRhySug()}
   const y=window.scrollY;ceRender();window.scrollTo(0,y)});
 sgEl('ceBox').addEventListener('click',async e=>{
   const t=e.target;
