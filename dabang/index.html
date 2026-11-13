@@ -2870,18 +2870,19 @@ const CE_SRC=[['tab','타브','타브코드.txt'],['gt','악보','악보코드.t
 function scClean(text){
   const L=text.replace(/\r/g,'').split('\n'),fix=n=>chAlias(n).replace(/add$/,'add9');
   const isCh=l=>{const t=l.trim().split(/\s+/).filter(Boolean);return t.length&&t.every(x=>CH.test(fix(x)))},isNum=l=>/^\s*\d+(\s+\d+)*\s*$/.test(l);
-  const pairs=[];for(let i=0;i+1<L.length;i++)if(isCh(L[i])&&isNum(L[i+1])){const n=L[i].trim().split(/\s+/).map(fix),d=L[i+1].trim().split(/\s+/).map(Number);pairs.push({i,n,d})}
+  const pairs=[];for(let i=0;i+1<L.length;i++){if(!isCh(L[i]))continue;const j=isNum(L[i+1])?i+1:(L[i+2]!=null&&!isCh(L[i+1])&&isNum(L[i+2])?i+2:-1);if(j<0)continue;
+    const pos=[],n=[];L[i].replace(/\S+/g,(m,k)=>{pos.push(k);n.push(fix(m));return m});pairs.push({i,j,n,pos,d:L[j].trim().split(/\s+/).map(Number)})}
   if(!pairs.length)return text;
   const fam=n=>{const c=blChord(n);return c?{r:c.r,m:/^m(?!aj)/.test(c.s),d:/dim|m7-5|m7b5|ø/.test(c.s)}:null};
   const dia=(n,k)=>{const c=fam(n);if(!c)return false;const x=mod(c.r-k);return c.d?x===11:c.m?[2,4,9].includes(x):[0,5,7].includes(x)};
   let key=0,bs=-1;for(let k=0;k<12;k++){let s=0;pairs.forEach(P=>P.n.forEach((n,j)=>{if(dia(n,k)){const c=fam(n),x=mod(c.r-k);s+=((P.d[j]||0)+1)*(x===0||x===9?1.5:1)}})   /* 으뜸화음 · 나란한조 으뜸화음에 무게 (G·D 처럼 화음이 겹치는 조 구별) */);if(s>bs){bs=s;key=k}}
   const lines={};pairs.forEach((P,pi)=>new Set(P.n).forEach(n=>{(lines[n]=lines[n]||new Set()).add(pi)}));
   const keep=n=>dia(n,key)||(lines[n]&&lines[n].size>=2);
-  pairs.forEach(P=>{const o=[];P.n.forEach((n,j)=>{const d=P.d[j]||0;
-      if(!keep(n)||d<=0){if(o.length)o[o.length-1].d+=Math.max(0,d);else if(d>0)o.push({n:null,d});return}
+  pairs.forEach(P=>{const o=[];P.n.forEach((n,j)=>{const d=P.d[j]||0,pos=P.pos[j];
+      if(!keep(n)||d<=0){if(o.length)o[o.length-1].d+=Math.max(0,d);else if(d>0)o.push({n:null,d,pos});return}
       if(o.length&&o[o.length-1].n===null){o[o.length-1].n=n;o[o.length-1].d+=d;return}
       if(o.length&&o[o.length-1].n===n){o[o.length-1].d+=d;return}
-      o.push({n,d})});
+      o.push({n,d,pos})});
     P.q=o.filter(x=>x.n)});
   /* 박 길이 바로잡기 — 악보는 같은 화성 리듬이 되풀이됨: ① 코드 순서가 같은 줄끼리 ② 마디(8칸)마다 같은 코드 조합끼리, 다수(3번 이상 · 2등의 2배 이상)와 다르면 다수대로 */
   const vote=(items,keyOf,durOf,setDur)=>{const g={};items.forEach(it=>{(g[keyOf(it)]=g[keyOf(it)]||[]).push(it)});
@@ -2891,7 +2892,7 @@ function scClean(text){
   vote(pairs.filter(P=>P.q.length),P=>P.q.map(x=>x.n).join('|'),P=>P.q.map(x=>x.d),(P,bd)=>P.q.forEach((x,j)=>x.d=bd[j]));
   const bars=[];pairs.forEach(P=>{let cur=[],s=0;for(const x of P.q){cur.push(x);s+=x.d;if(s===8){bars.push(cur);cur=[];s=0}else if(s>8)break}});
   vote(bars,B=>B.map(x=>x.n).join('|'),B=>B.map(x=>x.d),(B,bd)=>B.forEach((x,j)=>x.d=bd[j]));
-  pairs.forEach(P=>{const q=P.q;L[P.i]=q.map(x=>x.n).join('  ');L[P.i+1]=q.map(x=>x.d).join(' ');if(!q.length){L[P.i]='';L[P.i+1]=''}});
+  pairs.forEach(P=>{const q=P.q;let cl='';q.forEach(x=>{const c=Math.max(x.pos||0,cl.length?cl.length+1:0);cl=cl.padEnd(c)+x.n});L[P.i]=cl;L[P.j]=q.map(x=>x.d).join(' ');if(!q.length){L[P.i]='';L[P.j]=''}});
   return L.join('\n');
 }
 async function ceGetScores(title,say){
@@ -2903,8 +2904,8 @@ async function ceGetScores(title,say){
     const oc=(m.outputs||[]).find(o=>o.file.endsWith('/'+cache));
     let text=null;
     if(oc){const t=await (await fetch(ceUrl('출력',...oc.file.split('/')),{cache:'no-store'})).text();
-      if((t.split('\n')[0]||'').includes(pdf.file))text=t}   /* 지금 입력된 그 PDF 에서 읽은 것일 때만 (악보를 바꾸면 다시 읽음) */
-    if(text==null){say(`${label}(${esc(pdf.file)}) 읽는 중…`);const b=await (await fetch(ceUrl('입력',pdf.file))).blob(),r=await scOmrBlob(b,0,0,say);text=`# ${label}에서 읽은 코드 진행 — ${pdf.file}\n`+r.text;
+      if((t.split('\n')[0]||'').includes(pdf.file)&&(t.split('\n')[0]||'').includes('가사 포함'))text=t}   /* 가사 없이 읽은 옛 결과는 다시 */   /* 지금 입력된 그 PDF 에서 읽은 것일 때만 (악보를 바꾸면 다시 읽음) */
+    if(text==null){say(`${label}(${esc(pdf.file)}) 읽는 중…`);const b=await (await fetch(ceUrl('입력',pdf.file))).blob(),r=await scOmrBlob(b,0,0,say);text=`# ${label}에서 읽은 코드 진행 (가사 포함 · 리듬악보 형식) — ${pdf.file}\n`+r.text;
       fetch(SG_HELPER+'/song-file?'+new URLSearchParams({song:title,kind:'out',name:cache}),{method:'POST',body:text}).catch(()=>{})}
     {const t2=scClean(text);if(t2!==text){text=t2;fetch(SG_HELPER+'/song-file?'+new URLSearchParams({song:title,kind:'out',name:cache}),{method:'POST',body:text}).catch(()=>{})}}   /* 정리한 것으로 다시 저장 */
     out.push({k,label,file:pdf.file,text});
@@ -3384,7 +3385,9 @@ async function scOmrBlob(blob,f,t,say){
       const pg=await doc.getPage(i),v0=pg.getViewport({scale:1}),vp=pg.getViewport({scale:1785/v0.width}),c=document.createElement('canvas');
       c.width=Math.round(vp.width);c.height=Math.round(vp.height);const cx=c.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,c.width,c.height);
       await pg.render({canvasContext:cx,viewport:vp}).promise;
-      const r=await omrPage(c);pages.push(r.map(R=>({S:{xL:R.S.xL,xR:R.S.xR,s:R.S.s},bars:R.bars,pg:i,chords:R.chords.map(c=>({n:c.n,x:c.x,x1:c.x1}))})));
+      const v2=pg.getViewport({scale:2*1785/v0.width}),c2=document.createElement('canvas');c2.width=Math.round(v2.width);c2.height=Math.round(v2.height);
+      {const x2=c2.getContext('2d');x2.fillStyle='#fff';x2.fillRect(0,0,c2.width,c2.height);await pg.render({canvasContext:x2,viewport:v2}).promise}   /* 가사(한글)는 2배 해상도로 읽음 */
+      const r=await omrPage(c,null,{cv:c2,f:c2.width/c.width});pages.push(r.map(R=>({S:{xL:R.S.xL,xR:R.S.xR,s:R.S.s},bars:R.bars,pg:i,ly:R.ly||[],chords:R.chords.map(c=>({n:c.n,x:c.x,x1:c.x1}))})));
     }
     return {text:omrText(pages,8),omr:true};
   }finally{doc.destroy()}
@@ -4641,6 +4644,68 @@ async function omrRead(w,cv,x0,y0,x1,y1,psm,wl,wipe){
   return (data.words||[]).map(o=>({t:o.text,c:o.confidence}));
 }
 const OMR_WL='ABCDEFGmajdinsugM0123456789#b/-+()';
+let omrKorWk=null;
+async function omrKorWorker(log){return omrKorWk||(omrKorWk=await Tesseract.createWorker('kor',1,{logger:log||(()=>{})}))}
+/* 오선 아래 가사 띠 → 줄마다 [{t,x0,x1}] (한글만, 위 줄 = 1절)
+   악보 가사는 한 글자씩 띄어 있고 줄표(—)가 섞여 문단째 읽으면 놓침 → 잉크 덩어리로 음절 상자를 찾아 한 글자씩(PSM 10) 읽음 */
+async function omrLyrics(cv0,im,S,yA,yB,hi){
+  const cv=hi?hi.cv:cv0,F=hi?hi.f:1;
+  if(yB-yA<S.s*1.5)return [];
+  const {W,g}=im,s=S.s,x0=Math.max(0,Math.round(S.xL-s*2)),x1=Math.min(W-1,Math.round(S.xR+s)),bw=x1-x0+1,bh=yB-yA+1;
+  /* 연결 성분 */
+  const lab=new Int32Array(bw*bh),cc=[],stk=[];
+  for(let y=0;y<bh;y++)for(let x=0;x<bw;x++){
+    if(!g[(yA+y)*W+x0+x]||lab[y*bw+x])continue;
+    const c={x0:x,x1:x,y0:y,y1:y,n:0};cc.push(c);lab[y*bw+x]=cc.length;stk.push(y*bw+x);
+    while(stk.length){const q=stk.pop(),py=(q/bw)|0,px=q-py*bw;c.n++;if(px<c.x0)c.x0=px;if(px>c.x1)c.x1=px;if(py<c.y0)c.y0=py;if(py>c.y1)c.y1=py;
+      for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const qx=px+dx,qy=py+dy;if(qx<0||qy<0||qx>=bw||qy>=bh)continue;const r=qy*bw+qx;if(!lab[r]&&g[(yA+qy)*W+x0+qx]){lab[r]=cc.length;stk.push(r)}}}}
+  /* 위 끝에 닿은 것(음표 꼬리) · 가는 가로줄(줄표 —) · 점은 빼기 */
+  const parts=cc.filter(c=>{const w=c.x1-c.x0+1,ht=c.y1-c.y0+1;if(c.y0===0||c.n<3)return false;if(ht<s*0.35&&w>ht*2.5)return false;return ht<=s*2.2&&w<=s*2.4});
+  parts.sort((p,q)=>p.x0-q.x0);
+  /* 음절 = 한 글자 폭(≈ 글자 높이) 안의 조각들 (같은 줄). 한글은 거의 정사각형 */
+  const hs=parts.map(c=>c.y1-c.y0+1).filter(v=>v>=s*0.7).sort((a,b)=>a-b),chH=hs.length?hs[hs.length>>1]:s*1.2;
+  const syl=[];
+  for(const c of parts){const cy=(c.y0+c.y1)/2,o=syl.find(b=>Math.abs(cy-(b.y0+b.y1)/2)<chH*0.8&&c.x0<b.sx+chH*0.92&&c.x1<=b.sx+chH*1.25);
+    if(o){o.x0=Math.min(o.x0,c.x0);o.x1=Math.max(o.x1,c.x1);o.y0=Math.min(o.y0,c.y0);o.y1=Math.max(o.y1,c.y1);o.n+=c.n}else syl.push({...c,sx:c.x0})}
+  const ok=syl.filter(b=>{const w=b.x1-b.x0+1,ht=b.y1-b.y0+1;return ht>=s*0.7&&ht<=s*2.2&&w>=s*0.6&&w<=s*2.6&&b.n>=s*s*0.25});
+  if(!ok.length)return [];
+  /* 줄 나누기 */
+  ok.sort((p,q)=>(p.y0+p.y1)-(q.y0+q.y1));const lines=[];
+  ok.forEach(b=>{const cy=(b.y0+b.y1)/2,L=lines.find(L=>Math.abs(L.y-cy)<s*0.9);if(L){L.b.push(b);L.y=(L.y*(L.b.length-1)+cy)/L.b.length}else lines.push({y:cy,b:[b]})});
+  const use=lines.filter(L=>L.b.length>=2).sort((p,q)=>p.y-q.y).slice(0,2);
+  if(!use.length)return [];
+  /* 읽기: 글자는 자르지 않고 글자 사이 넓은 빈칸만 좁혀 보통 문장처럼 → 한 줄 읽기(PSM 7). 줄표 · 음표 꼬리는 지움. 읽은 글자는 위치표로 원래 자리에 */
+  const w=await omrKorWorker(),out=[];
+  const junk=cc.filter(c=>!parts.includes(c));   /* 지울 것: 위에 닿은 꼬리 · 줄표 · 점 */
+  for(const L of use){L.b.sort((p,q)=>p.x0-q.x0);
+    const ya=Math.max(0,Math.round(Math.min(...L.b.map(b=>b.y0))-2)),yb=Math.min(bh-1,Math.round(Math.max(...L.b.map(b=>b.y1))+2));
+    const lp=parts.filter(c=>{const cy=(c.y0+c.y1)/2;return cy>=ya-1&&cy<=yb+1&&c.y1-c.y0+1<=chH*1.4});   /* 이 줄 높이의 글자 조각 모두 (가는 획 포함) */
+    const xa=Math.max(0,Math.min(...lp.map(c=>c.x0))-4),xb=Math.min(bw-1,Math.max(...lp.map(c=>c.x1))+4);
+    /* 열마다 잉크(지울 것 빼고) */
+    const ink=new Uint8Array(xb-xa+1);
+    for(const b of lp)for(let x=b.x0;x<=b.x1;x++)ink[x-xa]=1;
+    /* 조각: 잉크 열 묶음 + 앞뒤 여백, 빈칸은 최대 chH*0.45 로 */
+    const segs=[];let x=xa;while(x<=xb){if(!ink[x-xa]){x++;continue}let e=x;while(e+1<=xb&&(ink[e+1-xa]||(e+2<=xb&&ink[e+2-xa])))e++;segs.push({a:x,b:e});x=e+1}
+    const gap=Math.round(chH*0.45),pad=2;let SX=20;const map=[];
+    segs.forEach(sg=>{map.push({sx:SX,ox:sg.a,w:sg.b-sg.a+1});SX+=sg.b-sg.a+1+gap});
+    const sc=Math.min(4,Math.max(1,60/((yb-ya+1)))),c=document.createElement('canvas');c.width=Math.round((SX+20)*sc);c.height=Math.round((yb-ya+1+2*pad)*sc)+40;
+    const cx=c.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,c.width,c.height);
+    map.forEach(m=>cx.drawImage(cv,(x0+m.ox-1)*F,(yA+ya-pad)*F,(m.w+2)*F,(yb-ya+1+2*pad)*F,m.sx*sc,20,(m.w+2)*sc,(yb-ya+1+2*pad)*sc));
+    /* 지울 것을 흰색으로 */
+    cx.fillStyle='#fff';junk.concat(parts.filter(c=>!lp.includes(c))).forEach(j=>{if(j.y1<ya-pad||j.y0>yb+pad)return;map.forEach(m=>{const a2=Math.max(j.x0,m.ox),b2=Math.min(j.x1,m.ox+m.w-1);if(a2>b2)return;
+      cx.fillRect((m.sx+a2-m.ox)*sc,20+(j.y0-ya+pad-1)*sc,(b2-a2+3)*sc,(j.y1-j.y0+3)*sc)})});
+    if(window.__lyDbg)window.__lyDbg.push(c.toDataURL());
+    await w.setParameters({tessedit_pageseg_mode:'7',tessedit_char_whitelist:''});
+    const {data}=await w.recognize(c);
+    const back=px=>{const sx=px/sc;let m=map[0];for(const q of map)if(q.sx<=sx)m=q;return x0+m.ox+Math.max(0,Math.min(m.w,sx-m.sx))};
+    const got=(data.symbols||[]).filter(o=>/[가-힣]/.test(o.text||'')&&(o.confidence||0)>=20).map(o=>({t:o.text.replace(/[^가-힣]/g,'').slice(0,1),x0:back(o.bbox.x0),x1:back(o.bbox.x1)}));
+    if(got.length<2)continue;
+    /* 가까운 음절은 한 낱말로 (글자 폭의 0.9배 안) */
+    const cw=got.reduce((a,o)=>a+o.x1-o.x0,0)/got.length,ws=[];
+    got.forEach(o=>{const p=ws[ws.length-1];if(p&&o.x0-p.x1<cw*0.9){p.t+=o.t;p.x1=o.x1}else ws.push({...o})});
+    out.push(ws)}
+  return out;
+}
 /* 띠 안의 연결 성분 → 글자 크기인 것만 → 같은 밑줄끼리 낱말로 */
 function omrWords(im,S,yA,yB){
   const {W,g}=im,x0=Math.max(0,Math.round(S.xL-S.s*2)),x1=Math.min(W-1,Math.round(S.xR+S.s)),bw=x1-x0+1,bh=yB-yA+1;
@@ -4665,7 +4730,7 @@ function omrWords(im,S,yA,yB){
   }
   return words.filter(w=>w.big&&w.x1-w.x0<s*7);
 }
-async function omrPage(cv,log){
+async function omrPage(cv,log,hi){
   const im=omrGray(cv),st=omrStaves(im),w=await omrWorker(log),res=[];
   for(let k=0;k<st.length;k++){
     const S=st[k],top=Math.round(k?st[k-1].y4+S.s*3.5:Math.max(0,S.y0-S.s*9));
@@ -4688,7 +4753,8 @@ async function omrPage(cv,log){
     /* 같은 자리에 겹친 후보는 하나만 */
     got.sort((p,q)=>p.x-q.x);
     const fin=[];for(const g of got){const p=fin[fin.length-1];if(p&&g.x<p.x1){if(g.c>p.c)fin[fin.length-1]=g}else fin.push(g)}
-    res.push({S,bars:omrBars(im,S),chords:fin});
+    let ly=[];try{const nx=st[k+1];ly=await omrLyrics(cv,im,S,Math.round(S.y4+S.s*1.2),Math.round(Math.min(nx?nx.y0-S.s*6.5:cv.height,S.y4+S.s*9)),hi)}catch(e){}
+    res.push({S,bars:omrBars(im,S),chords:fin,ly});
   }
   return res;
 }
@@ -4707,23 +4773,24 @@ function omrText(pages,meter){
         let s=j===0?0:Math.round(((c.x+c.x1)/2-a)/(b-a)*beats);
         s=Math.min(beats-1,Math.max(j,s));
         if(j>0){const p=segs[segs.length-1];p.len=(s-p.b0)*2}
-        const seg={n:c.n,b0:s,len:(beats-s)*2};segs.push(seg);cur=seg;
+        const seg={n:c.n,b0:s,len:(beats-s)*2,x:c.x};segs.push(seg);cur=seg;
       });
     }
-    rows.push(row);
+    row.S=S;row.ly=R.ly||[];rows.push(row);
   }));
-  let out='',sec=[];
-  const flush=()=>{if(!sec.length)return;out+=(out?'\n':'')+sec.join('\n')+'\n';sec=[]};
-  rows.forEach(r=>{
-    if(r.segs.length){sec.push(r.segs.map(s=>s.n).join('  '));if(r.segs.some(s=>s.len!==meter))sec.push(r.segs.map(s=>s.len).join(' '))}
-    if(r.brk)flush();
-  });
-  flush();
-  return out.trim();
+  /* 화면 폭(한글 = 2칸)으로 자리 맞추기 */
+  const vw=s=>[...s].reduce((a,ch)=>a+(/[\u1100-\u11ff\u3130-\u318f\uac00-\ud7a3\u3000-\u303f\uff00-\uffef]/.test(ch)?2:1),0);
+  const put=(line,col,txt)=>{let l=line;const w=vw(l);if(w&&col<w+1)col=w+1;l+=' '.repeat(Math.max(0,col-vw(l)));return l+txt};
+  const blocks=[];
+  rows.forEach(r=>{if(!r.segs.length)return;const S=r.S,W=Math.max(1,S.xR-S.xL),col=x=>Math.max(0,Math.round((x-S.xL)/W*60));
+    let cl='';r.segs.forEach(s=>{cl=put(cl,col(s.x),s.n)});
+    let ll='';(r.ly[0]||[]).forEach(o=>{ll=put(ll,col(o.x0),o.t)});
+    blocks.push([cl,ll,r.segs.map(s=>s.len).join(' ')].filter((x,i)=>i!==1||x).join('\n'))});
+  return blocks.join('\n\n');
 }
 
 async function pdfOmr(){
-  const tk=PDF.tk,f=PDF.from,t=PDF.to,key='pdfo:'+PDF.key+'|'+f+'-'+t+'|v1',same=()=>tk===PDF.tk&&f===PDF.from&&t===PDF.to;
+  const tk=PDF.tk,f=PDF.from,t=PDF.to,key='pdfo:'+PDF.key+'|'+f+'-'+t+'|v2',same=()=>tk===PDF.tk&&f===PDF.from&&t===PDF.to;
   const box=pdfEl('pdfDiff'),say=m=>{if(same()){box.hidden=false;box.innerHTML=`<p class="pd-sum">${m}</p>`}};
   try{
     let pages=await pdfKv.get(key);
