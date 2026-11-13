@@ -259,6 +259,9 @@ body[data-page="edit"] #boardScroll,body[data-page="edit"] .board-bar,body[data-
 .ed-top{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .ed-top select{min-width:220px;max-width:100%}
 .ed-imp{margin-top:6px}
+.ed-use{display:inline-flex;align-items:center;gap:3px;font-size:.78rem;color:var(--muted);white-space:nowrap;margin-right:4px}
+.ed-use input{margin:0}
+.ed-f:has(input[data-eduse]:not(:checked)) .nm{color:var(--muted);text-decoration:line-through}
 .ed-sum{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:center;margin:6px 0 2px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font-size:.85rem}
 .ed-sum .lb{font-weight:700}.ed-chips{display:flex;flex-wrap:wrap;gap:4px}
 .ed-c{border:1px solid var(--line);border-radius:999px;padding:1px 9px;color:var(--muted);white-space:nowrap}
@@ -269,7 +272,7 @@ body[data-page="edit"] #boardScroll,body[data-page="edit"] .board-bar,body[data-
 .ed-off{margin:8px 0;padding:10px;border:1px dashed var(--line);border-radius:10px}
 .ed-h{font-size:1rem;margin:14px 0 6px}.ed-hs{font-size:.8rem;color:var(--muted);font-weight:400}
 .ed-list{border:1px solid var(--line);border-radius:10px;background:var(--surface)}
-.ed-row{display:grid;grid-template-columns:7.5em 1fr auto;gap:4px 10px;padding:7px 10px;border-bottom:1px solid var(--line);align-items:start}
+.ed-row{display:grid;grid-template-columns:6em 1fr auto;gap:4px 10px;padding:7px 10px;border-bottom:1px solid var(--line);align-items:start}
 .ed-row:last-child{border-bottom:0}
 .ed-k{font-weight:700;font-size:.9rem}.ed-k small{display:block;font-weight:400;color:var(--muted);font-size:.75rem;line-height:1.35}
 .ed-files{font-size:.85rem;min-width:0}
@@ -673,7 +676,6 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
       </div>
       <p class="sdesc ed-paths" id="edPaths"></p>
       <div id="edOff" class="ed-off" hidden></div>
-      <div id="edSum" class="ed-sum"></div>
       <div id="edBody">
         <h3 class="ed-h">입력 <span class="ed-hs">(입력 폴더)</span> <button class="ghost sm ed-od" data-edopen="입력">📂 입력 폴더</button></h3>
         <div id="edIn" class="ed-list"></div>
@@ -2678,11 +2680,11 @@ async function edLoad(song){
   edRender();
 }
 function edRender(){
-  const m=ED.list||ED_EMPTY;edSum(m);
+  const m=ED.list||ED_EMPTY;
   sgEl('edIn').innerHTML=ED_KINDS.map(K=>{
     const xs=(m.inputs||[]).filter(x=>x.kind===K.k||(K.k==='link'&&x.kind==='link_audio')||(K.k==='jj'&&x.kind==='chords')||(K.k==='gt'&&x.kind==='score_jj'));
-    const files=xs.map(x=>`<div class="ed-f">✓ <span class="nm">${esc(x.url||x.file)}</span><span class="mt">${x.size?edFmtSize(x.size)+' · '+esc(x.added):''}${x.pages?' · 쪽 '+esc(x.pages):''}${x.note?' · '+esc(x.note):''}</span><button class="ghost" data-eddel="${esc(x.file)}" data-edurl="${esc(x.url||'')}" title="입력에서 빼기 (파일 지움)">빼기</button></div>`).join('')||'<span class="ed-none">· 아직 없음</span>';
-    return `<div class="ed-row"><div class="ed-k">${K.n}<small>${K.d}</small></div><div class="ed-files">${files}</div><div class="ed-act">${K.add.map(([t,a],i)=>`<button class="ghost sm" data-edadd="${K.k}" data-edi="${i}">${t}</button>`).join('')}</div></div>`}).join('');
+    const files=xs.map(x=>`<div class="ed-f"><label class="ed-use" title="체크하면 출력(곡 분석 · 최종악보)에 사용"><input type="checkbox" data-eduse="${esc(x.file)}"${x.use===false?'':' checked'}> 출력에 사용</label><span class="nm">${esc(x.url||x.file)}</span><span class="mt">${x.size?edFmtSize(x.size):''}${x.pages?' · '+esc(x.pages)+'쪽':''}</span><button class="ghost" data-eddel="${esc(x.file)}" data-edurl="${esc(x.url||'')}" title="입력에서 빼기 (파일 지움)">빼기</button></div>`).join('')||'<span class="ed-none">—</span>';
+    return `<div class="ed-row"><div class="ed-k" title="${esc(K.d)}">${K.n}</div><div class="ed-files">${files}</div><div class="ed-act">${K.add.map(([t,a],i)=>`<button class="ghost sm" data-edadd="${K.k}" data-edi="${i}">${t}</button>`).join('')}</div></div>`}).join('');
   const an=m.analysis||[],busy=ED.busy[m.title];
   const anFiles=an.map(x=>`<div class="ed-f">✓ <span class="nm">${esc(x.file)}</span><span class="mt">${esc(x['설명'])} · ${esc(x.made)} · ${edFmtSize(x.size)}</span>${x['상태']!=='완료'?`<span class="ed-warn">⚠ ${esc(x['상태'])}</span>`:''}</div>`).join('')||'<span class="ed-none">· 아직 없음</span>';
   const fin=(m.final||[]).map(g=>{
@@ -2768,6 +2770,10 @@ sgEl('edImpRec').addEventListener('click',()=>{
 sgEl('edOpenSong').addEventListener('click',()=>{if(!ED.song)return;
   if(!(ED.list&&(ED.list.analysis||[]).some(x=>/song\.json$/.test(x.file)))){alert('아직 곡 분석을 하지 않았습니다. [곡 분석]을 먼저 하세요.');return}
   setTab('song');sgOpenKey('p:'+ED.song+'/출력/음원분석')});
+sgEl('p-edit').addEventListener('change',async e=>{
+  const c=e.target.closest('input[data-eduse]');if(!c)return;
+  try{ED.list=(await edApi('/song-use',{song:ED.song,file:c.dataset.eduse,use:c.checked?'1':'0'},'')).list;edRender()}catch(er){alert(er.message||er);c.checked=!c.checked}
+});
 sgEl('p-edit').addEventListener('click',async e=>{
   const b=e.target.closest('button');if(!b)return;const song=ED.song;
   if(b.dataset.edopen){if(song)edApi('/open',{song,sub:b.dataset.edopen},'').catch(er=>alert(er.message||er));return}
@@ -2844,7 +2850,7 @@ async function scRun(){
       if(m&&!m.error){
         const oc=(m.outputs||[]).find(o=>/(^|\/)악보코드\.txt$/.test(o.file));
         if(oc){text=await (await fetch(base+'출력/'+oc.file.split('/').map(encodeURIComponent).join('/'),{cache:'no-store'})).text();src='곡 폴더 출력\\'+oc.file.replace(/\//g,'\\')}
-        else{const sc=(m.inputs||[]).find(x=>x.kind==='gt'||x.kind==='score_jj')||(m.inputs||[]).find(x=>x.kind==='tab'||x.kind==='score_gt');
+        else{const ins=(m.inputs||[]).filter(x=>x.use!==false),sc=ins.find(x=>x.kind==='gt'||x.kind==='score_jj')||ins.find(x=>x.kind==='tab'||x.kind==='score_gt');
           if(sc){const b=await (await fetch(base+encodeURIComponent('입력')+'/'+encodeURIComponent(sc.file))).blob();
             const r=await scOmrBlob(b,0,0,say);text=r.text;src='곡 폴더 입력\\'+sc.file;
             fetch(SG_HELPER+'/song-file?'+new URLSearchParams({song:title,kind:'out',name:'악보코드.txt'}),{method:'POST',body:`# 악보에서 읽은 코드 진행 — ${sc.file}\n`+text}).catch(()=>{})}}
