@@ -80,6 +80,7 @@ html{scroll-padding-top:var(--pinH,0px)}
 .dot.r7 circle{fill:#E9B4A4}.dot.r7 text{fill:#2E130B}
 .dot.rx circle{fill:#B7C8EA}.dot.rx text{fill:#121C33}
 .dot.dim{opacity:.36}
+.dot.mid{opacity:.72}
 .dot.on circle{stroke:#FFF8EA;stroke-width:2.2}
 .hit{fill:transparent;cursor:pointer}
 .hit:hover{fill:rgba(255,248,234,.1)}
@@ -2575,6 +2576,8 @@ function sgShowTime(t,force){
    S(음원도 같이) 켜면 소리도 T 반음만큼 (sgPitchApply). 곡마다 기억 */
 SG.kc={t:0,c:0};
 function sgKcLoad(){try{const a=JSON.parse(store.get('chordcalc-songkey')||'{}');SG.kc=a[SG.song.title]||{t:0,c:0}}catch(e){SG.kc={t:0,c:0}}}
+SG.bd=(()=>{try{return Object.assign({sc:false,ch:false},JSON.parse(store.get('chordcalc-sgboard')||'{}'))}catch(e){return {sc:false,ch:false}}})();
+function sgBdSave(){try{store.set('chordcalc-sgboard',JSON.stringify(SG.bd))}catch(e){}}
 function sgKcSave(){try{const a=JSON.parse(store.get('chordcalc-songkey')||'{}');a[SG.song.title]=SG.kc;store.set('chordcalc-songkey',JSON.stringify(a))}catch(e){}}
 function sgTrName(name,n){const c=blChord(name);if(!c||!n)return name;return nn(c.r+n)+c.s+(c.b!=null?'/'+nn(c.b+n):'')}
 function sgCh(){   /* 화면에 보일 코드 (조옮김 + 카포 모양) */
@@ -2603,6 +2606,7 @@ function sgKeyBar(){
     <span class="sg-kgrp">카포 <select id="sgCapo">${Array.from({length:10},(_,i)=>`<option value="${i}"${i===C?' selected':''}>${i?i+'프렛':'없음'}</option>`).join('')}</select></span>
     ${C?`<span>→ <b>${nn(shape)}</b> 코드 모양으로 연주</span>`:''}
     <span class="sg-kgrp sg-shapes">쉬운 모양 ${sgShapes(key).map(o=>`<button class="ghost sm" data-sgcapo="${o.c}" aria-pressed="${o.c===C}" title="${o.c?'카포 '+o.c+'프렛에 ':''}${nn(o.sh)} 코드 모양으로 치기">${nn(o.sh)}${o.c?' · 카포 '+o.c:''}</button>`).join('')}</span>
+    <span class="sg-kgrp">지판에 <button class="ghost sm" data-sgbd="sc" aria-pressed="${SG.bd.sc}" title="곡 키의 스케일 음을 지판 전체에 흐리게">🎼 스케일</button><button class="ghost sm" data-sgbd="ch" aria-pressed="${SG.bd.ch}" title="지금 코드의 구성음을 지판 전체에 색으로">🎸 코드</button></span>
     ${T||C?`<button class="ghost sm" data-sgkreset="1">원래대로</button>`:''}
     ${T&&!S?`<span class="sg-knote">※ 지금은 악보만 바뀌고 소리는 원곡(${nn(k0)}) 그대로입니다 — [🔊 음원도 같이]를 켜면 소리도 ${nn(key)} 키로</span>`:''}
     ${T&&S?`<span class="sg-knote sg-knote-on">🔊 음원도 ${nn(k0)} → <b>${nn(key)}</b> 키로 재생 중 (빠르기 그대로)</span>`:''}</div>`;
@@ -3347,7 +3351,17 @@ function sgMark(t){
   if(SG.playing)followNow(SG.view==='sheet'?'sgSheet':'sgTab');
 }
 /* 지판: 코드 · 가사 보기 = 지금 코드 운지, TAB 보기 = 지금 치는 음 */
-function sgDots(){
+function sgDots(){const top=sgDotsNow();if(!SG.song||!(SG.bd.sc||SG.bd.ch))return top;
+  const used=new Set([...top.matchAll(/data-i="(d)" data-fr="(d+)"/g)].map(m=>m[1]+'-'+m[2]));
+  const key=mod(sgKey0()+SG.kc.t),sc=SG.bd.sc?new Set([0,2,4,5,7,9,11].map(x=>mod(key+x))):null;
+  const c=sgChordAt(Math.max(0,SG.slot)),cc=SG.bd.ch&&c&&blChord(c.name),cr=cc?mod(cc.r+SG.kc.c):0,q=cc?Q[cc.qi]:null;
+  const cs=cc?new Set(q.iv.map(x=>mod(cr+x))):null;let s='';
+  for(let i=0;i<6;i++)for(let f=0;f<=FR;f++){if(used.has(i+'-'+f))continue;const pc=mod(TUNE[i]+f);
+    if(cs&&cs.has(pc)){const x=mod(pc-cr);s+=dot(i,f,role(x,q)+' mid',st.lbl==='deg'?degree(x,q):nn(pc))}
+    else if(sc&&sc.has(pc))s+=dot(i,f,(pc===key&&!cs?'root':'tone')+' dim',st.lbl==='deg'?GEN[mod(pc-key)]:nn(pc))}
+  return s+top;
+}
+function sgDotsNow(){
   if(!SG.song)return'';const sl=Math.max(0,SG.slot),c=sgChordAt(sl);let s='';
   const cc=c&&blChord(c.name);
   const CP=SG.kc.c;
@@ -3359,7 +3373,8 @@ function sgDots(){
   return s;
 }
 function sgCap(){if(!SG.song)return'곡연습: [분석 결과 열기]로 곡 분석 폴더를 여세요.';const c=sgChordAt(Math.max(0,SG.slot));
-  return `${SG.song.title} · ${Math.floor(Math.max(0,SG.slot)/16)+1}마디${c?' · '+c.name+(SG.kc.c?` (카포 ${SG.kc.c})`:''):''}. `+(SG.view==='sheet'||(SG.song.parts[SG.view]||{}).kind==='harmonica'?'지금 코드의 운지입니다.':'진한 점이 지금 치는 음입니다.')}
+  const k=mod(sgKey0()+SG.kc.t),cc=c&&blChord(c.name),bg=[SG.bd.sc?`흐린 점 = ${nn(k)} 메이저 스케일 (${nn(mod(k+9))} 마이너와 같은 음)`:'',SG.bd.ch&&cc?`색 점 = ${nn(mod(cc.r+SG.kc.c))}${c.name.slice(nn(cc.r).length)} 구성음${SG.kc.c?' (실제 소리 기준)':''}`:''].filter(Boolean).join(' · ');
+  return (bg?bg+' · ':'')+`${SG.song.title} · ${Math.floor(Math.max(0,SG.slot)/16)+1}마디${c?' · '+c.name+(SG.kc.c?` (카포 ${SG.kc.c})`:''):''}. `+(SG.view==='sheet'||(SG.song.parts[SG.view]||{}).kind==='harmonica'?'지금 코드의 운지입니다.':'진한 점이 지금 치는 음입니다.')}
 /* ---------- 탭 소리 녹음 (Edge · Chrome 화면 공유의 '탭 오디오') ---------- */
 async function sgRecord(){
   if(SG.rec){SG.rec.mr.stop();return}
@@ -3417,6 +3432,7 @@ document.getElementById('p-song').addEventListener('click',e=>{
   if(b.id==='sgLoop'){SG.loop=!SG.loop;b.setAttribute('aria-pressed',SG.loop);sgSave();return}
   if(b.id==='sgAll'){SG.from=0;SG.to=-1;sgRender();return}
   if(b.id==='sgBack'){sgSeek(sgMaster().currentTime-5);if(!SG.playing)SG.cue=true;return}
+  if(ds.sgbd){SG.bd[ds.sgbd]=!SG.bd[ds.sgbd];sgBdSave();document.querySelectorAll('[data-sgbd]').forEach(b=>b.setAttribute('aria-pressed',SG.bd[b.dataset.sgbd]));drawBoard();return}
   if(ds.sgtr){SG.kc.t=Math.max(-11,Math.min(11,SG.kc.t+(+ds.sgtr)));sgKcSave();SG.lk={};SG._ch=null;sgRender();drawBoard();sgPitchApply();return}
   if(ds.sgsnd){SG.kc.s=!SG.kc.s;sgKcSave();sgRender();sgPitchApply();return}
   if(ds.sgcapo!=null){SG.kc.c=+ds.sgcapo;sgKcSave();SG.lk={};SG._ch=null;sgRender();drawBoard();return}
