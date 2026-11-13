@@ -293,6 +293,10 @@ body[data-page="edit"] #boardScroll,body[data-page="edit"] .board-bar,body[data-
 .ce-row{display:grid;grid-template-columns:3.6em 1fr;gap:6px;align-items:start}
 .ce-rl{font-size:.75rem;color:var(--muted);padding-top:4px;text-align:right;font-variant-numeric:tabular-nums}
 .ce-row.sec-intro .ce-rl,.ce-row.sec-inter .ce-rl,.ce-row.sec-outro .ce-rl{color:var(--ink);font-weight:700}
+.ce-rtxs{max-height:70vh;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:var(--surface)}
+.ce-rtx{margin:0 0 10px}.ce-rth{font-size:.75rem;color:var(--muted);margin-bottom:2px}.ce-rth .ce-rplay{padding:1px 8px}
+.ce-rtx pre{margin:0;font-family:'D2Coding','Nanum Gothic Coding',Consolas,monospace;font-size:.9rem;line-height:1.45;white-space:pre;overflow-x:auto}
+.ce-rt{font-weight:700;border-radius:3px}.ce-rt.ok{color:#2e7d32}.ce-rt.type{color:#a67c00;background:color-mix(in srgb,#c79100 14%,transparent)}.ce-rt.diff{color:#c0392b;background:color-mix(in srgb,#c0392b 14%,transparent)}
 .ce-rhy{width:100%}.ce-rhy td{vertical-align:top}.ce-rhy td:nth-child(4){width:62%}.ce-rhy td:nth-child(2),.ce-rhy td:nth-child(3){white-space:nowrap}.ce-rhy .ce-rcs{display:flex;flex-wrap:wrap;gap:4px}.ce-rhy .ce-rc{display:inline-flex!important;align-items:baseline;gap:4px;width:auto!important;white-space:nowrap;margin:0}.ce-rc{display:inline-block;margin:0 6px 2px 0;padding:1px 6px;border-radius:6px;border:1px solid var(--line)}
 .ce-rc.ok{border-color:#2e7d32}.ce-rc.type{border-color:#c79100;background:color-mix(in srgb,#c79100 10%,transparent)}.ce-rc.diff{border-color:#c0392b;background:color-mix(in srgb,#c0392b 10%,transparent)}
 .ce-rc small{color:var(--muted)}.ce-rc .ce-ra{color:#c0392b}
@@ -2882,10 +2886,10 @@ function ceRhyParse(txt){
   txt.replace(/\r/g,'').split('\n').forEach(line=>{
     const t=line.trim();if(!t)return;
     const toks=t.split(/[\s|]+/).filter(Boolean).map(chAlias);
-    if(toks.length&&toks.every(x=>CH.test(x))){cur={chords:toks.map(n=>({n,len:8,ly:''})),ly:'',label:'',cl:line};out.push(cur);return}
-    const lab=t.match(/^[\(\[]\s*([^\)\]]+?)\s*[\)\]]$/);if(lab){if(cur)cur.label=lab[1];return}   /* [전주] · [간주] 같은 구간 이름 */
-    if(cur&&/^\d+(\s|$)/.test(t)){let k=0;for(const x of toks){if(!/^\d+$/.test(x))break;if(cur.chords[k]&&+x>0&&+x<=64)cur.chords[k].len=+x;k++}cur=null;return}
-    if(cur&&!cur.ly){cur.ly=t.replace(/\s+/g,' ');const idx=[];cur.cl.replace(/[^\s|]+/g,(m,i)=>{idx.push(i);return m});
+    if(toks.length&&toks.every(x=>CH.test(x))){cur={chords:toks.map(n=>({n,len:8,ly:''})),ly:'',label:'',cl:line,raw:[]};out.push(cur);return}
+    const lab=t.match(/^[\(\[]\s*([^\)\]]+?)\s*[\)\]]$/);if(lab){if(cur){cur.label=lab[1];cur.raw.push(line.replace(/\s+$/,''))}return}   /* [전주] · [간주] 같은 구간 이름 */
+    if(cur&&/^\d+(\s|$)/.test(t)){cur.nl=line.replace(/\s+$/,'');let k=0;for(const x of toks){if(!/^\d+$/.test(x))break;if(cur.chords[k]&&+x>0&&+x<=64)cur.chords[k].len=+x;k++}cur=null;return}
+    if(cur&&!cur.ly){cur.ly=t.replace(/\s+/g,' ');cur.raw.push(line.replace(/\s+$/,''));const idx=[];cur.cl.replace(/[^\s|]+/g,(m,i)=>{idx.push(i);return m});
       try{lyCut(cur.cl,idx,line.replace(/\s+$/,'')).forEach((f,j)=>{if(cur.chords[j])cur.chords[j].ly=f})}catch(e){}}
   });
   return out;
@@ -2917,6 +2921,10 @@ function ceRhyHtml(){
   if(!R)return `<div class="ce-sum">④ 리듬악보 확인 — 입력에 <b>리듬악보</b>(TXT: 코드 줄 · 가사 줄 · 길이 숫자 줄)가 없습니다. 곡편집 입력의 [리듬악보]에서 TXT를 추가하면 여기서 노래와 맞춰 봅니다.</div>`;
   const fmt=n=>{const b=n/16;return b===Math.round(b)?b+'마디':b===0.5?'½마디':(Math.round(b*4)/4)+'마디'};
   const cls=v=>v>=3?'ok':v>=2?'type':'diff';
+  const txt=R.lines.map(L=>{const t0=scTime(CE.song,Math.max(0,L.s));let j=0;
+    const cl=esc(L.cl.replace(/\s+$/,'')).replace(/[^\s|]+/g,m=>{const c=L.chords[j++];if(!c)return m;return `<span class="ce-rt ${cls(c.sim)}" title="${fmt(c.e-c.s)}${c.audio?' · 음원 '+esc(c.audio):''}">${m}</span>`});
+    const body=[cl,...(L.raw||[]).map(esc),esc(L.nl||'')].join('\n');
+    return `<div class="ce-rtx"><div class="ce-rth"><button class="ghost sm ce-rplay" data-cerange="${L.s},${L.e}" title="이 묶음을 원곡으로 듣기">▶</button> ${Math.floor(L.s/16)+1}~${Math.ceil(L.e/16)}마디 · ${sgFmt(Math.max(0,t0))}</div><pre>${body}</pre></div>`}).join('');
   const rows=R.lines.map((L,i)=>{const t0=scTime(CE.song,Math.max(0,L.s));
     const cs=L.chords.map(c=>`<span class="ce-rc ${cls(c.sim)}" title="음원: ${esc(c.audio||'—')}"><b>${esc(c.n)}</b> <small>${fmt(c.e-c.s)}</small>${c.sim<3&&c.audio?` <small class="ce-ra">음원 ${esc(c.audio)}</small>`:''}</span>`).join('');
     return `<tr><td><button class="ghost sm ce-rplay" data-cerange="${L.s},${L.e}" title="이 줄을 원곡으로 듣기">▶</button></td><td>${sgFmt(Math.max(0,t0))}</td><td>${Math.floor(L.s/16)+1}~${Math.ceil(L.e/16)}</td><td><div class="ce-rcs">${cs}</div></td><td>${L.label?'<b>['+esc(L.label)+']</b> ':''}${esc(L.ly||(L.label?'':'(연주)'))}</td></tr>`}).join('');
@@ -2924,8 +2932,8 @@ function ceRhyHtml(){
   const fl=R.lines.find(L=>L.ly)||R.lines[0];
   return `<div class="ce-sum">④ 리듬악보 확인 — <b>${esc(R.file)}</b> · ${R.lines.length}줄 · ${fmt(R.units*R.k)}. 박자 읽기: ${why}.
     첫 가사 줄을 <b>${Math.floor(fl.s/16)+1}마디</b>에 맞췄을 때 음원 코드와 <b>${Math.round(R.r*100)}%</b> 일치${R.r<0.5?' <span class="ed-warn">— 많이 다릅니다. 이 곡의 리듬악보가 맞는지, 노래 시작 위치가 맞는지 확인하세요.</span>':''}.
-    줄마다 ▶로 원곡을 들으며 코드 · 길이가 맞는지 확인하세요. (초록 = 같음 · 노랑 = 종류만 다름 · 빨강 = 다름)</div>
-    <div class="sc-list"><table class="ce-ly ce-rhy"><thead><tr><th></th><th>시간</th><th>마디</th><th>리듬악보 코드 (길이)</th><th>가사</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    묶음마다 ▶로 원곡을 들으며 확인하세요. 코드 색: 초록 = 음원과 같음 · 노랑 = 종류만 다름 · 빨강 = 다름 (코드에 마우스를 올리면 음원 코드).</div>
+    <div class="ce-rtxs">${txt}</div>`;
 }
 async function ceOpen(title){
   const box=sgEl('ceBox');box.hidden=false;sgEl('edScoreOut').hidden=true;CE.title=title;
