@@ -258,6 +258,7 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 body[data-page="edit"] #boardScroll,body[data-page="edit"] .board-bar,body[data-page="edit"] .legend,body[data-page="edit"] .lbl-tg,body[data-page="edit"] #cap{display:none}
 .ed-top{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .ed-top select{min-width:220px;max-width:100%}
+.ed-imp{margin-top:6px}
 .ed-paths{margin:6px 0 4px;line-height:1.6;word-break:break-all}
 .ed-off{margin:8px 0;padding:10px;border:1px dashed var(--line);border-radius:10px}
 .ed-h{font-size:1rem;margin:14px 0 6px}.ed-hs{font-size:.8rem;color:var(--muted);font-weight:400}
@@ -653,9 +654,14 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
     <div class="ed">
       <div class="ed-top">
         <select id="edSong" aria-label="곡 고르기"></select>
-        <button id="edNew" class="ghost sm" title="새 곡 폴더 만들기 (곡명 폴더 자동 생성)">＋ 새 곡</button>
         <button id="edReload" class="ghost sm" title="폴더 다시 읽기">새로고침</button>
         <button id="edOpenSong" class="ghost sm" title="이 곡의 음원분석을 곡연습에서 열기">곡연습에서 열기 ▶</button>
+      </div>
+      <div class="ed-top ed-imp">
+        <span class="ed-hs">새 곡 — 매체를 가져오면 그 이름으로 곡 폴더를 만듭니다:</span>
+        <button id="edImpFile" class="ghost sm" title="음원 · 영상 파일 → 파일 이름(앞 번호 뗌)으로 곡 폴더">🎵 음원 · 영상 가져오기</button>
+        <button id="edImpLink" class="ghost sm" title="유튜브 등 링크 → 영상 제목으로 곡 폴더 (원음을 받아 둠)">🔗 링크 가져오기</button>
+        <button id="edImpRec" class="ghost sm" title="탭 소리 녹음 → 곡 이름을 정해 곡 폴더">🔴 녹음 가져오기</button>
       </div>
       <p class="sdesc ed-paths" id="edPaths"></p>
       <div id="edOff" class="ed-off" hidden>PC 분석 도우미가 꺼져 있습니다. <b>"분석 도우미 켜기.bat"</b>으로 켠 뒤 [새로고침]을 누르세요. (곡편집은 PC에서만)</div>
@@ -2639,7 +2645,7 @@ async function edApi(path,o,body){
 }
 async function edShow(){
   const on=!sgPhone()&&await sgHelperOn();
-  sgEl('edOff').hidden=on;sgEl('edBody').hidden=!on;['edSong','edNew','edOpenSong'].forEach(i=>sgEl(i).disabled=!on);
+  sgEl('edOff').hidden=on;sgEl('edBody').hidden=!on;['edSong','edOpenSong','edImpFile','edImpLink','edImpRec'].forEach(i=>sgEl(i).disabled=!on);
   if(!on){sgEl('edPaths').textContent='';return}
   try{
     const f=await edApi('/folders');
@@ -2707,9 +2713,25 @@ async function edAdd(k,i){
 }
 sgEl('edSong').addEventListener('change',e=>{if(e.target.value)edLoad(e.target.value)});
 sgEl('edReload').addEventListener('click',edShow);
-sgEl('edNew').addEventListener('click',async()=>{
-  const t=(prompt('새 곡 이름 (분석폴더에 이 이름으로 곡 폴더를 만듭니다)','')||'').trim();if(!t)return;
-  try{const j=await edApi('/song-new',{song:t},'');ED.song=j.list.title;await edShow()}catch(e){alert('만들지 못했습니다: '+(e.message||e))}
+/* 새 곡: 매체 이름으로 곡 폴더 (음원 · 영상 = 파일 이름, 링크 = 영상 제목, 녹음 = 정한 이름) */
+sgEl('edImpFile').addEventListener('click',async()=>{
+  const f=await edPick('audio/*,video/*,.mp3,.m4a,.wav,.flac,.ogg,.aac,.wma,.webm,.mp4,.mkv,.mov,.avi,.m4v,.wmv');if(!f)return;
+  const kind=/^video\//.test(f.type)||/\.(mp4|mkv|mov|avi|m4v|wmv)$/i.test(f.name)?'video':'audio',song=f.name.replace(/\.[^.]+$/,'');
+  try{sgEl('edPaths').textContent='가져오는 중… '+f.name;const j=await edApi('/song-file',{song,kind,name:f.name},f);
+    ED.song=j.folder.split('\\').pop();await edShow()}catch(e){alert('가져오지 못했습니다: '+(e.message||e));edShow()}
+});
+sgEl('edImpLink').addEventListener('click',async()=>{
+  const url=(prompt('유튜브 등 링크 주소 — 영상 제목으로 곡 폴더를 만들고 원음을 받아 둡니다 (분석은 [곡 분석])','')||'').trim();if(!url)return;
+  try{const j=await edApi('/song-link',{url},'');sgEl('edPaths').textContent='링크에서 원음 받는 중…';
+    for(;;){await new Promise(r=>setTimeout(r,1000));const s=await (await fetch(SG_HELPER+'/job/'+encodeURIComponent(j.id),{cache:'no-store'})).json();
+      if(s.state==='done'){ED.song=String(s.out).split('\\').pop();return edShow()}
+      if(s.state==='error'){alert('받지 못했습니다: '+(s.msg||''));return edShow()}
+      sgEl('edPaths').textContent=`링크에서 원음 받는 중… ${Math.round(s.pct||0)}% ${s.msg||''}`}
+  }catch(e){alert('가져오지 못했습니다: '+(e.message||e))}
+});
+sgEl('edImpRec').addEventListener('click',()=>{
+  const t=(prompt('녹음할 곡의 이름 (이 이름으로 곡 폴더를 만들고, 녹음이 끝나면 매체녹음으로 넣습니다)','')||'').trim();if(!t)return;
+  SG.recTarget=t;sgRecord();
 });
 sgEl('edOpenSong').addEventListener('click',()=>{if(!ED.song)return;
   if(!(ED.list&&(ED.list.analysis||[]).some(x=>/song\.json$/.test(x.file)))){alert('아직 곡 분석을 하지 않았습니다. [곡 분석]을 먼저 하세요.');return}
@@ -3005,7 +3027,7 @@ async function sgRecord(){
     const name=`녹음 ${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}.webm`;
     if(SG.recTarget){const tg=SG.recTarget;SG.recTarget=null;
       try{const r=await fetch(SG_HELPER+'/song-file?'+new URLSearchParams({song:tg,kind:'rec',name}),{method:'POST',body:blob});if(!r.ok)throw new Error('도우미 응답 '+r.status);
-        if(st.tab==='edit')edLoad(tg);alert(`녹음을 "${tg}" 곡 입력(매체녹음)에 넣었습니다.`);return}catch(e){alert('곡 폴더에 넣지 못했습니다: '+(e.message||e)+' — 파일로 저장합니다.')}}
+        if(st.tab==='edit'){ED.song=tg;edShow()}alert(`녹음을 "${tg}" 곡 입력(매체녹음)에 넣었습니다.`);return}catch(e){alert('곡 폴더에 넣지 못했습니다: '+(e.message||e)+' — 파일로 저장합니다.')}}
     if(!sgPhone()&&await sgHelperOn()){
       const song=(prompt('녹음한 곡의 이름 (PC 곡 폴더: 음악\\쎄이기타 분석\\곡명 의 입력에 "녹음"으로 들어가고 바로 분석합니다)',SG.song&&SG.song.title||'')||'').trim();
       if(song){const f=new File([blob],name,{type:'audio/webm'});f.sgSong=song;f.sgKind='rec';sgFiles([f]);return}
