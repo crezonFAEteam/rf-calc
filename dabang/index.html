@@ -302,7 +302,7 @@ body[data-page="edit"] #boardScroll,body[data-page="edit"] .board-bar,body[data-
 .ce-rtx{margin:0 0 10px}.ce-rth{font-size:.75rem;color:var(--muted);margin-bottom:2px}.ce-rth .ce-rplay{padding:1px 8px}
 .ce-rtx pre{margin:0;font-family:'D2Coding','Nanum Gothic Coding',Consolas,monospace;font-size:.9rem;line-height:1.45;white-space:pre;overflow-x:auto}
 .ce-lyn{white-space:nowrap}.ce-lyn span{display:inline-block;min-width:3.4em;text-align:center;font-variant-numeric:tabular-nums}
-.ce-rt{font-weight:700;border-radius:3px}.sg-rhy .ce-rth{cursor:pointer}.sg-rhy .ce-rtx.now{background:color-mix(in srgb,var(--accent-fill) 14%,transparent)}
+.ce-rt{font-weight:700;border-radius:3px}.sg-rhy .ce-rt[data-rs]{cursor:pointer}.sg-rhy .ce-rt[data-rs]:hover{outline:2px solid var(--accent-fill)}.sg-rhy .ce-rtx{cursor:default}.sg-rhy .ce-rtx.now{background:color-mix(in srgb,var(--accent-fill) 14%,transparent)}
 .ce-rt.now{background:var(--accent-fill)!important;color:var(--on-accent)!important;outline:2px solid var(--accent-fill)}.ce-rt.gen{color:var(--ink)}.ce-hp{color:#1f6fb2;font-weight:600}.ce-rtx.gen pre{opacity:.92}.ce-rth i{font-style:normal;color:var(--muted)}.ce-rt.ok{color:#2e7d32}.ce-rt.type{color:#a67c00;background:color-mix(in srgb,#c79100 14%,transparent)}.ce-rt.diff{color:#c0392b;background:color-mix(in srgb,#c0392b 14%,transparent)}
 .ce-rhy{width:100%}.ce-rhy td{vertical-align:top}.ce-rhy td:nth-child(4){width:62%}.ce-rhy td:nth-child(2),.ce-rhy td:nth-child(3){white-space:nowrap}.ce-rhy .ce-rcs{display:flex;flex-wrap:wrap;gap:4px}.ce-rhy .ce-rc{display:inline-flex!important;align-items:baseline;gap:4px;width:auto!important;white-space:nowrap;margin:0}.ce-rc{display:inline-block;margin:0 6px 2px 0;padding:1px 6px;border-radius:6px;border:1px solid var(--line)}
 .ce-rc.ok{border-color:#2e7d32}.ce-rc.type{border-color:#c79100;background:color-mix(in srgb,#c79100 10%,transparent)}.ce-rc.diff{border-color:#c0392b;background:color-mix(in srgb,#c0392b 10%,transparent)}
@@ -3712,7 +3712,7 @@ function sgFinalView(){   /* 곡편집 › 기타반주보정 결과(주법 · �
 function sgRhyView(){   /* 곡편집에서 저장한 완성 리듬악보 */
   const R=SG.song.backing.rhythm,el=sgEl('sgTab');
   el.innerHTML=`<div class="tabttl" style="cursor:default">📜 리듬악보 — ${esc(R.file||'')}${(SG.kc.t||SG.kc.c)?' (조옮김 · 카포는 이 보기에 적용되지 않음)':''}</div><div class="ce-rtxs ce-rsheet sg-rhy">`+
-    R.blocks.map((b,i)=>`<div class="ce-rtx${b.gen?' gen':''}" data-sgrb="${i}" data-s="${b.s}" data-e="${b.e}"><div class="ce-rth" data-sgrseek="${b.s}" title="누르면 이 자리로">▶ ${b.h}</div><pre>${b.pre}</pre></div>`).join('')+'</div>';
+    R.blocks.map((b,i)=>`<div class="ce-rtx${b.gen?' gen':''}" data-sgrb="${i}" data-s="${b.s}" data-e="${b.e}"><pre>${b.pre}</pre></div>`).join('')+'</div>';
 }
 function sgTabView(){if(SG.view==='final')return sgFinalView();if(SG.view==='rhythm')return sgRhyView();if(SG.song.parts[SG.view]&&SG.song.parts[SG.view].kind==='harmonica')return sgHarpView(SG.view);const lk=sgLick(SG.view);sgEl('sgTab').innerHTML=`<div class="tabttl" style="cursor:default">${esc(lk.name)}</div><pre>${tabRender(lk,'g',true,tabPer(16,'sgTab'))}</pre>`}
 function sgMark(t){
@@ -3806,7 +3806,10 @@ function sgRecUi(){const b=sgEl('sgRec'),t=sgEl('sgRecT');
 /* ---------- 조작 ---------- */
 document.getElementById('p-song').addEventListener('click',e=>{
   const b=e.target.closest('button');
-  if(!b){const rs=e.target.closest('[data-sgrseek]');if(rs&&SG.song){sgSeek(Math.max(0,sgTime(+rs.dataset.sgrseek)));if(!SG.playing)sgPlay();return}}   /* 📜 리듬악보 묶음 머리 → 그 자리부터 */
+  if(!b&&SG.song&&e.target.closest('#sgTab .sg-rhy')){   /* 📜 리듬악보: 코드 이름 → 그 자리부터 재생 · 다른 곳 → 멈춤/시작 (다른 악보 보기와 같게) */
+    const c=e.target.closest('.ce-rt[data-rs]');
+    if(c&&c.dataset.rs!=='undefined'){SG.seg=null;sgSeek(Math.max(0,sgTime(+c.dataset.rs)));sgPlay();return}
+    if(SG.playing){sgPause();SG.seg=null}else{SG.seg=null;sgPlay()}return}
   if(!b){   /* 코드 · 가사 / 하모니카 칸: 코드 이름 → 그 코드 구간만, 다른 곳 → 그 박부터 재생, 재생 중이면 멈춤 */
     const c=e.target.closest('.sg-c');if(!c||!SG.song)return;
     if(SG.playing){sgPause();SG.seg=null;return}
