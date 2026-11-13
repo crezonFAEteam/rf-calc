@@ -255,6 +255,27 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .sg-c.now .hp{color:var(--on-accent)}
 @media (max-width:900px){.sg-grid{grid-template-columns:minmax(0,1fr)}}
 /* 조율기: 위에 고정된 지판 · 지판 안내를 숨겨 한 화면에 (줄 버튼이 따로 있음) */
+body[data-page="edit"] #boardScroll,body[data-page="edit"] .board-bar,body[data-page="edit"] .legend,body[data-page="edit"] .lbl-tg,body[data-page="edit"] #cap{display:none}
+.ed-top{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ed-top select{min-width:220px;max-width:100%}
+.ed-paths{margin:6px 0 4px;line-height:1.6;word-break:break-all}
+.ed-off{margin:8px 0;padding:10px;border:1px dashed var(--line);border-radius:10px}
+.ed-h{font-size:1rem;margin:14px 0 6px}.ed-hs{font-size:.8rem;color:var(--muted);font-weight:400}
+.ed-list{border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.ed-row{display:grid;grid-template-columns:7.5em 1fr auto;gap:4px 10px;padding:7px 10px;border-bottom:1px solid var(--line);align-items:start}
+.ed-row:last-child{border-bottom:0}
+.ed-k{font-weight:700;font-size:.9rem}.ed-k small{display:block;font-weight:400;color:var(--muted);font-size:.75rem;line-height:1.35}
+.ed-files{font-size:.85rem;min-width:0}
+.ed-f{display:flex;gap:6px;align-items:baseline;flex-wrap:wrap}.ed-f .nm{word-break:break-all}
+.ed-f .mt{color:var(--muted);font-size:.78rem}
+.ed-f button{padding:0 6px;min-height:0;font-size:.75rem;line-height:1.5}
+.ed-none{color:var(--muted)}
+.ed-act{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end}
+.ed-rule{font-size:.78rem;color:var(--muted);line-height:1.5;margin:2px 0}
+.ed-sub{padding-left:12px;border-left:3px solid var(--line);margin:4px 0}
+.ed-warn{color:#b06d00}
+.ed-prog{font-size:.85rem;margin-top:4px}
+@media (max-width:640px){.ed-row{grid-template-columns:1fr}.ed-act{justify-content:flex-start}}
 body[data-page="tune"] #boardScroll,body[data-page="tune"] .board-bar,body[data-page="tune"] .legend,body[data-page="tune"] .lbl-tg{display:none}
 /* 조율기 */
 .tuner{max-width:620px;margin:0 auto}
@@ -473,6 +494,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
   <nav class="tabs" role="tablist">
     <button role="tab" data-tab="tune" aria-selected="false">조율기</button>
     <button role="tab" data-tab="blues" aria-selected="false">블루스</button>
+    <button role="tab" data-tab="edit" aria-selected="false" title="곡 폴더 만들기 · 입력(음원 · 영상 · 링크 · 녹음 · 악보) 모으기 · 곡 분석 · 최종악보 · 휴대폰 공유 (PC 분석 도우미)">곡편집</button>
     <button role="tab" data-tab="song" aria-selected="false" title="분석한 곡에 맞춰 코드 · 가사 · TAB 따라 치기 (PC)">곡연습</button>
     <button role="tab" data-tab="adlib" aria-selected="false" title="애드리브 · 반주">애드립</button>
     <button role="tab" data-tab="scale" aria-selected="false" title="펜타토닉 · 다이아토닉">펜타토닉</button>
@@ -561,7 +583,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
         <div id="pdfBox" class="pdf-box" hidden>
           <div class="pdf-bar">
             <span id="pdfName" class="pdf-name"></span>
-            <select id="pdfKind" class="pdf-kind" aria-label="악보 종류" title="곡 저장 때 PC 곡 폴더의 입력에 이 종류로 들어감"><option value="score_jj">잔잔 악보</option><option value="score_gt">기타 악보</option></select>
+            <select id="pdfKind" class="pdf-kind" aria-label="악보 종류" title="곡 저장 때 PC 곡 폴더의 입력에 이 종류로 들어감"><option value="gt">기타악보</option><option value="tab">기타타브</option></select>
             <span class="pdf-pg" title="이 곡이 있는 쪽 (악보집이면 곡마다 지정 — 곡 저장 때 함께 저장)">쪽 <input id="pdfFrom" type="number" min="1" inputmode="numeric" aria-label="시작 쪽"> ~ <input id="pdfTo" type="number" min="1" inputmode="numeric" aria-label="끝 쪽"> <span id="pdfN"></span>
               <button id="pdfAll" class="ghost sm" title="모든 쪽 보기">전체</button></span>
             <button id="pdfCmp" class="ghost sm" aria-pressed="true" title="PDF 속 코드와 위 코드 진행을 차례대로 대조">코드 대조</button>
@@ -624,6 +646,26 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
         <div id="blInfo"></div>   <!-- 예제 제목 · 설명: 악보 아래 -->
         <p class="sdesc">칸 하나는 8분음표이고, 셔플을 켜면 둘째 8분음표를 늦게(셋잇단의 셋째) 칩니다. D는 다운, U는 업 스트로크, x는 뮤트입니다. 악보에서 코드 이름이나 그 코드의 음을 누르면 그 코드만, 빈 곳을 누르면 전체를 재생하고, 재생 중에 누르면 멈춥니다. 재생하면 지금 치는 음이 TAB과 지판에 표시되고, 지판의 흐린 점은 그 마디에서 잡는 모양입니다.</p>
       </div>
+    </div>
+  </section>
+
+  <section id="p-edit" role="tabpanel" hidden>
+    <div class="ed">
+      <div class="ed-top">
+        <select id="edSong" aria-label="곡 고르기"></select>
+        <button id="edNew" class="ghost sm" title="새 곡 폴더 만들기 (곡명 폴더 자동 생성)">＋ 새 곡</button>
+        <button id="edReload" class="ghost sm" title="폴더 다시 읽기">새로고침</button>
+        <button id="edOpenSong" class="ghost sm" title="이 곡의 음원분석을 곡연습에서 열기">곡연습에서 열기 ▶</button>
+      </div>
+      <p class="sdesc ed-paths" id="edPaths"></p>
+      <div id="edOff" class="ed-off" hidden>PC 분석 도우미가 꺼져 있습니다. <b>"분석 도우미 켜기.bat"</b>으로 켠 뒤 [새로고침]을 누르세요. (곡편집은 PC에서만)</div>
+      <div id="edBody" hidden>
+        <h3 class="ed-h">입력 <span class="ed-hs">(입력 폴더)</span></h3>
+        <div id="edIn" class="ed-list"></div>
+        <h3 class="ed-h">출력 <span class="ed-hs">(출력 폴더)</span></h3>
+        <div id="edOut" class="ed-list"></div>
+      </div>
+      <input type="file" id="edFile" hidden>
     </div>
   </section>
 
@@ -2577,6 +2619,112 @@ function sgFitNote(n,T,C){
   return best?{i:best.i,f:best.f}:null;
 }
 function sgChordAt(sl){const cs=sgCh();let c=null;for(const x of cs){if(x.s<=sl)c=x;else break}return c}
+/* ---------- 곡편집: 곡 폴더(음악\쎄이기타 분석\곡명) — 입력 모으기 · 곡 분석 · 최종악보 · 휴대폰 공유 ----------
+   모든 동작은 PC 분석 도우미(127.0.0.1:52525)로. 목록은 도우미가 폴더를 훑어 만든 목록.json */
+const ED={song:store.get('chordcalc-edsong')||'',list:null,busy:{}};
+const ED_KINDS=[
+  {k:'audio',n:'매체음원',d:'원곡 음원 (mp3 · wav · m4a …)',add:[['파일 추가','audio/*,.mp3,.m4a,.wav,.flac,.ogg,.aac,.wma,.webm']]},
+  {k:'video',n:'매체영상',d:'영상 (mp4 …) — 소리를 뽑아 분석',add:[['파일 추가','video/*,.mp4,.mkv,.mov,.avi,.m4v,.wmv']]},
+  {k:'link',n:'매체링크',d:'유튜브 등 주소 + 받은 원음',add:[['링크 추가','@link']]},
+  {k:'rec',n:'매체녹음',d:'탭 소리 녹음 — 재생되는 소리를 원음 그대로',add:[['🔴 녹음','@rec']]},
+  {k:'jj',n:'잔잔악보',d:'잔잔 스타일 악보 TXT — 코드 · 가사 · 박자',add:[['TXT 추가','.txt,text/plain'],['애드립에서 가져오기','@adlib']]},
+  {k:'gt',n:'기타악보',d:'기타 악보 PDF — 코드 · 가사 (스캔도 읽음)',add:[['PDF 추가','application/pdf,.pdf']]},
+  {k:'tab',n:'기타타브',d:'기타 TAB 악보 PDF — 주법 · 전주 · 간주 · 후주',add:[['PDF 추가','application/pdf,.pdf']]}];
+const ED_RULES=`전주 · 간주 · 후주 결정 — 우선순위 (음원 · 영상 · 링크 &gt; 기타타브 &gt; 기타악보)<br>
+  편집 (다음 단계): 코드 결정 — (기타타브 &gt; 기타악보 &gt; 음원 · 영상 · 링크) · 가사 결정 — (기타악보 &gt; 기타타브), 타이밍(노래 시작 · 박자 위치) · 주법 결정 — 지금 있는 반주 패턴 기능`;
+const edFmtSize=n=>n>=1048576?(n/1048576).toFixed(1)+'MB':Math.max(1,Math.round(n/1024))+'KB';
+async function edApi(path,o,body){
+  const r=await fetch(SG_HELPER+path+(o?'?'+new URLSearchParams(o):''),body!==undefined?{method:'POST',body}:{cache:'no-store'});
+  const j=await r.json().catch(()=>({}));if(!r.ok||j.error)throw new Error(j.error||('도우미 응답 '+r.status));return j;
+}
+async function edShow(){
+  const on=!sgPhone()&&await sgHelperOn();
+  sgEl('edOff').hidden=on;sgEl('edBody').hidden=!on;['edSong','edNew','edOpenSong'].forEach(i=>sgEl(i).disabled=!on);
+  if(!on){sgEl('edPaths').textContent='';return}
+  try{
+    const f=await edApi('/folders');
+    sgEl('edPaths').innerHTML=`분석폴더: <b>${esc(f.root)}</b>\\[곡명 폴더 자동 생성]<br>공유폴더: <b>${esc(f.share)}</b>${f.shareOk?'':' <span class="ed-warn">(이 PC에 없음)</span>'}`;
+    const fl=f.folders||[];if(!ED.song||!fl.some(x=>x.title===ED.song))ED.song=(fl[0]||{}).title||'';
+    sgEl('edSong').innerHTML=fl.length?fl.map(x=>`<option value="${esc(x.title)}"${x.title===ED.song?' selected':''}>${esc(x.title)}${x.analyzed?'':'  (분석 전)'}</option>`).join(''):'<option value="">곡 폴더 없음 — [＋ 새 곡]</option>';
+    if(ED.song)await edLoad(ED.song);else{sgEl('edIn').innerHTML='';sgEl('edOut').innerHTML=''}
+  }catch(e){sgEl('edPaths').textContent='도우미에서 폴더를 읽지 못했습니다: '+(e.message||e)+' (도우미를 다시 켜 주세요)'}
+}
+async function edLoad(song){
+  ED.song=song;store.set('chordcalc-edsong',song);
+  try{ED.list=(await edApi('/song-new',{song},'')).list}catch(e){sgEl('edIn').innerHTML=`<p class="ed-rule">${esc(e.message||e)}</p>`;return}
+  edRender();
+}
+function edRender(){
+  const m=ED.list;if(!m)return;
+  sgEl('edIn').innerHTML=ED_KINDS.map(K=>{
+    const xs=(m.inputs||[]).filter(x=>x.kind===K.k||(K.k==='link'&&x.kind==='link_audio')||(K.k==='jj'&&x.kind==='chords')||(K.k==='gt'&&x.kind==='score_jj'));
+    const files=xs.map(x=>`<div class="ed-f">✓ <span class="nm">${esc(x.url||x.file)}</span><span class="mt">${x.size?edFmtSize(x.size)+' · '+esc(x.added):''}${x.pages?' · 쪽 '+esc(x.pages):''}${x.note?' · '+esc(x.note):''}</span><button class="ghost" data-eddel="${esc(x.file)}" data-edurl="${esc(x.url||'')}" title="입력에서 빼기 (파일 지움)">빼기</button></div>`).join('')||'<span class="ed-none">· 아직 없음</span>';
+    return `<div class="ed-row"><div class="ed-k">${K.n}<small>${K.d}</small></div><div class="ed-files">${files}</div><div class="ed-act">${K.add.map(([t,a],i)=>`<button class="ghost sm" data-edadd="${K.k}" data-edi="${i}">${t}</button>`).join('')}</div></div>`}).join('');
+  const an=m.analysis||[],busy=ED.busy[m.title];
+  const anFiles=an.map(x=>`<div class="ed-f">✓ <span class="nm">${esc(x.file)}</span><span class="mt">${esc(x['설명'])} · ${esc(x.made)} · ${edFmtSize(x.size)}</span>${x['상태']!=='완료'?`<span class="ed-warn">⚠ ${esc(x['상태'])}</span>`:''}</div>`).join('')||'<span class="ed-none">· 아직 없음</span>';
+  const fin=(m.final||[]).map(g=>{
+    const files=g.files.map(f=>`<div class="ed-f">✓ <span class="nm">${esc(f.name)}</span><span class="mt">${f['설명']?esc(f['설명'])+' · ':''}${esc(f.made)} · ${edFmtSize(f.size)}</span></div>`).join('');
+    if(g.folder==='휴대폰 공유파일'){const ph=m.phone||{};
+      return `<div class="ed-sub"><b>휴대폰 공유파일</b> <span class="ed-rule">— 곡 폴더 전체 묶음 (${esc(m.title)}.zip)</span>${files||'<div class="ed-none">· 아직 묶지 않음</div>'}
+        <div class="ed-rule">묶음: ${esc(ph['상태']||'')}${ph['공유']?' · 공유폴더: '+esc(ph['공유']):''}</div>
+        <div class="ed-act" style="justify-content:flex-start"><button class="ghost sm" data-edshare="1" title="곡 폴더를 묶어(필요하면) 공유폴더 saysay 로 복사">📤 공유폴더로 복사</button></div></div>`}
+    return `<div class="ed-sub"><b>${esc(g.folder)}</b>${files||'<div class="ed-none">· 아직 없음</div>'}<div class="ed-rule">${ED_RULES}</div>
+      ${g.folder==='기타반주보정'?'<div class="ed-act" style="justify-content:flex-start"><button class="ghost sm" data-edscore="1" title="곡연습에서 음원 분석 코드를 악보 기준으로 비교 · 보정">🎼 악보로 개선 (곡연습)</button></div>':''}</div>`}).join('');
+  sgEl('edOut').innerHTML=`<div class="ed-row"><div class="ed-k">음원분석 폴더<small>[곡 분석] 버튼으로 생성</small></div>
+      <div class="ed-files">${anFiles}<div class="ed-rule">분석할 매체: ${m.media?esc(m.media)+' (음원 &gt; 영상 &gt; 녹음 &gt; 링크 원음)':'<span class="ed-warn">입력에 매체(음원 · 영상 · 링크 · 녹음)가 필요합니다</span>'}</div>
+        ${busy?`<div class="ed-prog" id="edProg">${esc(busy)}</div>`:''}</div>
+      <div class="ed-act"><button class="ghost sm" data-edan="1" ${m.media&&!busy?'':'disabled'}>${an.length?'다시 분석':'곡 분석'}</button></div></div>
+    <div class="ed-row"><div class="ed-k">최종악보 폴더<small>기타반주보정 · 기타솔로 · 휴대폰 공유파일</small></div><div class="ed-files">${fin}</div><div></div></div>`;
+}
+async function edPoll(id,song,label){
+  for(;;){
+    let j;try{j=await (await fetch(SG_HELPER+'/job/'+encodeURIComponent(id),{cache:'no-store'})).json()}catch(e){ED.busy[song]=null;edRender();return}
+    if(j.state==='done'||j.state==='error'){ED.busy[song]=null;if(ED.song===song)await edLoad(song);if(j.state==='error')alert(label+' 실패: '+(j.msg||''));return}
+    ED.busy[song]=`${label}: ${Math.round(j.pct||0)}% — ${j.msg||''}`;const e=sgEl('edProg');if(e&&ED.song===song)e.textContent=ED.busy[song];else if(ED.song===song)edRender();
+    await new Promise(r=>setTimeout(r,1000));
+  }
+}
+function edPick(accept){return new Promise(res=>{const el=sgEl('edFile');el.accept=accept;el.value='';el.onchange=()=>res(el.files&&el.files[0]||null);el.click()})}
+async function edAdd(k,i){
+  const song=ED.song;if(!song)return;const a=ED_KINDS.find(x=>x.k===k).add[i][1];
+  try{
+    if(a==='@link'){const url=(prompt('유튜브 등 링크 주소 (원음을 받아 입력에 넣습니다. 분석은 [곡 분석])','')||'').trim();if(!url)return;
+      const j=await edApi('/song-link',{song,url},'');ED.busy[song]='링크에서 원음 받는 중…';edRender();edPoll(j.id,song,'링크 받기');return}
+    if(a==='@rec'){SG.recTarget=song;sgRecord();return}
+    if(a==='@adlib'){const t=document.getElementById('adSrc').value;if(!t.trim()){alert('애드립 탭의 코드 진행이 비어 있습니다.');return}
+      await edApi('/song-file',{song,kind:'chords'},t);return edLoad(song)}
+    const f=await edPick(a);if(!f)return;
+    if(k==='gt'||k==='tab'){
+      const lib=await pdfLib(),d0=await lib.getDocument({data:new Uint8Array(await f.arrayBuffer())}).promise,N=d0.numPages;d0.destroy();
+      let A=1,B=N;
+      if(N>4){const q=(prompt(`이 곡이 있는 쪽 (전체 ${N}쪽, 그 쪽만 잘라서 넣습니다). 예: 34-35 / 전체면 비워 두기`,'')||'').trim();
+        if(q){const mm=q.match(/(\d+)\s*(?:[-~]\s*(\d+))?/);if(mm){A=Math.max(1,+mm[1]);B=Math.min(N,+(mm[2]||mm[1]))}}}
+      const pg=A===B?String(A):A+'-'+B;let part=f,name=f.name;
+      if(!(A===1&&B===N)){part=await pdfCut(f,A,B);name=`${song} (${f.name.replace(/\.pdf$/i,'')} ${pg}쪽).pdf`}
+      await edApi('/song-file',{song,kind:k,name,pages:A===1&&B===N?'':pg,src:A===1&&B===N?'':f.name},part);return edLoad(song)}
+    await edApi('/song-file',{song,kind:k,name:f.name},f);return edLoad(song);
+  }catch(e){alert('넣지 못했습니다: '+(e.message||e))}
+}
+sgEl('edSong').addEventListener('change',e=>{if(e.target.value)edLoad(e.target.value)});
+sgEl('edReload').addEventListener('click',edShow);
+sgEl('edNew').addEventListener('click',async()=>{
+  const t=(prompt('새 곡 이름 (분석폴더에 이 이름으로 곡 폴더를 만듭니다)','')||'').trim();if(!t)return;
+  try{const j=await edApi('/song-new',{song:t},'');ED.song=j.list.title;await edShow()}catch(e){alert('만들지 못했습니다: '+(e.message||e))}
+});
+sgEl('edOpenSong').addEventListener('click',()=>{if(!ED.song)return;
+  if(!(ED.list&&(ED.list.analysis||[]).some(x=>/song\.json$/.test(x.file)))){alert('아직 곡 분석을 하지 않았습니다. [곡 분석]을 먼저 하세요.');return}
+  setTab('song');sgOpenKey('p:'+ED.song+'/출력/음원분석')});
+sgEl('p-edit').addEventListener('click',async e=>{
+  const b=e.target.closest('button');if(!b)return;const song=ED.song;
+  if(b.dataset.edadd)return edAdd(b.dataset.edadd,+b.dataset.edi);
+  if(b.dataset.eddel!==undefined){if(!confirm(`입력에서 뺄까요? (파일을 지웁니다)\n${b.dataset.edurl||b.dataset.eddel}`))return;
+    try{ED.list=(await edApi('/song-del',{song,file:b.dataset.eddel,url:b.dataset.edurl},'')).list;edRender()}catch(er){alert(er.message||er)}return}
+  if(b.dataset.edan){const again=(ED.list.analysis||[]).length>0;if(again&&!confirm('음원분석을 지우고 다시 분석할까요? (몇 분 걸립니다)'))return;
+    try{const j=await edApi('/analyze-song',{song,fresh:again?'1':''},'');ED.busy[song]='곡 분석 시작 — '+(j.media||'');edRender();edPoll(j.id,song,'곡 분석')}catch(er){alert(er.message||er)}return}
+  if(b.dataset.edshare){b.disabled=true;b.textContent='묶어서 복사하는 중…';
+    try{const j=await edApi('/share',{song},'');ED.list=j.list;edRender();alert('공유폴더로 복사했습니다:\n'+j.file)}catch(er){alert('복사하지 못했습니다: '+(er.message||er));edRender()}return}
+  if(b.dataset.edscore){if(!(ED.list.analysis||[]).length){alert('곡 분석을 먼저 하세요.');return}setTab('song');await sgOpenKey('p:'+song+'/출력/음원분석');scRun();return}
+});
 /* ---------- 🎼 악보로 개선: 악보(기준) ↔ 음원 분석 코드 비교 · 보정 ----------
    악보 찾기: PC 곡 폴더의 출력\악보코드.txt → 입력의 악보 PDF(스캔이면 읽기) → 없으면 PDF 고르기(쪽 지정, 곡 폴더 입력에도 저장).
    키가 다르면 반음 차이를 찾아 맞춘 뒤, 악보 순서(반복 허용)에 음원 코드를 맞춰 차이를 보여 줌 */
@@ -2638,8 +2786,9 @@ async function scRun(){
       say('PC 곡 폴더에서 악보 찾는 중…');
       const m=await (await fetch(SG_HELPER+'/list/'+encodeURIComponent(title),{cache:'no-store'})).json().catch(()=>null);
       if(m&&!m.error){
-        if((m.outputs||[]).some(o=>o.file==='악보코드.txt')){text=await (await fetch(base+encodeURIComponent('출력')+'/'+encodeURIComponent('악보코드.txt'),{cache:'no-store'})).text();src='곡 폴더 출력\\악보코드.txt'}
-        else{const sc=(m.inputs||[]).find(x=>x.kind==='score_jj')||(m.inputs||[]).find(x=>x.kind==='score_gt');
+        const oc=(m.outputs||[]).find(o=>/(^|\/)악보코드\.txt$/.test(o.file));
+        if(oc){text=await (await fetch(base+'출력/'+oc.file.split('/').map(encodeURIComponent).join('/'),{cache:'no-store'})).text();src='곡 폴더 출력\\'+oc.file.replace(/\//g,'\\')}
+        else{const sc=(m.inputs||[]).find(x=>x.kind==='gt'||x.kind==='score_jj')||(m.inputs||[]).find(x=>x.kind==='tab'||x.kind==='score_gt');
           if(sc){const b=await (await fetch(base+encodeURIComponent('입력')+'/'+encodeURIComponent(sc.file))).blob();
             const r=await scOmrBlob(b,0,0,say);text=r.text;src='곡 폴더 입력\\'+sc.file;
             fetch(SG_HELPER+'/song-file?'+new URLSearchParams({song:title,kind:'out',name:'악보코드.txt'}),{method:'POST',body:`# 악보에서 읽은 코드 진행 — ${sc.file}\n`+text}).catch(()=>{})}}
@@ -2657,7 +2806,7 @@ async function scRun(){
         const pg=a===b?String(a):a+'-'+b;let part=f,fname=f.name;
         if(!(a===1&&b===N)){try{part=await pdfCut(f,a,b);fname=`${title} (${f.name.replace(/\.pdf$/i,'')} ${pg}쪽).pdf`}catch(e){}}
         const post=(o,body)=>fetch(SG_HELPER+'/song-file?'+new URLSearchParams(o),{method:'POST',body}).catch(()=>{});
-        post({song:title,kind:'score_jj',name:fname,pages:pg,src:f.name},part);
+        post({song:title,kind:'gt',name:fname,pages:pg,src:f.name},part);
         post({song:title,kind:'out',name:'악보코드.txt'},`# 악보에서 읽은 코드 진행 — ${src}\n`+text);
       }
     }
@@ -2854,6 +3003,9 @@ async function sgRecord(){
     stream.getTracks().forEach(t=>t.stop());clearInterval(SG.rec.tm);SG.rec=null;sgRecUi();
     const blob=new Blob(chunks,{type:'audio/webm'}),d=new Date(),p=n=>String(n).padStart(2,'0');
     const name=`녹음 ${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}.webm`;
+    if(SG.recTarget){const tg=SG.recTarget;SG.recTarget=null;
+      try{const r=await fetch(SG_HELPER+'/song-file?'+new URLSearchParams({song:tg,kind:'rec',name}),{method:'POST',body:blob});if(!r.ok)throw new Error('도우미 응답 '+r.status);
+        if(st.tab==='edit')edLoad(tg);alert(`녹음을 "${tg}" 곡 입력(매체녹음)에 넣었습니다.`);return}catch(e){alert('곡 폴더에 넣지 못했습니다: '+(e.message||e)+' — 파일로 저장합니다.')}}
     if(!sgPhone()&&await sgHelperOn()){
       const song=(prompt('녹음한 곡의 이름 (PC 곡 폴더: 음악\\쎄이기타 분석\\곡명 의 입력에 "녹음"으로 들어가고 바로 분석합니다)',SG.song&&SG.song.title||'')||'').trim();
       if(song){const f=new File([blob],name,{type:'audio/webm'});f.sgSong=song;f.sgKind='rec';sgFiles([f]);return}
@@ -3648,7 +3800,7 @@ async function pdfOpen(r,blob){
     const doc=await lib.getDocument({data:new Uint8Array(await blob.arrayBuffer())}).promise;
     if(tk!==PDF.tk){doc.destroy();return}
     if(PDF.doc)PDF.doc.destroy();
-    Object.assign(PDF,{doc,blob,name:r.name,key:r.key,ch:null,tx:{},zoom:1});if(r.kind)pdfEl('pdfKind').value=r.kind;
+    Object.assign(PDF,{doc,blob,name:r.name,key:r.key,ch:null,tx:{},zoom:1});if(r.kind==='gt'||r.kind==='tab')pdfEl('pdfKind').value=r.kind;
     pdfRange(r.from,r.to);
   }catch(e){if(tk===PDF.tk)pdfEl('pdfView').innerHTML=`<p class="sdesc">PDF를 열지 못했습니다: ${esc(e&&e.message||e)}</p>`}
 }
@@ -4038,8 +4190,8 @@ function setTab(t){
   if(t!=='blues'&&BL.playing)blStop();
   if(t!=='tune'&&TU.on)tuStop();   /* 조율기를 떠나면 마이크 끄기 */
   if(t!=='song'&&SG.playing)sgPause();
-  ['find','name','scale','adlib','blues','song','shift','tune'].forEach(p=>document.getElementById('p-'+p).hidden=p!==t);
-  drawBoard();if(t==='name')renderName();if(t==='scale')renderScale();if(t==='shift')renderShift();if(t==='adlib')renderAdTab();if(t==='blues')blRender();if(t==='song')sgShow();if(t==='tune'){tuRender();if(!TU.on)tuStart()}   /* 조율기 탭 → 마이크 자동 켜기 */
+  ['find','name','scale','adlib','blues','edit','song','shift','tune'].forEach(p=>document.getElementById('p-'+p).hidden=p!==t);
+  drawBoard();if(t==='name')renderName();if(t==='scale')renderScale();if(t==='shift')renderShift();if(t==='adlib')renderAdTab();if(t==='blues')blRender();if(t==='song')sgShow();if(t==='edit')edShow();if(t==='tune'){tuRender();if(!TU.on)tuStart()}   /* 조율기 탭 → 마이크 자동 켜기 */
 }
 document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
 document.querySelectorAll('[data-acc]').forEach(b=>b.addEventListener('click',()=>{
