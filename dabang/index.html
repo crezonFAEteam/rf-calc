@@ -2865,6 +2865,26 @@ const CE_TODO={
 const ceUrl=(...ps)=>SG_HELPER+'/song/'+[CE.title,...ps].map(encodeURIComponent).join('/');
 /* 악보 출처: 기타타브 · 기타악보를 따로 (체크된 첫 PDF). 읽은 결과는 타브코드.txt · 악보코드.txt 로 보관 */
 const CE_SRC=[['tab','타브','타브코드.txt'],['gt','악보','악보코드.txt']];
+/* 악보에서 읽은 코드 정리: 곡의 조를 추정 → 조에 없는 코드가 한 줄에만 나오면 잘못 읽은 것으로 보고 버림(길이는 앞 코드에) ·
+   길이 0 빼기 · 같은 코드 이어지면 합치기 · 잘린 이름(Emadd → Emadd9) */
+function scClean(text){
+  const L=text.replace(/\r/g,'').split('\n'),fix=n=>chAlias(n).replace(/add$/,'add9');
+  const isCh=l=>{const t=l.trim().split(/\s+/).filter(Boolean);return t.length&&t.every(x=>CH.test(fix(x)))},isNum=l=>/^\s*\d+(\s+\d+)*\s*$/.test(l);
+  const pairs=[];for(let i=0;i+1<L.length;i++)if(isCh(L[i])&&isNum(L[i+1])){const n=L[i].trim().split(/\s+/).map(fix),d=L[i+1].trim().split(/\s+/).map(Number);pairs.push({i,n,d})}
+  if(!pairs.length)return text;
+  const fam=n=>{const c=blChord(n);return c?{r:c.r,m:/^m(?!aj)/.test(c.s),d:/dim|m7-5|m7b5|ø/.test(c.s)}:null};
+  const dia=(n,k)=>{const c=fam(n);if(!c)return false;const x=mod(c.r-k);return c.d?x===11:c.m?[2,4,9].includes(x):[0,5,7].includes(x)};
+  let key=0,bs=-1;for(let k=0;k<12;k++){let s=0;pairs.forEach(P=>P.n.forEach((n,j)=>{if(dia(n,k)){const c=fam(n),x=mod(c.r-k);s+=((P.d[j]||0)+1)*(x===0||x===9?1.5:1)}})   /* 으뜸화음 · 나란한조 으뜸화음에 무게 (G·D 처럼 화음이 겹치는 조 구별) */);if(s>bs){bs=s;key=k}}
+  const lines={};pairs.forEach((P,pi)=>new Set(P.n).forEach(n=>{(lines[n]=lines[n]||new Set()).add(pi)}));
+  const keep=n=>dia(n,key)||(lines[n]&&lines[n].size>=2);
+  pairs.forEach(P=>{const o=[];P.n.forEach((n,j)=>{const d=P.d[j]||0;
+      if(!keep(n)||d<=0){if(o.length)o[o.length-1].d+=Math.max(0,d);else if(d>0)o.push({n:null,d});return}
+      if(o.length&&o[o.length-1].n===null){o[o.length-1].n=n;o[o.length-1].d+=d;return}
+      if(o.length&&o[o.length-1].n===n){o[o.length-1].d+=d;return}
+      o.push({n,d})});
+    const q=o.filter(x=>x.n);L[P.i]=q.map(x=>x.n).join('  ');L[P.i+1]=q.map(x=>x.d).join(' ');if(!q.length){L[P.i]='';L[P.i+1]=''}});
+  return L.join('\n');
+}
 async function ceGetScores(title,say){
   const m=await (await fetch(SG_HELPER+'/list/'+encodeURIComponent(title),{cache:'no-store'})).json().catch(()=>null);
   if(!m||m.error)return [];
@@ -2877,6 +2897,7 @@ async function ceGetScores(title,say){
       if((t.split('\n')[0]||'').includes(pdf.file))text=t}   /* 지금 입력된 그 PDF 에서 읽은 것일 때만 (악보를 바꾸면 다시 읽음) */
     if(text==null){say(`${label}(${esc(pdf.file)}) 읽는 중…`);const b=await (await fetch(ceUrl('입력',pdf.file))).blob(),r=await scOmrBlob(b,0,0,say);text=`# ${label}에서 읽은 코드 진행 — ${pdf.file}\n`+r.text;
       fetch(SG_HELPER+'/song-file?'+new URLSearchParams({song:title,kind:'out',name:cache}),{method:'POST',body:text}).catch(()=>{})}
+    {const t2=scClean(text);if(t2!==text){text=t2;fetch(SG_HELPER+'/song-file?'+new URLSearchParams({song:title,kind:'out',name:cache}),{method:'POST',body:text}).catch(()=>{})}}   /* 정리한 것으로 다시 저장 */
     out.push({k,label,file:pdf.file,text});
   }
   return out;
@@ -2908,8 +2929,27 @@ async function ceGetRhythm(title){
   return lines.length?{file:x.file,lines}:null;
 }
 /* 자리 맞추기: 숫자 1 = 8분음표(2칸) 또는 두 배로 적힌 것(1칸 → 절반) 중, 첫 가사 줄을 노래 시작 근처(±4마디)에 놓아 음원 코드와 가장 잘 맞는 것 */
+function ceRhyScore(){
+  const R=CE.rhy;if(!R||R.scored)return;R.scored=1;
+  const S=(CE.srcs||[]).filter(S=>(S.match||0)>=0.4).sort((a,b)=>(a.k==='tab'?0:1)-(b.k==='tab'?0:1))[0];if(!S)return;   /* 우선순위: 기타타브 > 기타악보 */
+  const SL=ceRhyParse(S.text).filter(x=>x.chords.length);if(!SL.length)return;
+  const roots=(cs,sh)=>{const a=[];cs.forEach(c=>{const b=blChord(c.n);for(let u=0;u<c.len;u++)a.push(b?mod(b.r+sh):-1)});return a};
+  const sim=(A,B)=>{if(A.length!==B.length)return 0;let s=0;A.forEach((x,i)=>{if(x===B[i]&&x>=0)s++});return s/A.length};
+  let sh=0,bs=-1;for(let k=0;k<12;k++){let s=0;R.lines.forEach(L=>{const A=roots(L.chords,0);let b=0;SL.forEach(Q=>{b=Math.max(b,sim(A,roots(Q.chords,k)))});s+=b});if(s>bs){bs=s;sh=k}}
+  R.lines.forEach(L=>{const A=roots(L.chords,0);let best=null,bv=0.75;
+    SL.forEach(Q=>{const v=sim(A,roots(Q.chords,sh));if(v>bv||(best&&v===bv&&Q.chords.length>best.chords.length)){bv=v;best=Q}});
+    if(!best)return;const nc=best.chords.map(c=>({n:(sh?sgTrName(c.n,sh):c.n).replace(/madd9$/,'ma9'),len:c.len,ly:''}));   /* 리듬악보에는 짧게: Emadd9 → Ema9 (같은 코드) */
+    if(nc.map(c=>c.n+c.len).join()===L.chords.map(c=>c.n+c.len).join())return;
+    /* 코드 줄 다시: 원래 코드 자리(가사 위치)에 비례해서 */
+    const idx=[];L.cl.replace(/[^\s|]+/g,(m,i)=>{idx.push(i);return m});const end=Math.max(L.cl.replace(/\s+$/,'').length,...(L.raw||[]).map(r=>r.length))+2;
+    let u=0;const us=L.chords.map(c=>{const a=u;u+=c.len;return a});
+    let pos=0,line='';u=0;nc.forEach(c=>{let j=us.length-1;while(j>0&&us[j]>u)j--;const c0=idx[j]!=null?idx[j]:0,c1=j+1<idx.length?idx[j+1]:end,frac=(u-us[j])/(L.chords[j].len||1);
+      let col=Math.round(c0+frac*(c1-c0));col=Math.max(col,pos);line=line.padEnd(col)+c.n;pos=line.length+1;u+=c.len});
+    L.orig={chords:L.chords,cl:L.cl,nl:L.nl};L.chords=nc;L.cl=line;L.nl=nc.map(c=>c.len).join(' ');L.src=S.label});
+  R.scoreSrc=S.label;
+}
 function ceRhyPlace(){
-  const R=CE.rhy;if(!R)return;const D=CE.D,tot=CE.song.bars*16;
+  const R=CE.rhy;if(!R)return;ceRhyScore();const D=CE.D,tot=CE.song.bars*16;
   const at=sl=>{let c=null;for(const x of D){if(x.s<=sl)c=x;else break}return c};
   const ev=[];let u=0;R.lines.forEach((L,li)=>{L.u0=u;L.chords.forEach((c,j)=>{ev.push({li,j,u,len:c.len});u+=c.len})});R.units=u;
   const fl=R.lines.findIndex(L=>L.ly),vs=((CE.song.lines||[])[0]||{}).s;
@@ -2957,7 +2997,7 @@ function ceRhySheet(R,fmt,cls){
       else lines.push(...(L.raw||[]).map(esc));
       lines.push(esc(L.nl||''));
     }
-    return `<div class="ce-rtx${B.gen?' gen':''}"><div class="ce-rth"><button class="ghost sm ce-rplay" data-cerange="${B.s},${B.e}" title="이 묶음을 원곡으로 듣기">▶</button> ${Math.floor(Math.max(0,B.s)/16)+1}~${Math.ceil(B.e/16)}마디 · ${sgFmt(Math.max(0,t0))}${B.gen?' · <i>리듬악보에 없음 — 음원 분석 코드</i>':''}</div><pre>${lines.join('\n')}</pre></div>`}).join('')+`</div>`;
+    return `<div class="ce-rtx${B.gen?' gen':''}"><div class="ce-rth"><button class="ghost sm ce-rplay" data-cerange="${B.s},${B.e}" title="이 묶음을 원곡으로 듣기">▶</button> ${Math.floor(Math.max(0,B.s)/16)+1}~${Math.ceil(B.e/16)}마디 · ${sgFmt(Math.max(0,t0))}${B.gen?' · <i>리듬악보에 없음 — 음원 분석 코드</i>':''}${B.L&&B.L.src?` · <i>코드 · 길이 = ${esc(B.L.src)} 기준</i>`:''}</div><pre>${lines.join('\n')}</pre></div>`}).join('')+`</div>`;
 }
 function ceRhyText(){if(!CE.rhy)return '';const d=document.createElement('div');d.innerHTML=ceRhyHtml(true);
   return [...d.querySelectorAll('.ce-rtx pre')].map(x=>x.textContent.split('\n').map(l=>l.replace(/\s+$/,'')).join('\r\n')).join('\r\n\r\n')+'\r\n'}
