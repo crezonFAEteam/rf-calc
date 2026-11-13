@@ -731,12 +731,12 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
 
   <section id="p-song" role="tabpanel" hidden>
     <div class="sg-top">
-      <button id="sgFileBtn" class="play" title="mp3 · mp4 · m4a · wav 등 이미 있는 음원을 이 기기에서 바로 분석 (박자 · 코드)">🎵 음원 파일 열기</button>
-      <button id="sgOpen" class="ghost" title="PC 분석기가 만든 결과 열기 (PC: 곡 폴더, 휴대폰: saysay 의 '곡명.zip')">📂 분석 결과 열기</button>
-      <select id="sgList" class="sg-list" aria-label="이미 분석한 곡 고르기"><option value="">분석된 곡 ▼</option></select>
+      <select id="sgList" class="sg-list" aria-label="곡 폴더 고르기"><option value="">곡 고르기 ▼</option></select>
+      <button id="sgOpen" class="ghost" title="휴대폰: saysay 의 곡명.zip 열기">📂 곡 묶음(zip) 열기</button>
+      <button id="sgFileBtn" class="play" hidden>🎵 음원 파일 열기</button>
       <button id="sgRecent" class="ghost sm" hidden>최근 곡</button>
-      <button id="sgUrl" class="ghost" title="PC: 유튜브 등 영상 링크를 분석 도우미가 받아서 바로 분석 (재생 · 녹음 필요 없음)">🔗 링크로 분석</button>
-      <button id="sgRec" class="ghost" title="Edge · Chrome: 재생 중인 탭(유튜브 등)의 소리를 원음 그대로 녹음">🔴 탭 소리 녹음</button>
+      <button id="sgUrl" class="ghost" hidden>🔗 링크로 분석</button>
+      <button id="sgRec" class="ghost" hidden>🔴 탭 소리 녹음</button>
       <span id="sgRecT" class="sg-rect" hidden></span>
       <input type="file" id="sgDirIn" webkitdirectory multiple hidden>
       <input type="file" id="sgZipIn" multiple hidden>
@@ -745,54 +745,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
     <label class="check sg-autochk" id="sgAutoL" title="PC 분석 도우미가 켜져 있으면 음원을 열 때 이어서 트랙 분리 · 가사 · TAB까지 자동 분석"><input type="checkbox" id="sgAuto"> 음원을 열면 PC 정밀 분석도 자동으로</label>
     <div id="sgStat" class="sg-stat" hidden></div>
     <div id="sgDeep" class="sg-deep" hidden></div>
-    <div id="sgHelp" class="sg-help">
-      <b class="sg-h1">곡에 맞춰 코드 · 가사 · TAB을 보며 따라 치기</b>
-      <div class="sg-steps">
-        <div class="sg-step"><span class="sg-no">1</span><div><b>곡 열기</b>
-          <div class="sg-sub"><b>이미 분석한 곡</b> → 분석 없이 바로 연습 (2단계 건너뜀)</div>
-          <ul>
-            <li><b>[분석된 곡 ▼]</b> 목록에서 고르기. 목록에는 <b>이 기기에 저장된 곡</b>(전에 열었던 곡)과, PC 분석 도우미가 켜져 있으면 <b>PC에서 분석한 모든 곡</b>(saygita\songAnalyze)이 나옵니다.</li>
-            <li>같은 곡을 [🎵 음원 파일 열기]로 다시 열면 <b>"새로 분석할지"</b> 물어봅니다. [확인] = 기존 분석을 지우고 최신 분석기로 새로 (분석기가 좋아졌을 때) · [취소] = 기존 결과 바로 열기.</li>
-            <li>다른 PC에서 분석한 곡: <b>[📂 분석 결과 열기]</b> → PC는 <b>곡 폴더</b>(saygita\songAnalyze\곡명), 휴대폰은 <b>"곡명.zip"</b> 파일을 고르기. 한 번 열면 [분석된 곡 ▼]에 남습니다.</li>
-          </ul>
-          <div class="sg-sub"><b>처음 여는 곡</b> → 열면 2단계 분석이 자동으로</div>
-          <ul>
-            <li><b>[🎵 음원 파일 열기]</b>: mp3 · mp4 · m4a · wav 파일을 고릅니다. (PC · 휴대폰)</li>
-            <li><b>[🔴 탭 소리 녹음]</b> (PC): 파일이 없으면 유튜브 등에서 재생되는 소리를 녹음합니다. PC 분석 도우미가 켜져 있으면 끝낼 때 곡 이름을 물어 <b>곡 폴더의 입력(녹음)</b>으로 넣고 바로 분석합니다.
-              연습할 곡을 다른 탭에 열어 두고 → [🔴 탭 소리 녹음] → 공유 창에서 그 <b>탭</b>을 고르고 <b>"탭 오디오도 공유"</b> 켜기 → [공유] → 곡을 처음부터 재생 → 끝나면 <b>[■ 녹음 끝내고 저장]</b> → 저장된 파일을 [🎵 음원 파일 열기]로 엽니다.</li>
-          </ul></div></div>
-        <div class="sg-step"><span class="sg-no">2</span><div><b>분석</b> — 열면 자동으로 진행. PC와 휴대폰은 할 수 있는 것이 다릅니다
-          <table class="sg-cmp"><tr><th></th><th>PC (분석 도우미 켜짐)</th><th>휴대폰 · 도우미 없는 PC</th></tr>
-            <tr><td>보이는 것</td><td>박자 · 코드 + <b>가사 · 기타 TAB · 베이스 TAB · 하모니카</b><br>+ 트랙 나누기 (노래 · 기타 · 베이스 · 드럼)</td><td>박자 · 코드</td></tr>
-            <tr><td>걸리는 시간</td><td>박자 · 코드는 수십 초 만에 먼저 보이고,<br>나머지는 곡당 몇 분 뒤 자동으로 바뀜 (위 진행 표시)</td><td>수십 초</td></tr></table>
-          <ul>
-            <li><b>휴대폰에서 정밀 분석 결과 보기</b>: PC에서 분석하면 곡 폴더 전체(입력 · 출력 · 목록)가 묶여 OneDrive <b>saysay\곡명.zip</b> 으로 자동 복사됩니다. 휴대폰의 OneDrive · Teams 앱에서 받아 1단계의 <b>[📂 분석 결과 열기]</b>로 고릅니다.</li>
-            <li><b>도우미가 없는 PC</b>: 도우미가 꺼져 있다는 안내가 뜨면 그 안의 [설치 파일 받기]로 한 번만 설치하세요.</li>
-          </ul></div></div>
-        <div class="sg-step"><span class="sg-no">3</span><div><b>키 · 카포 맞추기</b> — 악보 위 <b>곡 키</b> 줄에서
-          <ul>
-            <li><b>조옮김 − +</b>: 악보 코드를 반음씩 올리거나 내립니다. <b>[🔊 음원도 같이]</b>를 켜면 노래 · 반주 소리도 같은 키로 바뀝니다 (빠르기 그대로). 예) G로 부른 곡을 +2 → A키로 듣고 치기</li>
-            <li><b>카포 / 쉬운 모양</b>: 카포를 끼우고 쉬운 코드 모양으로 칩니다. 예) A키 곡 → [G · 카포 2] = 2프렛에 카포, G 모양으로</li>
-          </ul></div></div>
-        <div class="sg-step"><span class="sg-no">4</span><div><b>연습</b> — 재생하면 코드 · 가사가 원곡에 맞춰 흘러갑니다
-          <div class="sg-sub"><b>악기별 연습</b> — 내 악기 트랙만 끄고, 나머지 반주에 맞춰 연주 (정밀 분석한 곡)</div>
-          <table class="sg-cmp sg-inst"><tr><th>악기</th><th>트랙 (믹서)</th><th>볼 악보</th></tr>
-              <tr><td>🎸 기타</td><td><b>기타 끔</b> → 반주에 맞춰 직접 치기. 기타가 두 대면 기타1(왼쪽) · 기타2(오른쪽)를 따로 끄거나 <b>혼자</b>로 들어 보기</td><td><b>코드 · 가사</b> (코드 반주) 또는 <b>기타 TAB</b> (원곡 연주 그대로)</td></tr>
-              <tr><td>🎸 베이스</td><td><b>베이스 끔</b> → 드럼 · 기타에 맞춰 치기 · <b>베이스 혼자</b>로 라인 익히기</td><td><b>베이스 TAB</b></td></tr>
-              <tr><td>🎤 노래</td><td><b>노래 끔</b> → 반주(MR)에 맞춰 부르기 · <b>노래 혼자</b>로 멜로디 · 가사 익히기</td><td><b>코드 · 가사</b> (가사가 박자에 맞춰 흘러감). 키가 높거나 낮으면 조옮김 + [🔊 음원도 같이]</td></tr>
-              <tr><td>🎵 하모니카</td><td>원곡 하모니카 소리는 <b>나머지</b> 트랙에 들어 있음 → <b>나머지 혼자</b>로 듣고, <b>나머지 끔</b>으로 직접 불기 (나머지 트랙이 없는 곡은 원곡에 맞춰 같이 불기)</td><td><b>하모니카 구멍</b> (숫자 = 구멍, 숫자 위 점 = 들이마시기)</td></tr>
-              <tr><td>🥁 리듬</td><td><b>드럼 혼자</b> → 박자 · 리듬 익히기 (메트로놈 대신)</td><td>칸 하나 = 한 박</td></tr></table>
-          <div class="sg-sub"><b>합주 연습</b> — 여럿이 각자 맡은 악기 트랙을 끄고 같이 연주</div>
-          <ul>
-            <li>예) 기타 · 베이스 · 노래를 맡은 세 사람: 세 트랙을 끄고 <b>드럼 · 나머지</b>만 켜면 원곡 드럼에 맞춰 밴드 합주가 됩니다. 처음엔 기타만 끄고, 익숙해지면 하나씩 더 끄세요.</li>
-            <li>안 맞는 부분은 <b>속도</b>를 70~80%로 늦추고 그 마디만 <b>[⟳ 반복]</b>해서 맞춰 보세요 (음 높이는 그대로).</li>
-            <li>노래하는 사람 키에 맞추려면 조옮김 + [🔊 음원도 같이] → 기타는 <b>쉬운 모양 · 카포</b>로 맞추기.</li>
-            <li>소리는 한 기기에서 재생해 스피커로 크게 트세요. 기기끼리 재생 위치가 맞춰지지는 않으므로, 각자 휴대폰은 악보 보기용으로 쓰세요.</li>
-          </ul>
-          <p class="sdesc" style="margin:4px 0 0">간이 분석한 곡은 트랙이 나뉘지 않아 원곡 전체에 맞춰 코드 반주만 연습할 수 있습니다. 곡을 열면 자세한 사용법(재생 · 반복 · 악보 누르기)이 나옵니다.</p></div></div>
-      </div>
-      <p class="sdesc" style="margin:8px 0 0">음원과 분석 결과는 이 기기(PC)에만 저장되고 서버에 올라가지 않습니다. 개인 연습용으로만 쓰세요.</p>
-    </div>
+    <div id="sgHelp" class="sg-help"><p class="sdesc" style="margin:6px 0">곡편집에서 만든 곡 폴더를 고르세요.</p></div>
     <div id="sgMain" hidden>
       <div class="sg-head"><b id="sgTitle"></b><span id="sgMeta" class="sg-meta"></span></div>
       <div class="sg-tr">
@@ -806,32 +759,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
       </div>
       <input type="range" id="sgSeek" class="sg-seek" min="0" max="1000" value="0" aria-label="재생 위치">
       <div id="sgDiag" class="sg-diag" role="status" hidden></div>
-      <details class="sg-guide" id="sgGuide" open><summary>❓ 사용법 — 키/카포 · 재생 · 반복 · 악보 누르기 · 트랙 · 악기별 · 합주</summary>
-        <dl>
-          <dt>🎼 키 · 카포</dt><dd><b>조옮김 − +</b> = 악보 코드를 반음씩 올림/내림 (소리는 원곡 그대로).<br>
-            <b>[🔊 음원도 같이]</b>를 켜면 소리도 같은 키로 바뀝니다 (빠르기 그대로, 목소리 색 유지). 예) G로 부른 곡을 +2 → A키로 듣고 치기.<br>
-            <b>카포 / 쉬운 모양</b> = 카포를 끼우고 쉬운 코드 모양으로 치기. 예) A키 곡을 [G · 카포 2] → 2프렛에 카포, G 모양으로.</dd>
-          <dt>▶ 재생</dt><dd><b>[재생]</b> 또는 <b>스페이스</b> = <b>처음부터</b> 재생 / 정지 (반복할 마디를 골랐으면 그 처음부터).<br>
-                중간부터 들으려면 악보의 그 자리를 누르거나, 멈춘 상태에서 막대를 끌거나 [⏪ 5초]로 옮긴 뒤 [재생].<br>
-            <b>속도</b> = 빠르기만 느리게 (음 높이는 그대로) · <b>[⇣ 따라가기]</b> = 지금 위치가 늘 보이게 자동 스크롤 · <b>[가− 가+]</b> = 악보 글자 크기.</dd>
-          <dt>⟳ 반복</dt><dd><b>반복할 마디</b>(트랙 아래)에서 시작 · 끝 마디를 고르고 <b>[⟳ 반복]</b>을 켜면 그 구간만 계속 돕니다. [전체] = 곡 전체. 반복을 끄면 구간 끝에서 멈춥니다.</dd>
-          <dt>👆 악보 누르기</dt><dd><b>코드 이름</b>을 누르면 그 코드 구간만 재생 · <b>다른 곳</b>(가사 · 빈칸 · 구멍 번호)을 누르면 그 박부터 재생 · 재생 중에 누르면 멈춤.<br>
-            TAB에서는 코드 이름이나 그 코드의 음 = 그 코드만, 빈 곳 = 지금 위치부터. 칸 하나 = 한 박.</dd>
-          <dt>🎚 트랙</dt><dd>트랙마다 <b>[켬/끔]</b> · <b>[혼자]</b>(그 트랙만 듣기) · 볼륨.<br>
-            예) <b>기타 끔</b> → 반주에 맞춰 내가 기타 치기 · <b>노래 혼자</b> → 가사 · 멜로디 듣기 · <b>노래 끔</b> → 내가 부르기.</dd>
-          <dt>🎸 악기별 연습</dt><dd><table class="sg-cmp sg-inst sm"><tr><th>악기</th><th>트랙 (믹서)</th><th>볼 악보</th></tr>
-              <tr><td>🎸 기타</td><td><b>기타 끔</b> → 반주에 맞춰 직접 치기. 기타가 두 대면 기타1(왼쪽) · 기타2(오른쪽)를 따로 끄거나 <b>혼자</b>로 들어 보기</td><td><b>코드 · 가사</b> (코드 반주) 또는 <b>기타 TAB</b> (원곡 연주 그대로)</td></tr>
-              <tr><td>🎸 베이스</td><td><b>베이스 끔</b> → 드럼 · 기타에 맞춰 치기 · <b>베이스 혼자</b>로 라인 익히기</td><td><b>베이스 TAB</b></td></tr>
-              <tr><td>🎤 노래</td><td><b>노래 끔</b> → 반주(MR)에 맞춰 부르기 · <b>노래 혼자</b>로 멜로디 · 가사 익히기</td><td><b>코드 · 가사</b> (가사가 박자에 맞춰 흘러감). 키가 높거나 낮으면 조옮김 + [🔊 음원도 같이]</td></tr>
-              <tr><td>🎵 하모니카</td><td>원곡 하모니카 소리는 <b>나머지</b> 트랙에 들어 있음 → <b>나머지 혼자</b>로 듣고, <b>나머지 끔</b>으로 직접 불기 (나머지 트랙이 없는 곡은 원곡에 맞춰 같이 불기)</td><td><b>하모니카 구멍</b> (숫자 = 구멍, 숫자 위 점 = 들이마시기)</td></tr>
-              <tr><td>🥁 리듬</td><td><b>드럼 혼자</b> → 박자 · 리듬 익히기 (메트로놈 대신)</td><td>칸 하나 = 한 박</td></tr></table></dd>
-              <dt>👥 합주</dt><dd>각자 맡은 악기 트랙을 끄고 같이 연주. 예) 기타 · 베이스 · 노래 끄고 <b>드럼 · 나머지</b>만 켜면 밴드 합주.<br>
-                안 맞는 곳은 속도 70~80% + 그 마디만 [⟳ 반복] · 노래하는 사람 키에 맞추려면 조옮김 + [🔊 음원도 같이], 기타는 쉬운 모양 · 카포.<br>
-                소리는 한 기기에서 스피커로 (기기끼리 재생 위치는 맞춰지지 않음).</dd>
-              <dt>👁 보기</dt><dd><b>코드 · 가사</b> / <b>기타 TAB</b> / <b>베이스 TAB</b> / <b>하모니카 구멍</b> (숫자 = 구멍, 숫자 위 점 = 들이마시기). 정밀 분석한 곡만 TAB · 하모니카가 있습니다.</dd>
-        </dl>
-        <p class="sdesc" style="margin:4px 0 0">자동 분석이라 틀린 코드 · 음 · 가사가 있을 수 있습니다. 귀로 확인하며 쓰세요.</p>
-      </details>
+
       <div class="sg-grid">
         <div class="sg-side">
           <span class="flabel">트랙 (믹서) — 기타를 끄면 반주에 맞춰 직접 치기</span>
@@ -2944,7 +2872,7 @@ function ceVoicings(n){const c=blChord(n);if(!c)return [];const bs=(c.b!=null&&c
   return L.slice(0,12)}
 function ceVStr(v){return v.map(f=>f<0?'x':f>9?'('+f+')':f).join('')}
 function ceTabSheet(){
-  const s=CE.song,D=CE.D,{rows,words}=ceRows(),g=ceGuitar(),meter=ceMeter(),per=Math.max(1,Math.min(4,tabPer(16,'ceBox')));
+  const s=CE.song,D=CE.D,{rows,words}=ceRows(),g=ceGuitar(),meter=ceMeter(),per=Math.max(1,Math.min(4,tabPer(16,CE.tabEl||'ceBox')));
   const chordAt=sl=>{let c=null;for(const x of D){if(x.s<=sl)c=x;else break}return c};
   return `<div class="ce-sheet">`+rows.map((r,ri)=>{
     const st=r.bars[0]*16,en=(r.bars[r.bars.length-1]+1)*16,mode=r.kind?CE.sec[r.kind]:'pat',hl=(CE.step===r.kind)||(CE.step==='strum'&&!r.kind);
@@ -3231,7 +3159,7 @@ function sgRender(){
   sgEl('sgFrom').innerHTML=opt(SG.from);sgEl('sgTo').innerHTML=opt(SG.to<0?s.bars-1:SG.to);
   sgEl('sgRate').value=String(SG.rate);sgEl('sgLoop').setAttribute('aria-pressed',SG.loop);
   /* 보기 고르기: 코드 · 가사 / 각 TAB */
-  const views=[['sheet','코드 · 가사']].concat(Object.entries(s.parts||{}).map(([k,p])=>[k,p.kind==='harmonica'?'하모니카 구멍':p.name.split(' — ')[0]+' TAB']));
+  const views=[['sheet','코드 · 가사']].concat(s.backing?[['final','🎸 최종 반주 TAB']]:[]).concat(Object.entries(s.parts||{}).map(([k,p])=>[k,p.kind==='harmonica'?'하모니카 구멍':p.name.split(' — ')[0]+' TAB']));
   if(!views.some(v=>v[0]===SG.view))SG.view='sheet';
   sgEl('sgViews').innerHTML=views.map(([k,l])=>`<button class="chip" data-sgview="${k}" aria-pressed="${SG.view===k}">${esc(l)}</button>`).join('');
   sgEl('sgKey').innerHTML=sgKeyBar();
@@ -3311,7 +3239,17 @@ function sgHarpView(pid){
   sgEl('sgTab').innerHTML=h+'</div>';
 }
 const NOTE_K=i=>(useFlat?FLAT:SHARP)[i];
-function sgTabView(){if(SG.song.parts[SG.view]&&SG.song.parts[SG.view].kind==='harmonica')return sgHarpView(SG.view);const lk=sgLick(SG.view);sgEl('sgTab').innerHTML=`<div class="tabttl" style="cursor:default">${esc(lk.name)}</div><pre>${tabRender(lk,'g',true,tabPer(16,'sgTab'))}</pre>`}
+function sgFinalView(){   /* 곡편집 › 기타반주보정 결과(주법 · 운지 · 전간후주)로 만든 반주 TAB */
+  const s=SG.song,rec=s.backing||{},keep={...CE};
+  try{
+    CE.song=s;CE.D=s.chords.map(c=>({s:c.s,name:c.name}));CE.pat=(rec.strum&&ARP[rec.strum.pat])?rec.strum.pat:'slow';
+    CE.sec=rec.sections||{};CE.vmap=rec.voicings||{};CE.step='';CE.tabEl='sgTab';
+    const sec=['intro','inter','outro'].map(k=>({intro:'전주',inter:'간주',outro:'후주'}[k])+' '+(CE.sec[k]==='orig'?'원곡 기타':CE.sec[k]==='pat'?'반주 패턴':'—')).join(' · ');
+    sgEl('sgTab').innerHTML=`<div class="tabttl" style="cursor:default">최종 반주 — ${esc(ARP[CE.pat].n)} · ${sec}${(SG.kc.t||SG.kc.c)?' (조옮김 · 카포는 이 보기에 적용되지 않음)':''}</div>`+ceTabSheet();
+  }catch(e){sgEl('sgTab').innerHTML='<p class="sdesc">최종 반주를 만들지 못했습니다: '+esc(e.message||e)+'</p>'}
+  finally{Object.keys(CE).forEach(k=>{if(!(k in keep))delete CE[k]});Object.assign(CE,keep)}
+}
+function sgTabView(){if(SG.view==='final')return sgFinalView();if(SG.song.parts[SG.view]&&SG.song.parts[SG.view].kind==='harmonica')return sgHarpView(SG.view);const lk=sgLick(SG.view);sgEl('sgTab').innerHTML=`<div class="tabttl" style="cursor:default">${esc(lk.name)}</div><pre>${tabRender(lk,'g',true,tabPer(16,'sgTab'))}</pre>`}
 function sgMark(t){
   const s=SG.song,sl=SG.slot;
   document.querySelectorAll('#p-song .now').forEach(x=>x.classList.remove('now'));
@@ -3322,6 +3260,7 @@ function sgMark(t){
   }else if(s.parts[SG.view]&&s.parts[SG.view].kind==='harmonica'){
     const c=document.querySelector(`#sgTab .sg-c[data-b="${Math.floor(sl/4)}"]`);if(c)c.classList.add('now');
     const H=s.parts[SG.view].notes;H.forEach((n,ni)=>{const e=n.t!=null?n.t:sgTime(n.s);if(e<=t+0.05&&t<e+Math.max(0.25,sgTime(n.s+n.d)-sgTime(n.s))){const x=document.querySelector(`#sgTab i[data-hn="${ni}"]`);if(x)x.classList.add('now')}});
+  }else if(!s.parts[SG.view]){   /* 최종 반주 보기: 하이라이트 없음 */
   }else{
     const lk=sgLick(SG.view);let k=sl;while(k>sl-3&&!lk.map[k])k--;
     (lk.map[k]||[]).forEach(ni=>{const e=document.querySelector(`#sgTab [data-n="g-${ni}"]`);if(e)e.classList.add('now')});
@@ -3443,7 +3382,7 @@ sgEl('sgTab').addEventListener('click',e=>{
   el.addEventListener('wheel',e=>{if(!e.ctrlKey)return;e.preventDefault();setTabFs(tabFsNow()*Math.exp(-e.deltaY*0.01));clearTimeout(setTabFs.t);setTabFs.t=setTimeout(tabFsDone,250)},{passive:false});
 });
 window.addEventListener('resize',()=>{clearTimeout(sgShow.t);sgShow.t=setTimeout(()=>{if(st.tab==='song'&&SG.song&&SG.view!=='sheet')sgTabView()},200)});
-function sgShow(){sgApplyZ();sgListFill();sgLoadLast();const pc=!sgPhone();sgEl('sgAutoL').hidden=!pc;sgEl('sgUrl').hidden=!pc;sgEl('sgAuto').checked=SG.auto;sgEl('sgRec').hidden=!(navigator.mediaDevices&&navigator.mediaDevices.getDisplayMedia)||matchMedia('(pointer:coarse)').matches;sgRecentBtn();sgRender();if(!SG.raf&&SG.song)SG.raf=requestAnimationFrame(sgTick)}
+function sgShow(){sgApplyZ();sgListFill();sgLoadLast();sgEl('sgAutoL').hidden=true;sgEl('sgUrl').hidden=true;sgEl('sgRec').hidden=true;sgEl('sgFileBtn').hidden=true;sgRecentBtn();sgRender();if(!SG.raf&&SG.song)SG.raf=requestAnimationFrame(sgTick)}
 /* ---------- 이미 있는 음원 파일(mp3 · mp4 · m4a · wav …)을 이 기기에서 바로 분석: 박자 · 마디 · 코드 (PC · 휴대폰 공통) ----------
    PC 분석기(analyze.py)의 박자 · 코드 방법을 그대로 옮긴 간이판. 트랙 분리 · 가사 · TAB 은 PC 분석에서만 */
 function sgStat(msg,pct){const e=sgEl('sgStat');if(msg==null){e.hidden=true;return}e.hidden=false;e.innerHTML=esc(msg)+(pct!=null?` <progress max="100" value="${Math.round(pct)}"></progress>`:'')}
@@ -3557,6 +3496,7 @@ async function sgFiles(fs){
     if(!zip&&!sj)for(const f of fs){const h=new Uint8Array(await f.slice(0,4).arrayBuffer());if(h[0]===0x50&&h[1]===0x4b&&h[2]===3&&h[3]===4&&!/\.(mp4|m4a|mov)$/i.test(f.name)){zip=f;break}}   /* 이름에 .zip 이 없어도 내용으로 */
     if(zip){sgStat('묶음 파일 여는 중…');const m=await sgUnzip(zip);sgStat(null);if(!m['song.json'])throw new Error('묶음 안에 song.json 이 없습니다');
       const song=JSON.parse(await m['song.json'].text()),urls={};if(m['보정코드.json'])try{sgFix(song,JSON.parse(await m['보정코드.json'].text()))}catch(e){}
+      if(m['반주보정.json'])try{const bk=JSON.parse(await m['반주보정.json'].text());if(bk.kind==='saygita-backing')song.backing=bk}catch(e){}
       for(const st of song.stems||[])if(m[st.file])urls[st.id]=URL.createObjectURL(m[st.file]);sgLoad(song,urls);return}
     if(sj){const song=JSON.parse(await sj.text()),urls={};for(const st of song.stems||[]){const f=fs.find(x=>x.name===st.file);if(f)urls[st.id]=URL.createObjectURL(f)}sgLoad(song,urls);return}
     const au=fs.find(f=>/^(audio|video)\//.test(f.type)||/\.(mp3|mp4|m4a|wav|webm|ogg|oga|flac|aac|mov|mkv)$/i.test(f.name));
@@ -3601,6 +3541,13 @@ async function sgKeep(song,urls){   /* 연 곡을 기기에 저장 (곡 정보 +
 async function sgDBdel(k){try{const d=await sgDB.open();d.transaction('kv','readwrite').objectStore('kv').delete(k)}catch(e){}}
 async function sgListFill(){
   const sel=sgEl('sgList');if(!sel)return;
+  if(!sgPhone()&&await sgHelperOn()){   /* PC: 곡편집에서 만든 곡 폴더만 */
+    let pc=[];try{pc=(await (await fetch(SG_HELPER+'/songs',{cache:'no-store'})).json()).songs||[]}catch(e){}
+    pc.sort((a,b)=>a.title.localeCompare(b.title,'ko'));
+    sel.innerHTML=`<option value="">곡 고르기 ▼ (${pc.length})</option>`+pc.map(x=>`<option value="p:${esc(x.key)}"${SG.song&&SG.song.title===x.title?' selected':''}>${esc(x.title)}</option>`).join('');
+    sel.hidden=false;sgEl('sgOpen').hidden=true;return;
+  }
+  sgEl('sgOpen').hidden=false;
   const dev=(await sgDB.get('songIndex'))||[];let pc=[];
   if(!sgPhone()&&await sgHelperOn()){try{pc=(await (await fetch(SG_HELPER+'/songs',{cache:'no-store'})).json()).songs||[]}catch(e){}}
   const d2=t=>{const x=new Date(t),p=n=>String(n).padStart(2,'0');return `${p(x.getMonth()+1)}-${p(x.getDate())}`};
@@ -3632,7 +3579,9 @@ async function sgOpenKey(v){
       SG.keepOff=true;sgLoad(x.song,urls);SG.keepOff=false;return}
     if(v.startsWith('p:')){sgStat('PC 분석 도우미에서 불러오는 중…');const base=SG_HELPER+'/song/'+v.slice(2).split('/').map(encodeURIComponent).join('/')+'/';
       const song=await (await fetch(base+'song.json',{cache:'no-store'})).json(),urls={};
-      try{const fx=await (await fetch(SG_HELPER+'/song/'+encodeURIComponent(v.slice(2).split('/')[0])+'/'+['출력','최종악보','기타반주보정','보정코드.json'].map(encodeURIComponent).join('/'),{cache:'no-store'})).json();sgFix(song,fx)}catch(e){}
+      const fin=n=>SG_HELPER+'/song/'+encodeURIComponent(v.slice(2).split('/')[0])+'/'+['출력','최종악보','기타반주보정',n].map(encodeURIComponent).join('/');
+      try{const fx=await (await fetch(fin('보정코드.json'),{cache:'no-store'})).json();sgFix(song,fx)}catch(e){}
+      try{const bk=await (await fetch(fin('반주보정.json'),{cache:'no-store'})).json();if(bk&&bk.kind==='saygita-backing')song.backing=bk}catch(e){}
       for(const st of song.stems||[])urls[st.id]=URL.createObjectURL(await (await fetch(base+encodeURIComponent(st.file))).blob());
       sgStat(null);sgLoad(song,urls)}
   }catch(err){sgStat(null);alert('불러오지 못했습니다: '+(err&&err.message||err))}
