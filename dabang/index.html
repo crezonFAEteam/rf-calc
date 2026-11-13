@@ -222,7 +222,8 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .sg-time{font-variant-numeric:tabular-nums;color:var(--muted);font-weight:600}.sg-rate{color:var(--muted);font-size:.9rem}.sg-rate select{width:auto!important;padding:4px 6px}
 .sg-seek{width:100%;margin:10px 0 14px}
 .sg-grid{display:grid;grid-template-columns:minmax(220px,300px) minmax(0,1fr);gap:18px;align-items:start}
-.sg-mx{display:grid;grid-template-columns:minmax(0,1fr) auto auto 80px;gap:6px;align-items:center;margin:4px 0}
+.sg-mxv{font-size:.75rem;color:var(--muted);min-width:3.2em;text-align:right;font-variant-numeric:tabular-nums}
+.sg-mx{display:grid;grid-template-columns:minmax(0,1fr) auto auto 160px auto;gap:6px;align-items:center;margin:4px 0}
 .sg-mxn{font-weight:600;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sg-mx button[aria-pressed="true"]{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent)}
 .sg-mx [data-sgm][aria-pressed="false"]{opacity:.6}
@@ -2509,21 +2510,33 @@ async function sgPitchInit(){
   if(SG.ps)return true;if(SG.psInit)return SG.psInit;
   return SG.psInit=(async()=>{try{
     const AC=window.AudioContext||window.webkitAudioContext;if(!AC||!AC.prototype.hasOwnProperty('audioWorklet')&&!('audioWorklet' in AC.prototype))throw new Error('no worklet');
-    SG.ac=SG.ac||new AC({latencyHint:'playback'});
+    sgAc();
     try{if(location.protocol==='file:')throw 0;await SG.ac.audioWorklet.addModule(URL.createObjectURL(new Blob([SG_PS_SRC],{type:'application/javascript'})))}   /* 파일(file://)로 열면 blob 이 막힘 → data: 주소로 */
     catch(e1){await SG.ac.audioWorklet.addModule('data:application/javascript;charset=utf-8,'+encodeURIComponent(SG_PS_SRC))}
-    SG.ps=new AudioWorkletNode(SG.ac,'sg-pitch',{outputChannelCount:[2],channelCount:2,channelCountMode:'explicit'});SG.ps.connect(SG.ac.destination);return true}
+    SG.ps=new AudioWorkletNode(SG.ac,'sg-pitch',{outputChannelCount:[2],channelCount:2,channelCountMode:'explicit'});SG.ps.connect(SG.lim);
+    SG.ids.forEach(i=>{const g=SG.gn.get(SG.els[i]);if(g){g.disconnect();g.connect(SG.ps)}});return true}
   catch(e){SG.psErr=String(e&&e.message||e);SG.psInit=null;return false}})();
 }
 function sgPitchSemi(){return SG.song&&SG.kc&&SG.kc.s?SG.kc.t:0}
 async function sgPitchApply(){
   const n=sgPitchSemi();if(!n&&!SG.ps)return;
   if(!(await sgPitchInit())){if(n)alert('이 브라우저에서는 음원 키 바꾸기를 쓸 수 없습니다. (악보 조옮김만 됩니다)\n'+(SG.psErr||''));return}
-  for(const i of SG.ids){const e=SG.els[i];if(e&&!SG.routed.has(e)){SG.ac.createMediaElementSource(e).connect(SG.ps);SG.routed.add(e)}}
+  SG.ids.forEach(i=>sgRoute(SG.els[i]));sgVol();
   SG.ps.parameters.get('semi').setValueAtTime(n,SG.ac.currentTime);
   if(SG.playing&&SG.ac.state!=='running')SG.ac.resume();
 }
-function sgVol(){const anySolo=SG.ids.some(i=>SG.mix[i].solo);for(const i of SG.ids){const x=SG.mix[i];SG.els[i].volume=(anySolo?x.solo:!x.mute)?Math.max(0,Math.min(1,x.vol)):0}}
+/* 음량 0~200%: 100% 까지는 재생 요소 음량 그대로(기본 경로) · 100% 넘는 트랙이 생기면 그때 모든 트랙을 Web Audio 로 → 트랙마다 증폭 → 리미터(찌그러짐 방지) → 스피커 */
+SG.gn=new WeakMap();
+function sgAc(){if(!SG.ac){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;SG.ac=new AC({latencyHint:'playback'})}
+  if(!SG.lim){const c=SG.ac.createDynamicsCompressor();c.threshold.value=-2;c.knee.value=2;c.ratio.value=20;c.attack.value=0.002;c.release.value=0.15;c.connect(SG.ac.destination);SG.lim=c}
+  return SG.ac}
+function sgRoute(e){   /* 재생 요소 → 증폭 → (키 바꾸기) → 리미터 */
+  if(!e||SG.routed.has(e)||!sgAc())return;const g=SG.ac.createGain();SG.ac.createMediaElementSource(e).connect(g);g.connect(SG.ps||SG.lim);SG.gn.set(e,g);SG.routed.add(e)}
+function sgVol(){const anySolo=SG.ids.some(i=>SG.mix[i].solo);
+  const boost=SG.ids.some(i=>SG.mix[i].vol>1.001);
+  if(boost){try{SG.ids.forEach(i=>sgRoute(SG.els[i]));if(SG.playing&&SG.ac&&SG.ac.state!=='running')SG.ac.resume()}catch(e){}}
+  for(const i of SG.ids){const x=SG.mix[i],e=SG.els[i],v=(anySolo?x.solo:!x.mute)?Math.max(0,Math.min(2,x.vol)):0,g=SG.gn.get(e);
+    e.volume=Math.min(1,v);if(g)g.gain.value=v>1?v:1}}
 /* ---------- 재생 · 동기 ---------- */
 function sgPlay(){
   const m=sgMaster();if(!m)return;if(BL.playing)blStop();if(ad.playing)adStop();
@@ -3236,7 +3249,7 @@ function sgRender(){
   sgEl('sgMeta').textContent=` · 템포 약 ${s.tempo} BPM · ${s.bars}마디 · 코드 ${chs.slice(0,10).join(' ')}${chs.length>10?' …':''}`+(s.quick?' · 간이 분석(박자 · 코드). 가사 · 트랙 분리 · TAB은 PC 분석에서':'')+(s.fixed?` · 🎼 악보 기준 보정 코드(${s.fixed}곳)`:'');
   /* 믹서 */
   sgEl('sgMix').innerHTML=SG.ids.map(i=>{const st=s.stems.find(x=>x.id===i),x=SG.mix[i];
-    return `<div class="sg-mx"><span class="sg-mxn">${esc(st.name)}</span><button class="ghost sm" data-sgm="${i}" aria-pressed="${!x.mute}" title="켜기/끄기">${x.mute?'끔':'켬'}</button><button class="ghost sm" data-sgs="${i}" aria-pressed="${x.solo}" title="이 트랙만 듣기">혼자</button><input type="range" min="0" max="100" value="${Math.round(x.vol*100)}" data-sgv="${i}" aria-label="${esc(st.name)} 음량"></div>`}).join('');
+    return `<div class="sg-mx"><span class="sg-mxn">${esc(st.name)}</span><button class="ghost sm" data-sgm="${i}" aria-pressed="${!x.mute}" title="켜기/끄기">${x.mute?'끔':'켬'}</button><button class="ghost sm" data-sgs="${i}" aria-pressed="${x.solo}" title="이 트랙만 듣기">혼자</button><input type="range" min="0" max="200" value="${Math.round(x.vol*100)}" list="sgv100" data-sgv="${i}" aria-label="${esc(st.name)} 음량" title="${Math.round(x.vol*100)}% (100% = 원음 크기)"><span class="sg-mxv">${Math.round(x.vol*100)}%</span></div>`}).join('')+'<datalist id="sgv100"><option value="100"></option></datalist>';
   /* 마디 반복 · 속도 · 반복 */
   const opt=sel=>Array.from({length:s.bars},(_,b)=>`<option value="${b}"${b===sel?' selected':''}>${b+1}마디 (${sgFmt(Math.max(0,sgTime(b*16)))})</option>`).join('');
   sgEl('sgFrom').innerHTML=opt(SG.from);sgEl('sgTo').innerHTML=opt(SG.to<0?s.bars-1:SG.to);
@@ -3445,7 +3458,8 @@ document.getElementById('p-song').addEventListener('click',e=>{
 });
 document.getElementById('p-song').addEventListener('input',e=>{
   const t=e.target;
-  if(t.dataset.sgv){SG.mix[t.dataset.sgv].vol=t.value/100;sgVol();return}
+  if(t.dataset.sgv){let v=+t.value;if(Math.abs(v-100)<=4){v=100;t.value=100}   /* 100% 근처는 딱 원음 크기로 */
+    SG.mix[t.dataset.sgv].vol=v/100;t.title=v+'% (100% = 원음 크기)';const o=t.nextElementSibling;if(o)o.textContent=v+'%';sgVol();return}
   if(t.id==='sgSeek'){SG.dragging=true;const m=sgMaster();if(m&&m.duration)sgEl('sgCur').textContent=sgFmt(t.value/1000*m.duration)}
 });
 document.getElementById('p-song').addEventListener('change',e=>{
