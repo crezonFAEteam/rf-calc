@@ -2436,8 +2436,8 @@ function sgDg(k,who){if(!SG.playing||!SG.dg)return;SG.dg[k]++;if(who)SG.dg.who[w
 function sgDgShow(){const e=sgEl('sgDiag'),d=SG.dg;if(!e||!d)return;
   const ps=SG.ac&&SG.ac.playoutStats;if(ps&&SG.playing){if(d.eng0==null)d.eng0=ps.fallbackFramesEvents;d.eng=ps.fallbackFramesEvents-d.eng0}
   const who=Object.entries(d.who).sort((a,b)=>b[1]-a[1]).map(([n,c])=>n+' '+c).join(', ');
-  const parts=[];if(d.wait)parts.push(`트랙 멈칫 ${d.wait}번 (${who})`);if(d.eng)parts.push(`키 바꾸기 엔진 끊김 ${d.eng}번`);if(d.seek)parts.push(`트랙 위치 맞춤 ${d.seek}번`);if(d.nudge>8)parts.push(`트랙 속도 맞춤 ${d.nudge}번`);
-  e.hidden=!parts.length;if(parts.length)e.textContent='재생 점검: '+parts.join(' · ')+' — 소리가 끊기면 이 내용을 알려 주세요';}
+  const parts=[];if(d.wait)parts.push(`트랙 멈칫 ${d.wait}번 (${who})`);if(d.eng)parts.push(`키 바꾸기 엔진 끊김 ${d.eng}번`);if(d.seek)parts.push(`트랙 위치 맞춤 ${d.seek}번`);if(d.nudge)parts.push(`트랙 속도 맞춤 ${d.nudge}번`);
+  e.hidden=!parts.length;if(parts.length)e.textContent='재생 점검: '+parts.join(' · ')+' — 틱틱 · 끊김이 들리면 이 줄을 캡처해 알려 주세요';}
 /* ---------- 음원 키 바꾸기: 모든 트랙 → 피치 시프터(AudioWorklet) → 스피커. 빠르기는 그대로 · 한 번도 안 쓰면 기본 재생 경로 그대로 ---------- */
 const SG_PS_SRC=String.raw`/* 음높이만 바꾸기(빠르기 그대로): 위상 보코더 피치 시프트 + 위상 고정(같은 음의 이웃 성분은 봉우리와 위상을 맞춤) + 포먼트 보존(목소리 색 = 스펙트럼 윤곽은 원래대로). FFT 2048, 8배 겹침 */
 class SgPitch extends AudioWorkletProcessor{
@@ -2529,17 +2529,20 @@ function sgPlay(){
   if(SG.ac&&SG.ac.state!=='running')SG.ac.resume();if(sgPitchSemi()||SG.ps)sgPitchApply();
   const nb=SG.song.bars,a=SG.seg?SG.seg.a:SG.from*16,z=SG.seg?SG.seg.z:(SG.to<0?nb:SG.to+1)*16;
   if(SG.seg||SG.from>0||SG.to>=0){const t=m.currentTime,ta=Math.max(0,sgTime(a)),tz=sgTime(z);if(t<ta-0.05||t>=tz)sgSeek(ta)}
-  const t=m.currentTime;SG.ids.forEach(i=>{const e=SG.els[i];e.playbackRate=SG.rate;if(Math.abs(e.currentTime-t)>0.03)e.currentTime=t;e.play().catch(()=>{})});
+  const t=m.currentTime;SG.ids.forEach(i=>{const e=SG.els[i];sgKeepPitch(e);e.playbackRate=SG.rate;if(Math.abs(e.currentTime-t)>0.03)e.currentTime=t;e.play().catch(()=>{})});
   SG.playing=true;sgEl('sgPlay').textContent='정지';
   clearInterval(SG.sync);SG.sync=setInterval(sgSync,250);   /* 트랙끼리 어긋나면 맞춤 */
   if(!SG.raf)SG.raf=requestAnimationFrame(sgTick);
 }
-/* 어긋남 맞춤: 위치를 건너뛰면(seek) 소리가 '뚝' 끊기므로 → 속도를 살짝(±4%) 바꿔 따라잡게. 0.4초 넘게 벌어졌을 때만 건너뜀 */
+/* 어긋남 맞춤: 위치를 건너뛰면(seek) 소리가 '뚝' 끊기므로 → 속도를 아주 살짝(±1%) 바꿔 따라잡게. 0.4초 넘게 벌어졌을 때만 건너뜀
+   ① 50ms 넘게 벌어졌을 때 시작 → 10ms 안으로 들어오면 멈춤 (자주 바꾸지 않게)
+   ② 보통 빠르기(1배)에서는 음높이 유지(시간 늘이기 엔진)를 끄고 단순 재생 속도만 바꿈 — 엔진이 켜졌다 꺼졌다 하면 '틱틱' 소리 */
 function sgSync(){
   const m=sgMaster();if(!m||m.paused||m.seeking)return;const mt=m.currentTime;
   SG.ids.slice(1).forEach(i=>{const e=SG.els[i];if(e.paused||e.seeking)return;const d=e.currentTime-mt,ad=Math.abs(d);
-    let r=SG.rate;if(ad>0.4){e.currentTime=mt;sgDg('seek')}else if(ad>0.025)r=SG.rate*(d>0?0.96:1.04);
-    if(Math.abs(e.playbackRate-r)>1e-4){if(r!==SG.rate)sgDg('nudge');e.playbackRate=r}});
+    const on=e.playbackRate!==SG.rate;let r=SG.rate;
+    if(ad>0.4){e.currentTime=mt;sgDg('seek')}else if(ad>(on?0.01:0.05))r=SG.rate*(d>0?0.99:1.01);
+    if(Math.abs(e.playbackRate-r)>1e-4){if(r!==SG.rate)sgDg('nudge');sgKeepPitch(e);e.playbackRate=r}});
   if(SG.ac&&SG.ac.playoutStats)sgDgShow();
 }
 function sgPlayStart(){   /* [재생] 버튼 · 스페이스 */
@@ -2547,6 +2550,7 @@ function sgPlayStart(){   /* [재생] 버튼 · 스페이스 */
   if(!SG.cue)sgSeek(SG.from>0?Math.max(0,sgTime(SG.from*16)):0);
   SG.cue=false;sgPlay();
 }
+function sgKeepPitch(e){const k=SG.rate!==1;if(e.preservesPitch!==k){e.preservesPitch=k;e.mozPreservesPitch=k;e.webkitPreservesPitch=k}}
 function sgPause(){
   Object.values(SG.els).forEach(e=>{try{e.pause()}catch(x){}});SG.playing=false;clearInterval(SG.sync);
   const b=sgEl('sgPlay');if(b)b.textContent='재생';
@@ -3433,7 +3437,7 @@ document.getElementById('p-song').addEventListener('change',e=>{
   if(t.id==='sgSeek'){SG.dragging=false;const m=sgMaster();if(m&&m.duration)sgSeek(t.value/1000*m.duration);if(!SG.playing)SG.cue=true;return}
   if(t.id==='sgCapo'){SG.kc.c=+t.value;sgKcSave();SG.lk={};SG._ch=null;sgRender();drawBoard();return}
   if(t.id==='sgHarpKey'){SG.harpKey=t.value;store.set('chordcalc-harpkey',SG.harpKey);sgTabView();sgMark(sgMaster().currentTime);return}
-  if(t.id==='sgRate'){SG.rate=+t.value;Object.values(SG.els).forEach(a=>a.playbackRate=SG.rate);sgSave();return}
+  if(t.id==='sgRate'){SG.rate=+t.value;Object.values(SG.els).forEach(a=>{sgKeepPitch(a);a.playbackRate=SG.rate});sgSave();return}
   if(t.id==='sgFrom'||t.id==='sgTo'){SG[t.id==='sgFrom'?'from':'to']=+t.value;const to=SG.to<0?SG.song.bars-1:SG.to;if(SG.from>to){if(t.id==='sgFrom')SG.to=SG.from;else SG.from=SG.to}
     sgSeek(Math.max(0,sgTime(SG.from*16)));sgRender();return}
 });
