@@ -2900,13 +2900,14 @@ async function ceGetScores(title,say){
   const m=await (await fetch(SG_HELPER+'/list/'+encodeURIComponent(title),{cache:'no-store'})).json().catch(()=>null);
   if(!m||m.error)return [];
   const ins=(m.inputs||[]).filter(x=>x.use!==false),out=[];
+  const koOk=await fetch(SG_HELPER+'/ping',{cache:'no-store'}).then(r=>r.json()).then(j=>!!j.ocr).catch(()=>false);
   for(const [k,label,cache] of CE_SRC){
     const pdf=ins.find(x=>x.kind===k||(k==='gt'&&x.kind==='score_jj'));if(!pdf)continue;
     const oc=(m.outputs||[]).find(o=>o.file.endsWith('/'+cache));
     let text=null;
     if(oc){const t=await (await fetch(ceUrl('출력',...oc.file.split('/')),{cache:'no-store'})).text();
-      if((t.split('\n')[0]||'').includes(pdf.file)&&(t.split('\n')[0]||'').includes('가사 포함'))text=t}   /* 가사 없이 읽은 옛 결과는 다시 */   /* 지금 입력된 그 PDF 에서 읽은 것일 때만 (악보를 바꾸면 다시 읽음) */
-    if(text==null){say(`${label}(${esc(pdf.file)}) 읽는 중…`);const b=await (await fetch(ceUrl('입력',pdf.file))).blob(),r=await scOmrBlob(b,0,0,say);text=`# ${label}에서 읽은 코드 진행 (가사 포함 · 리듬악보 형식) — ${pdf.file}\n`+r.text;
+      const h0=t.split('\n')[0]||'';if(h0.includes(pdf.file)&&h0.includes('가사 포함')&&(h0.includes('한글 OCR')||!koOk))text=t}   /* 도우미 한글 읽기가 되는데 옛 결과면 다시 */   /* 가사 없이 읽은 옛 결과는 다시 */   /* 지금 입력된 그 PDF 에서 읽은 것일 때만 (악보를 바꾸면 다시 읽음) */
+    if(text==null){say(`${label}(${esc(pdf.file)}) 읽는 중…`);const b=await (await fetch(ceUrl('입력',pdf.file))).blob(),r=await scOmrBlob(b,0,0,say);text=`# ${label}에서 읽은 코드 진행 (가사 포함 · 리듬악보 형식${r.ko?' · 한글 OCR':''}) — ${pdf.file}\n`+r.text;
       fetch(SG_HELPER+'/song-file?'+new URLSearchParams({song:title,kind:'out',name:cache}),{method:'POST',body:text}).catch(()=>{})}
     {const t2=scClean(text);if(t2!==text){text=t2;fetch(SG_HELPER+'/song-file?'+new URLSearchParams({song:title,kind:'out',name:cache}),{method:'POST',body:text}).catch(()=>{})}}   /* 정리한 것으로 다시 저장 */
     out.push({k,label,file:pdf.file,text});
@@ -3393,7 +3394,7 @@ async function scOmrBlob(blob,f,t,say){
       {const x2=c2.getContext('2d');x2.fillStyle='#fff';x2.fillRect(0,0,c2.width,c2.height);await pg.render({canvasContext:x2,viewport:v2}).promise}   /* 가사(한글)는 2배 해상도로 읽음 */
       const r=await omrPage(c,null,{cv:c2,f:c2.width/c.width});pages.push(r.map(R=>({S:{xL:R.S.xL,xR:R.S.xR,s:R.S.s},bars:R.bars,pg:i,ly:R.ly||[],chords:R.chords.map(c=>({n:c.n,x:c.x,x1:c.x1}))})));
     }
-    return {text:omrText(pages,8),omr:true};
+    return {text:omrText(pages,8),omr:true,ko:OMR_KO===true};
   }finally{doc.destroy()}
 }
 function scPickPdf(){return new Promise(res=>{const el=sgEl('sgScoreFile');el.value='';el.onchange=()=>res(el.files&&el.files[0]||null);el.click()})}
@@ -4667,8 +4668,23 @@ let omrKorWk=null;
 async function omrKorWorker(log){return omrKorWk||(omrKorWk=await Tesseract.createWorker('kor',1,{logger:log||(()=>{})}))}
 /* 오선 아래 가사 띠 → 줄마다 [{t,x0,x1}] (한글만, 위 줄 = 1절)
    악보 가사는 한 글자씩 띄어 있고 줄표(—)가 섞여 문단째 읽으면 놓침 → 잉크 덩어리로 음절 상자를 찾아 한 글자씩(PSM 10) 읽음 */
+let OMR_KO=null;   /* PC 도우미 한글 읽기(EasyOCR) 쓸 수 있나: null = 아직 모름 */
+async function omrLyricsKo(cv,F,S,x0,x1,yA,yB){
+  const c=document.createElement('canvas');c.width=Math.round((x1-x0)*F);c.height=Math.round((yB-yA)*F);
+  const cx=c.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,c.width,c.height);cx.drawImage(cv,x0*F,yA*F,c.width,c.height,0,0,c.width,c.height);
+  const blob=await new Promise(r=>c.toBlob(r,'image/png'));
+  const j=await (await fetch(SG_HELPER+'/ocr-ko',{method:'POST',body:blob})).json();if(!j.ok)throw new Error(j.error||'ocr');
+  /* 글자마다 자리 (상자 폭을 글자 수로 나눔) → 줄 */
+  const syl=[];j.items.forEach(it=>{const ch=[...it.t];if(!ch.length||it.c<0.15)return;const w=(it.x1-it.x0)/ch.length;
+    ch.forEach((t,k)=>{if(/[가-힣]/.test(t))syl.push({t,x0:x0+(it.x0+k*w)/F,x1:x0+(it.x0+(k+1)*w)/F,y:yA+(it.y0+it.y1)/2/F})})});
+  syl.sort((a,b)=>a.y-b.y);const lines=[];
+  syl.forEach(o=>{const L=lines.find(L=>Math.abs(L.y-o.y)<S.s*0.9);if(L){L.w.push(o);L.y=(L.y*(L.w.length-1)+o.y)/L.w.length}else lines.push({y:o.y,w:[o]})});
+  return lines.filter(L=>L.w.length>=2).sort((a,b)=>a.y-b.y).slice(0,2).map(L=>{L.w.sort((a,b)=>a.x0-b.x0);
+    const cw=L.w.reduce((a,o)=>a+o.x1-o.x0,0)/L.w.length,ws=[];L.w.forEach(o=>{const q=ws[ws.length-1];if(q&&o.x0-q.x1<cw*0.9){q.t+=o.t;q.x1=o.x1}else ws.push({t:o.t,x0:o.x0,x1:o.x1})});return ws});
+}
 async function omrLyrics(cv0,im,S,yA,yB,hi){
   const cv=hi?hi.cv:cv0,F=hi?hi.f:1;
+  if(OMR_KO!==false&&yB-yA>=S.s*1.5){try{const r=await omrLyricsKo(cv,F,S,Math.max(0,Math.round(S.xL-S.s*2)),Math.min(cv0.width-1,Math.round(S.xR+S.s)),yA,yB);OMR_KO=true;return r}catch(e){OMR_KO=false}}
   if(yB-yA<S.s*1.5)return [];
   const {W,g}=im,s=S.s,x0=Math.max(0,Math.round(S.xL-s*2)),x1=Math.min(W-1,Math.round(S.xR+s)),bw=x1-x0+1,bh=yB-yA+1;
   /* 연결 성분 */
