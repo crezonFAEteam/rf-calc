@@ -275,7 +275,8 @@ body[data-page="edit"] #boardScroll,body[data-page="edit"] .board-bar,body[data-
 .ce-sum{font-size:.85rem;line-height:1.6;margin:4px 0 6px}
 .ce-bar-tools{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px;align-items:center}
 .ce-sheet{display:flex;flex-direction:column;gap:6px}
-.ce-ctl{margin:4px 0 6px}.ce-views{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 8px;padding-top:6px;border-top:1px dashed var(--line)}
+.ce-ctl{margin:4px 0 6px}
+.ce-warn{margin:6px 0;padding:8px 10px;border:2px solid #c0392b;border-radius:8px;background:color-mix(in srgb,#c0392b 10%,var(--surface));font-size:.88rem;line-height:1.6}.ce-views{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 8px;padding-top:6px;border-top:1px dashed var(--line)}
 .ce-rl small{display:block;font-weight:400;font-size:.66rem;color:var(--muted)}
 .ce-tab{margin-top:0;padding:6px 8px}.ce-tab pre{font-size:12px}
 .ce-row.ce-hl .ce-tab{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
@@ -2829,7 +2830,8 @@ async function ceGetScores(title,say){
     const pdf=ins.find(x=>x.kind===k||(k==='gt'&&x.kind==='score_jj'));if(!pdf)continue;
     const oc=(m.outputs||[]).find(o=>o.file.endsWith('/'+cache));
     let text=null;
-    if(oc)text=await (await fetch(ceUrl('출력',...oc.file.split('/')),{cache:'no-store'})).text();   /* 한 번 읽은 것은 그대로 */
+    if(oc){const t=await (await fetch(ceUrl('출력',...oc.file.split('/')),{cache:'no-store'})).text();
+      if((t.split('\n')[0]||'').includes(pdf.file))text=t}   /* 지금 입력된 그 PDF 에서 읽은 것일 때만 (악보를 바꾸면 다시 읽음) */
     if(text==null){say(`${label}(${esc(pdf.file)}) 읽는 중…`);const b=await (await fetch(ceUrl('입력',pdf.file))).blob(),r=await scOmrBlob(b,0,0,say);text=`# ${label}에서 읽은 코드 진행 — ${pdf.file}\n`+r.text;
       fetch(SG_HELPER+'/song-file?'+new URLSearchParams({song:title,kind:'out',name:cache}),{method:'POST',body:text}).catch(()=>{})}
     out.push({k,label,file:pdf.file,text});
@@ -2852,10 +2854,12 @@ async function ceOpen(title){
       A.forEach(x=>x.t=sgTrName(x.n,shift));
       scAlign(A,B).forEach(p=>{const a=A[p.a],b=p.b;if(!b)return;const v=scSim(a.t,b.n),k=v>=3?'ok':v>=2?'type':'diff',fix=sgTrName(b.n,-shift);
         a.idx.forEach(i=>{D[i].sug[S.k]={name:fix,k}})});
-      return {...S,n:B.length,shift};
+      let hit=0,tot=0;A.forEach(x=>x.idx.forEach(i=>{tot++;if(D[i].sug[S.k]&&D[i].sug[S.k].k!=='diff')hit++}));
+      return {...S,n:B.length,shift,match:tot?hit/tot:0};
     });
     /* 기본 결정: 타브 > 악보 > 음원 */
-    D.forEach(x=>{for(const [k] of CE_SRC)if(x.sug[k]){x.pick=k;x.name=x.sug[k].name;x.k=x.sug[k].k;break}});
+    const okSrc=new Set(CE.srcs.filter(S=>(S.match||0)>=0.4).map(S=>S.k));   /* 맞지 않는 악보는 기본 결정에서 뺌 */
+    D.forEach(x=>{for(const [k] of CE_SRC)if(x.sug[k]&&okSrc.has(k)){x.pick=k;x.name=x.sug[k].name;x.k=x.sug[k].k;break}});
     const saved=CE.rec&&CE.rec.chords&&CE.rec.chords.decisions;
     if(Array.isArray(saved)&&saved.length===D.length)saved.forEach((x,i)=>{if(x&&x.pick){const pk=x.pick==='score'?'gt':x.pick;D[i].pick=pk;D[i].name=x.name}});
     CE.D=D;CE.step=(CE.rec&&CE.rec.step)||'chords';CE.cur=-1;
@@ -2966,8 +2970,10 @@ function ceRows(){
 function ceChordSum(){
   const D=CE.D,s=CE.song,cnt={ok:0,type:0,diff:0,extra:0},pk={tab:0,gt:0,audio:0,custom:0};
   D.forEach(x=>{cnt[x.k]=(cnt[x.k]||0)+1;pk[x.pick]=(pk[x.pick]||0)+1});
-  const srcTxt=CE.srcs.length?CE.srcs.map(S=>`${S.label}: ${esc(S.file)} (코드 ${S.n}개${S.shift?`, 키 차이 반음 ${Math.abs(S.shift)}개 맞춤`:''})`).join(' · '):'<span class="ed-warn">악보 없음 — 입력에 기타악보 · 기타타브를 넣으면 비교</span>';
-  return `<div class="ce-sum">① 코드 결정 — 음원분석 매체: <b>${esc(s.source||'')}</b> · ${srcTxt}<br>
+  const srcTxt=CE.srcs.length?CE.srcs.map(S=>`${S.label}: ${esc(S.file)} (코드 ${S.n}개${S.shift?`, 키 차이 반음 ${Math.abs(S.shift)}개 맞춤`:''}, 일치 ${Math.round((S.match||0)*100)}%)`).join(' · '):'<span class="ed-warn">악보 없음 — 입력에 기타악보 · 기타타브를 넣으면 비교</span>';
+  const bad=CE.srcs.filter(S=>(S.match||0)<0.4);
+  const warn=bad.length?`<div class="ce-warn">⚠ ${bad.map(S=>S.label+'('+esc(S.file)+')').join(' · ')} — 음원 코드와 ${Math.round((bad[0].match||0)*100)}%만 맞습니다. <b>이 곡의 악보가 아닌 것 같습니다.</b> 곡편집 입력에서 악보를 확인하고(쪽 고르기 · 빼기 · 출력에 사용 끄기), 맞다면 [모두 음원대로]를 눌러 음원 코드를 쓰세요.</div>`:'';
+  return warn+`<div class="ce-sum">① 코드 결정 — 음원분석 매체: <b>${esc(s.source||'')}</b> · ${srcTxt}<br>
       우선순위: 기타타브 &gt; 기타악보 &gt; 음원 (매체는 음원분석 하나) · 음원 코드 ${D.length}개 — <span class="sc-ok">같음 ${cnt.ok||0}</span> · <span class="sc-type">종류 다름 ${cnt.type||0}</span> · <span class="sc-diff">다름 ${cnt.diff||0}</span> · <span class="sc-extra">음원에만 ${cnt.extra||0}</span>
       &nbsp;|&nbsp; 결정: 타브 ${pk.tab||0} · 악보 ${pk.gt||0} · 음원 ${pk.audio||0} · 직접 ${pk.custom||0}</div>
     <div class="ce-bar-tools"><button class="ghost sm" data-ce="diff" aria-pressed="${CE.onlyDiff}">다른 곳만 진하게</button>
