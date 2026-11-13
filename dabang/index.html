@@ -579,7 +579,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
       <div>
         <div class="songbar">
           <select id="songSel" aria-label="저장된 곡 불러오기"></select>
-          <button id="songSave" class="ghost sm" title="지금 코드 진행 · 설정 · 프레이즈를 곡으로 저장 (PC 분석 도우미가 켜져 있으면 음악\쎄이기타 분석\곡명 의 입력에도 — 악보 PDF · 코드 진행)">저장</button>
+          <button id="songSave" class="ghost sm" title="지금 코드 진행 · 설정 · 프레이즈를 곡으로 저장 (PC 분석 도우미가 켜져 있으면 saygita\songAnalyze\곡명 의 입력에도 — 악보 PDF · 코드 진행)">저장</button>
           <button id="songDel" class="ghost sm" title="고른 곡 삭제">삭제</button>
           <button id="songExp" class="ghost sm" title="저장한 곡 전체를 파일로 (다른 기기로 옮길 때)">내보내기</button>
           <button id="songImp" class="ghost sm" title="내보낸 파일에서 곡 가져오기">가져오기</button>
@@ -708,9 +708,9 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
         <div class="sg-step"><span class="sg-no">1</span><div><b>곡 열기</b>
           <div class="sg-sub"><b>이미 분석한 곡</b> → 분석 없이 바로 연습 (2단계 건너뜀)</div>
           <ul>
-            <li><b>[분석된 곡 ▼]</b> 목록에서 고르기. 목록에는 <b>이 기기에 저장된 곡</b>(전에 열었던 곡)과, PC 분석 도우미가 켜져 있으면 <b>PC에서 분석한 모든 곡</b>(음악\쎄이기타 분석)이 나옵니다.</li>
+            <li><b>[분석된 곡 ▼]</b> 목록에서 고르기. 목록에는 <b>이 기기에 저장된 곡</b>(전에 열었던 곡)과, PC 분석 도우미가 켜져 있으면 <b>PC에서 분석한 모든 곡</b>(saygita\songAnalyze)이 나옵니다.</li>
             <li>같은 곡을 [🎵 음원 파일 열기]로 다시 열면 <b>"새로 분석할지"</b> 물어봅니다. [확인] = 기존 분석을 지우고 최신 분석기로 새로 (분석기가 좋아졌을 때) · [취소] = 기존 결과 바로 열기.</li>
-            <li>다른 PC에서 분석한 곡: <b>[📂 분석 결과 열기]</b> → PC는 <b>곡 폴더</b>(음악\쎄이기타 분석\곡명), 휴대폰은 <b>"곡명.zip"</b> 파일을 고르기. 한 번 열면 [분석된 곡 ▼]에 남습니다.</li>
+            <li>다른 PC에서 분석한 곡: <b>[📂 분석 결과 열기]</b> → PC는 <b>곡 폴더</b>(saygita\songAnalyze\곡명), 휴대폰은 <b>"곡명.zip"</b> 파일을 고르기. 한 번 열면 [분석된 곡 ▼]에 남습니다.</li>
           </ul>
           <div class="sg-sub"><b>처음 여는 곡</b> → 열면 2단계 분석이 자동으로</div>
           <ul>
@@ -2420,11 +2420,11 @@ async function sgOpen(handle){
     if(dir.queryPermission&&(await dir.queryPermission({mode:'read'}))!=='granted'&&(await dir.requestPermission({mode:'read'}))!=='granted')return;
     const ls=async d=>{const f={};for await(const [n,h] of d.entries())if(h.kind==='file')f[n]=h;return f};
     let files=await ls(dir);
-    for(const path of [['출력','음원분석'],['음원분석']]){   /* 곡 폴더(음악\쎄이기타 분석\곡명)나 출력 폴더를 골라도 → 출력\음원분석 */
+    for(const path of [['출력','음원분석'],['음원분석']]){   /* 곡 폴더(saygita\songAnalyze\곡명)나 출력 폴더를 골라도 → 출력\음원분석 */
       if(files['song.json'])break;
       try{let d=dir;for(const n of path)d=await d.getDirectoryHandle(n);files=await ls(d)}catch(e){}
     }
-    if(!files['song.json']){alert('이 폴더에서 분석 결과(song.json)를 찾지 못했습니다. 곡 폴더(음악\\쎄이기타 분석\\곡명)를 골라 주세요.');return}
+    if(!files['song.json']){alert('이 폴더에서 분석 결과(song.json)를 찾지 못했습니다. 곡 폴더(saygita\\songAnalyze\\곡명)를 골라 주세요.');return}
     const song=JSON.parse(await (await files['song.json'].getFile()).text());
     const urls={};for(const st of song.stems||[])if(files[st.file])urls[st.id]=URL.createObjectURL(await files[st.file].getFile());
     sgLoad(song,urls);SG.lastDir=dir;sgDB.set('lastDir',dir);sgDB.set('lastName',dir.name);sgRecentBtn();
@@ -2433,7 +2433,7 @@ async function sgOpen(handle){
 sgEl('sgDirIn').addEventListener('change',async e=>{
   const fs=[...e.target.files],dirOf=f=>(f.webkitRelativePath||f.name).replace(/[^/]*$/,'');e.target.value='';
   const sj=fs.find(f=>f.name==='song.json'&&/음원분석\/$/.test(dirOf(f)))||fs.find(f=>f.name==='song.json');
-  if(!sj){alert('분석 결과(song.json)가 들어 있는 곡 폴더(음악\\쎄이기타 분석\\곡명)를 골라 주세요.');return}
+  if(!sj){alert('분석 결과(song.json)가 들어 있는 곡 폴더(saygita\\songAnalyze\\곡명)를 골라 주세요.');return}
   const song=JSON.parse(await sj.text()),urls={};for(const st of song.stems||[]){const f=fs.find(x=>x.name===st.file&&dirOf(x)===dirOf(sj))||fs.find(x=>x.name===st.file);if(f)urls[st.id]=URL.createObjectURL(f)}
   sgLoad(song,urls);
 });
@@ -2636,7 +2636,7 @@ function sgFitNote(n,T,C){
   return best?{i:best.i,f:best.f}:null;
 }
 function sgChordAt(sl){const cs=sgCh();let c=null;for(const x of cs){if(x.s<=sl)c=x;else break}return c}
-/* ---------- 곡편집: 곡 폴더(음악\쎄이기타 분석\곡명) — 입력 모으기 · 곡 분석 · 최종악보 · 휴대폰 공유 ----------
+/* ---------- 곡편집: 곡 폴더(saygita\songAnalyze\곡명) — 입력 모으기 · 곡 분석 · 최종악보 · 휴대폰 공유 ----------
    모든 동작은 PC 분석 도우미(127.0.0.1:52525)로. 목록은 도우미가 폴더를 훑어 만든 목록.json */
 const ED={song:store.get('chordcalc-edsong')||'',list:null,busy:{}};
 const ED_KINDS=[
@@ -3069,7 +3069,7 @@ async function sgRecord(){
       try{const r=await fetch(SG_HELPER+'/song-file?'+new URLSearchParams({song:tg,kind:'rec',name}),{method:'POST',body:blob});if(!r.ok)throw new Error('도우미 응답 '+r.status);
         if(st.tab==='edit'){ED.song=tg;edShow()}alert(`녹음을 "${tg}" 곡 입력(매체녹음)에 넣었습니다.`);return}catch(e){alert('곡 폴더에 넣지 못했습니다: '+(e.message||e)+' — 파일로 저장합니다.')}}
     if(!sgPhone()&&await sgHelperOn()){
-      const song=(prompt('녹음한 곡의 이름 (PC 곡 폴더: 음악\\쎄이기타 분석\\곡명 의 입력에 "녹음"으로 들어가고 바로 분석합니다)',SG.song&&SG.song.title||'')||'').trim();
+      const song=(prompt('녹음한 곡의 이름 (PC 곡 폴더: saygita\\songAnalyze\\곡명 의 입력에 "녹음"으로 들어가고 바로 분석합니다)',SG.song&&SG.song.title||'')||'').trim();
       if(song){const f=new File([blob],name,{type:'audio/webm'});f.sgSong=song;f.sgKind='rec';sgFiles([f]);return}
     }
     try{
@@ -3293,7 +3293,7 @@ async function sgPickAudio(){
   SG.lastAudio=hs[0];sgDB.set('lastAudio',hs[0]);
   sgFiles(await Promise.all(hs.map(h=>h.getFile())));
 }
-/* ---------- 이미 분석한 곡 목록: 이 기기에 저장된 곡 + PC 분석 도우미의 곡 (음악\쎄이기타 분석) ---------- */
+/* ---------- 이미 분석한 곡 목록: 이 기기에 저장된 곡 + PC 분석 도우미의 곡 (saygita\songAnalyze) ---------- */
 const SG_KEEP=12;   /* 기기에 저장해 두는 곡 수 (오래된 것부터 지움) */
 async function sgKeep(song,urls){   /* 연 곡을 기기에 저장 (곡 정보 + 트랙 파일) → 다음엔 목록에서 바로 */
   try{
@@ -3316,7 +3316,7 @@ async function sgListFill(){
   const pcBy={};pc.forEach(x=>{pcBy[x.title]=x});   /* PC 쪽이 더 새로우면(가사 다시 맞춤 등) PC 것으로 열기 */
   if(dev.length)h+=`<optgroup label="이 기기에 저장된 곡">${dev.map(x=>{const n=pcBy[x.title];return n&&n.mtime*1000>x.at?`<option value="p:${esc(n.key)}">${esc(x.title)} · ${d2(n.mtime*1000)} (PC에서 새로 고침)</option>`:`<option value="d:${esc(x.key)}">${esc(x.title)} · ${d2(x.at)}</option>`}).join('')}</optgroup>`;
   const pcOnly=pc.filter(x=>!devT.has(x.title));
-  if(pcOnly.length)h+=`<optgroup label="PC 분석 도우미 (음악\\쎄이기타 분석)">${pcOnly.map(x=>`<option value="p:${esc(x.key)}">${esc(x.title)} · ${d2(x.mtime*1000)}${(x.parts||[]).includes('harmonica')?' · 하모니카':''}</option>`).join('')}</optgroup>`;
+  if(pcOnly.length)h+=`<optgroup label="PC 분석 도우미 (saygita\\songAnalyze)">${pcOnly.map(x=>`<option value="p:${esc(x.key)}">${esc(x.title)} · ${d2(x.mtime*1000)}${(x.parts||[]).includes('harmonica')?' · 하모니카':''}</option>`).join('')}</optgroup>`;
   const pcDev=!sgPhone();
   if(!dev.length&&!pcOnly.length&&pcDev)h=`<option value="">분석된 곡 ▼ (0) — ${SG.helperOn?'아직 없음':'PC 분석 도우미가 꺼져 있음'}</option>`;
   sel.innerHTML=h;sel.hidden=!dev.length&&!pcOnly.length&&!pcDev;
