@@ -2997,7 +2997,11 @@ async function ceOpen(title){
     const okSrc=new Set(CE.srcs.filter(S=>(S.match||0)>=0.4).map(S=>S.k));   /* 맞지 않는 악보는 기본 결정에서 뺌 */
     D.forEach(x=>{for(const [k] of CE_SRC)if(x.sug[k]&&okSrc.has(k)){x.pick=k;x.name=x.sug[k].name;x.k=x.sug[k].k;break}});
     const saved=CE.rec&&CE.rec.chords&&CE.rec.chords.decisions;
-    if(Array.isArray(saved)&&saved.length===D.length)saved.forEach((x,i)=>{if(x&&x.pick){const pk=x.pick==='score'?'gt':x.pick;D[i].pick=pk;D[i].name=x.name}});
+    if(Array.isArray(saved)){const byS=new Map(D.map(d=>[d.s,d]));
+      saved.forEach(x=>{if(!x||!x.pick)return;const pk=x.pick==='score'?'gt':x.pick,d=byS.get(x.s);
+        if(d&&!x.add){d.pick=pk;d.name=x.name}
+        else if(x.add&&!byS.has(x.s)){const nd={s:x.s,audio:x.audio||'',sug:{},k:x.k||'extra',pick:'custom',name:x.name,add:true};D.push(nd);byS.set(x.s,nd)}});
+      D.sort((a,b)=>a.s-b.s)}
     CE.D=D;CE.step=(CE.rec&&CE.rec.step)||'chords';CE.cur=-1;ceRhyPlace();
     ceAuto();
     sgEl('ceAudio').src=ceUrl('출력','음원분석','원곡.mp3');
@@ -3173,7 +3177,7 @@ async function ceSave(markDone){
   rec.title=CE.title;rec.step=CE.step;rec.made=new Date().toISOString();rec.done=rec.done||{};
   if(markDone)rec.done[markDone]=new Date().toISOString();
   rec.strum={pat:CE.pat,name:ARP[CE.pat].n,auto:CE.patAuto};rec.sections={...CE.sec};rec.voicings={...CE.vmap};
-  rec.chords={media:CE.song.source,sources:CE.srcs.map(S=>({kind:S.k,file:S.file,shift:S.shift})),decisions:D.map(x=>({s:x.s,name:x.name,pick:x.pick,audio:x.audio,tab:(x.sug.tab||{}).name||null,gt:(x.sug.gt||{}).name||null,k:x.k}))};
+  rec.chords={media:CE.song.source,sources:CE.srcs.map(S=>({kind:S.k,file:S.file,shift:S.shift})),decisions:D.map(x=>({s:x.s,name:x.name,pick:x.pick,audio:x.audio,add:x.add||undefined,tab:(x.sug.tab||{}).name||null,gt:(x.sug.gt||{}).name||null,k:x.k}))};
   CE.rec=rec;
   const post=(name,body)=>fetch(SG_HELPER+'/song-file?'+new URLSearchParams({song:CE.title,kind:'out',name}),{method:'POST',body:JSON.stringify(body,null,1)});
   const chords=D.map(x=>({s:x.s,name:x.name}));
@@ -3202,7 +3206,22 @@ sgEl('ceBox').addEventListener('click',async e=>{
     if(v==='play'){cePlayBar(Math.floor(x.s/16));return}
     if(x.sug[v]){x.pick=v;x.name=x.sug[v].name}
     else if(v==='audio'){x.pick='audio';x.name=x.audio}
-    else if(v==='custom'){const n=(prompt('코드 이름 (예: Em7, F#m7-5, D/F#)',x.name)||'').trim();if(n){if(!CH.test(n)){alert('코드 이름으로 알아보지 못했습니다: '+n);return}x.pick='custom';x.name=n}}
+    else if(v==='custom'){
+      /* 이 자리(다음 원래 코드 전까지)에 이미 나눠 넣은 코드들 */
+      const D=CE.D;let j=i+1;while(j<D.length&&D[j].add)j++;
+      const end=j<D.length?D[j].s:CE.song.bars*16,cur=[x,...D.slice(i+1,j)].map(y=>{const k=D.indexOf(y),e=k+1<D.length?D[k+1].s:end;return y.name+((j-i>1)?':'+((e-y.s)/4):'')}).join(' ');
+      const q=(prompt(`코드 이름 (예: Em7, F#m7-5, D/F#)
+여러 개를 띄어 쓰면 이 자리(${(end-x.s)/4}박)를 똑같이 나눕니다 — 예: Em Emadd9
+길이를 정하려면 박 수를 붙이세요 — 예: Em:3 Emadd9:1`,cur)||'').trim();
+      if(q){const toks=q.split(/\s+/).map(t=>{const m=t.match(/^(.+?)(?::(\d+(?:\.\d+)?))?$/);return {n:chAlias(m[1]),b:m[2]?+m[2]:null}});
+        const bad=toks.find(t=>!CH.test(t.n));if(bad){alert('코드 이름으로 알아보지 못했습니다: '+bad.n);return}
+        const span=end-x.s,fixed=toks.filter(t=>t.b!=null).reduce((a,t)=>a+t.b*4,0),free=toks.filter(t=>t.b==null).length;
+        if(fixed>span){alert(`박 수 합이 이 자리(${span/4}박)보다 깁니다.`);return}
+        const each=free?(span-fixed)/free:0;let pos=x.s;const parts=toks.map(t=>{const len=t.b!=null?t.b*4:each,o={n:t.n,s:Math.round(pos)};pos+=len;return o});
+        D.splice(i+1,j-i-1);   /* 전에 나눠 넣은 것 지우고 */
+        x.pick='custom';x.name=parts[0].n;
+        parts.slice(1).forEach((pt,k)=>D.splice(i+1+k,0,{s:pt.s,audio:x.audio,sug:{},k:x.k,pick:'custom',name:pt.n,add:true}));
+      }}
     CE.cur=-1;ceRender();return}
   const ch=t.closest('[data-cei]');if(ch){const i=+ch.dataset.cei;CE.cur=CE.cur===i?-1:i;ceRender();return}
   const b=t.closest('[data-ce]');if(!b)return;const v=b.dataset.ce;
