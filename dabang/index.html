@@ -2635,6 +2635,7 @@ function sgKeyBar(){
     <span class="sg-kgrp">카포 <select id="sgCapo">${Array.from({length:10},(_,i)=>`<option value="${i}"${i===C?' selected':''}>${i?i+'프렛':'없음'}</option>`).join('')}</select></span>
     ${C?`<span>→ <b>${nn(shape)}</b> 코드 모양으로 연주</span>`:''}
     <span class="sg-kgrp sg-shapes">쉬운 모양 ${sgShapes(key).map(o=>`<button class="ghost sm" data-sgcapo="${o.c}" aria-pressed="${o.c===C}" title="${o.c?'카포 '+o.c+'프렛에 ':''}${nn(o.sh)} 코드 모양으로 치기">${nn(o.sh)}${o.c?' · 카포 '+o.c:''}</button>`).join('')}</span>
+    ${(()=>{const hp=sgHarp();return hp?`<span class="sg-kgrp">하모니카 <select id="sgHarpKey"><option value="auto"${SG.harpKey==='auto'?' selected':''}>자동 (${NOTE_K(hp.auto)})</option>${SHARP.map((_,i)=>`<option value="${i}"${SG.harpKey===String(i)?' selected':''}>${NOTE_K(i)} 하모니카</option>`).join('')}</select></span>`:''})()}
     <span class="sg-kgrp">지판에 <button class="ghost sm" data-sgbd="sc" aria-pressed="${SG.bd.sc}" title="곡 키의 스케일 음을 지판 전체에 흐리게">🎼 스케일</button><button class="ghost sm" data-sgbd="ch" aria-pressed="${SG.bd.ch}" title="지금 코드의 구성음을 지판 전체에 색으로">🎸 코드</button></span>
     ${T||C?`<button class="ghost sm" data-sgkreset="1">원래대로</button>`:''}
     ${T&&!S?`<span class="sg-knote">※ 지금은 악보만 바뀌고 소리는 원곡(${nn(k0)}) 그대로입니다 — [🔊 음원도 같이]를 켜면 소리도 ${nn(key)} 키로</span>`:''}
@@ -3344,7 +3345,7 @@ function sgRender(){
   sgEl('sgFrom').innerHTML=opt(SG.from);sgEl('sgTo').innerHTML=opt(SG.to<0?s.bars-1:SG.to);
   sgEl('sgRate').value=String(SG.rate);sgEl('sgLoop').setAttribute('aria-pressed',SG.loop);
   /* 보기 고르기: 코드 · 가사 / 각 TAB */
-  const views=[['sheet','코드 · 가사']].concat(s.backing?[['final','🎸 최종 반주 TAB']]:[]).concat(Object.entries(s.parts||{}).map(([k,p])=>[k,p.kind==='harmonica'?'하모니카 구멍':p.name.split(' — ')[0]+' TAB']));
+  const views=[['sheet','코드 · 가사']].concat(s.backing?[['final','🎸 최종 반주 TAB']]:[]).concat(Object.entries(s.parts||{}).filter(([k,p])=>p.kind!=='harmonica').map(([k,p])=>[k,p.name.split(' — ')[0]+' TAB']));   /* 하모니카는 노래와 같이 불지 않으므로 코드 · 가사 보기의 노래 없는 마디에 */
   if(!views.some(v=>v[0]===SG.view))SG.view='sheet';
   sgEl('sgViews').innerHTML=views.map(([k,l])=>`<button class="chip" data-sgview="${k}" aria-pressed="${SG.view===k}">${esc(l)}</button>`).join('');
   sgEl('sgKey').innerHTML=sgKeyBar();
@@ -3358,6 +3359,8 @@ function sgSheet(){   /* TAB처럼: 흰 바탕 상자 안에 마디를 선으로
   const s=SG.song,W=s.lyrics||[],out=[],CH0=sgCh();let last=null;
   const adj=s.lyricsVer>=2?0.5:1,byBar={};   /* 옛 분석(시간 맞춤 전)은 노래가 살짝 먼저 들어가는 걸 감안해 1칸 당겨 셈 */
   W.forEach((w,k)=>{const q=Math.max(0,Math.floor(w.s+adj));(byBar[q>>4]=byBar[q>>4]||[]).push({k,c:q&15})});
+  const hp=sgHarp(),hpBar={};
+  if(hp)hp.notes.forEach((n,ni)=>{const q=Math.max(0,Math.round(n.s)),b=q>>4;if(byBar[b])return;(hpBar[b]=hpBar[b]||[]).push({ni,c:q&15})});
   for(let bar=0;bar<s.bars;bar++){
     const v=!!byBar[bar];
     let h=`<div class="sg-barbox${v?'':' inst'}" data-bar="${bar}"><span class="sg-bn">${bar+1}</span>`;
@@ -3367,6 +3370,7 @@ function sgSheet(){   /* TAB처럼: 흰 바탕 상자 안에 마디를 선으로
       const cf=ch?(ch.s-a)&3:0;
       h+=`<span class="sg-c" data-b="${b}" style="grid-column:${k+1}"><b class="sg-ch"${cf?` style="padding-left:${cf*25}%"`:''}>${esc(name)}</b></span>`}
     if(v)h+=`<div class="sg-lyr">${byBar[bar].map(x=>`<i data-w="${x.k}" data-c="${x.c}" style="grid-column:${x.c+1}">${esc(W[x.k].w)}</i>`).join('')}</div>`;
+    else if(hpBar[bar])h+=`<div class="sg-lyr hp-ly">${hpBar[bar].map(x=>`<i data-hn="${x.ni}" data-c="${x.c}" style="grid-column:${x.c+1}">${harpLab(hp.m[hp.notes[x.ni].p],hp.notes[x.ni].p)}</i>`).join('')}</div>`;
     out.push(h+'</div>')}
   sgEl('sgSheet').innerHTML=out.join('');
   sgLyFit();
@@ -3408,6 +3412,9 @@ function harpMap(k){   /* k = 하모니카 키(0=C … 11=B) → 음높이 → {
 function harpAuto(notes){let bk=0,bs=-1;for(let k=0;k<12;k++){const m=harpMap(k);let sc=0;notes.forEach(n=>{const x=m[n.p];if(x)sc+=x.b?1:2});if(sc>bs){bs=sc;bk=k}}return bk}
 function harpKeyNow(notes){return SG.harpKey==='auto'?harpAuto(notes):+SG.harpKey}
 const harpLab=(x,p)=>x?`<span class="hp${x.d?' dr':''}">${x.h}${"'".repeat(x.b)}</span>`:`<span class="hp no" title="이 하모니카로 낼 수 없는 음">${nn(p)}</span>`;
+function sgHarp(){const ps=SG.song&&SG.song.parts||{},pid=Object.keys(ps).find(k=>ps[k].kind==='harmonica');if(!pid)return null;
+  const key=SG.song.title+'|'+SG.kc.t+'|'+SG.harpKey;if(SG._hp&&SG._hp.key===key)return SG._hp;   /* 재생 중 매번 다시 계산하지 않게 */
+  const notes=ps[pid].notes.map(n=>({...n,p:n.p+SG.kc.t})),k=harpKeyNow(notes);return SG._hp={key,pid,notes,k,m:harpMap(k),auto:harpAuto(notes)}}
 function sgHarpView(pid){
   const s=SG.song,notes=s.parts[pid].notes.map(n=>({...n,p:n.p+SG.kc.t})),k=harpKeyNow(notes),m=harpMap(k),auto=harpAuto(notes),byBeat={},CH0=sgCh();
   notes.forEach((n,ni)=>{const b=Math.max(0,Math.floor((n.s+1)/4));(byBeat[b]=byBeat[b]||[]).push(ni)});
@@ -3442,6 +3449,7 @@ function sgMark(t){
     const c=document.querySelector(`#sgSheet .sg-c[data-b="${Math.floor(sl/4)}"]`);if(c)c.classList.add('now');
     const W=s.lyrics||[];let wi=-1;for(let k=0;k<W.length;k++){if(W[k].t<=t+0.05)wi=k;else break}
     if(wi>=0&&t<=W[wi].e+0.6){const w=document.querySelector(`#sgSheet i[data-w="${wi}"]`);if(w)w.classList.add('now')}
+    const hp=sgHarp();if(hp)hp.notes.forEach((n,ni)=>{const e=n.t!=null?n.t:sgTime(n.s);if(e<=t+0.05&&t<e+Math.max(0.25,sgTime(n.s+n.d)-sgTime(n.s))){const x=document.querySelector(`#sgSheet i[data-hn="${ni}"]`);if(x)x.classList.add('now')}});
   }else if(s.parts[SG.view]&&s.parts[SG.view].kind==='harmonica'){
     const c=document.querySelector(`#sgTab .sg-c[data-b="${Math.floor(sl/4)}"]`);if(c)c.classList.add('now');
     const H=s.parts[SG.view].notes;H.forEach((n,ni)=>{const e=n.t!=null?n.t:sgTime(n.s);if(e<=t+0.05&&t<e+Math.max(0.25,sgTime(n.s+n.d)-sgTime(n.s))){const x=document.querySelector(`#sgTab i[data-hn="${ni}"]`);if(x)x.classList.add('now')}});
@@ -3556,7 +3564,7 @@ document.getElementById('p-song').addEventListener('change',e=>{
   const t=e.target;
   if(t.id==='sgSeek'){SG.dragging=false;const m=sgMaster();if(m&&m.duration)sgSeek(t.value/1000*m.duration);if(!SG.playing)SG.cue=true;return}
   if(t.id==='sgCapo'){SG.kc.c=+t.value;sgKcSave();SG.lk={};SG._ch=null;sgRender();drawBoard();return}
-  if(t.id==='sgHarpKey'){SG.harpKey=t.value;store.set('chordcalc-harpkey',SG.harpKey);sgTabView();sgMark(sgMaster().currentTime);return}
+  if(t.id==='sgHarpKey'){SG.harpKey=t.value;store.set('chordcalc-harpkey',SG.harpKey);if(SG.view==='sheet')sgSheet();else sgTabView();sgMark(sgMaster().currentTime);return}
   if(t.id==='sgRate'){SG.rate=+t.value;Object.values(SG.els).forEach(a=>{sgKeepPitch(a);a.playbackRate=SG.rate});sgSave();return}
   if(t.id==='sgFrom'||t.id==='sgTo'){SG[t.id==='sgFrom'?'from':'to']=+t.value;const to=SG.to<0?SG.song.bars-1:SG.to;if(SG.from>to){if(t.id==='sgFrom')SG.to=SG.from;else SG.from=SG.to}
     sgSeek(Math.max(0,sgTime(SG.from*16)));sgRender();return}
