@@ -1585,7 +1585,7 @@ function adParse(){
     chunk.split('\n').forEach(line=>{
       const t=line.trim();if(!t)return;
       const lab=t.match(/^[\(\[]\s*([^\)\]]+?)\s*[\)\]]$/);if(lab){b.label=lab[1];return}
-      const toks=t.split(/[\s|]+/).filter(Boolean);
+      const toks=t.split(/[\s|]+/).filter(Boolean).map(chAlias);
       const ms=toks.map(x=>x.match(CH));
       if(ms.every(Boolean)){
         lastLine=[];
@@ -1786,6 +1786,7 @@ const BL={data:null,idx:0,loop:false,from:0,to:-1,playing:false,cur:null,lk:null
 (function(){try{const u=JSON.parse(store.get(BL_UI)||'{}');if(u.idx>=0)BL.idx=u.idx;if(u.loop!=null)BL.loop=!!u.loop;if(u.tempo)BL.tempo=u.tempo;if(u.shufOv)BL.shufOv=u.shufOv}catch(e){}
   try{const d=JSON.parse(store.get(BL_KEY)||'null');if(d&&Array.isArray(d.examples))BL.data=d}catch(e){}})();
 function blSaveUI(){store.set(BL_UI,JSON.stringify({idx:BL.idx,loop:BL.loop,tempo:BL.tempo,shufOv:BL.shufOv}))}
+function chAlias(x){return String(x).replace(/^([A-G][#b♯♭]?)ma9(?=$|\/)/,'$1madd9')}
 function blChord(name){const m=String(name).match(CH);if(!m)return null;const s=m[3];return {r:mod(BASEPC[m[1]]+accv(m[2])),s,b:m[4]?mod(BASEPC[m[4]]+accv(m[5])):null,qi:toQ(s),name}}
 /* 칸 하나 → {dir, ch(코드 바뀜), notes:[{i,f,mute}]} */
 function blTok(tok){
@@ -2880,8 +2881,9 @@ function ceRhyParse(txt){
   const out=[];let cur=null;
   txt.replace(/\r/g,'').split('\n').forEach(line=>{
     const t=line.trim();if(!t)return;
-    const toks=t.split(/[\s|]+/).filter(Boolean);
-    if(toks.length&&toks.every(x=>CH.test(x))){cur={chords:toks.map(n=>({n,len:8,ly:''})),ly:'',cl:line};out.push(cur);return}
+    const toks=t.split(/[\s|]+/).filter(Boolean).map(chAlias);
+    if(toks.length&&toks.every(x=>CH.test(x))){cur={chords:toks.map(n=>({n,len:8,ly:''})),ly:'',label:'',cl:line};out.push(cur);return}
+    const lab=t.match(/^[\(\[]\s*([^\)\]]+?)\s*[\)\]]$/);if(lab){if(cur)cur.label=lab[1];return}   /* [전주] · [간주] 같은 구간 이름 */
     if(cur&&/^\d+(\s|$)/.test(t)){let k=0;for(const x of toks){if(!/^\d+$/.test(x))break;if(cur.chords[k]&&+x>0&&+x<=64)cur.chords[k].len=+x;k++}cur=null;return}
     if(cur&&!cur.ly){cur.ly=t.replace(/\s+/g,' ');const idx=[];cur.cl.replace(/[^\s|]+/g,(m,i)=>{idx.push(i);return m});
       try{lyCut(cur.cl,idx,line.replace(/\s+$/,'')).forEach((f,j)=>{if(cur.chords[j])cur.chords[j].ly=f})}catch(e){}}
@@ -2917,7 +2919,7 @@ function ceRhyHtml(){
   const cls=v=>v>=3?'ok':v>=2?'type':'diff';
   const rows=R.lines.map((L,i)=>{const t0=scTime(CE.song,Math.max(0,L.s));
     const cs=L.chords.map(c=>`<span class="ce-rc ${cls(c.sim)}" title="음원: ${esc(c.audio||'—')}"><b>${esc(c.n)}</b> <small>${fmt(c.e-c.s)}</small>${c.sim<3&&c.audio?` <small class="ce-ra">음원 ${esc(c.audio)}</small>`:''}</span>`).join('');
-    return `<tr><td><button class="ghost sm ce-rplay" data-cerange="${L.s},${L.e}" title="이 줄을 원곡으로 듣기">▶</button></td><td>${sgFmt(Math.max(0,t0))}</td><td>${Math.floor(L.s/16)+1}~${Math.ceil(L.e/16)}</td><td><div class="ce-rcs">${cs}</div></td><td>${esc(L.ly||'(연주)')}</td></tr>`}).join('');
+    return `<tr><td><button class="ghost sm ce-rplay" data-cerange="${L.s},${L.e}" title="이 줄을 원곡으로 듣기">▶</button></td><td>${sgFmt(Math.max(0,t0))}</td><td>${Math.floor(L.s/16)+1}~${Math.ceil(L.e/16)}</td><td><div class="ce-rcs">${cs}</div></td><td>${L.label?'<b>['+esc(L.label)+']</b> ':''}${esc(L.ly||(L.label?'':'(연주)'))}</td></tr>`}).join('');
   const why=R.k===2?'숫자 1 = 8분음표 (4 = 반 마디, 8 = 한 마디) — 적힌 그대로':'숫자가 <b>두 배</b>로 적힌 것으로 보고 절반으로 (8 = 반 마디, 16 = 한 마디)';
   const fl=R.lines.find(L=>L.ly)||R.lines[0];
   return `<div class="ce-sum">④ 리듬악보 확인 — <b>${esc(R.file)}</b> · ${R.lines.length}줄 · ${fmt(R.units*R.k)}. 박자 읽기: ${why}.
