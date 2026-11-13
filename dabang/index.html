@@ -294,6 +294,9 @@ body[data-page="edit"] #boardScroll,body[data-page="edit"] .board-bar,body[data-
 .ce-rl{font-size:.75rem;color:var(--muted);padding-top:4px;text-align:right;font-variant-numeric:tabular-nums}
 .ce-row.sec-intro .ce-rl,.ce-row.sec-inter .ce-rl,.ce-row.sec-outro .ce-rl{color:var(--ink);font-weight:700}
 .ce-rtxs.ce-rsheet{max-height:none}
+.ce-cell.ce-now{outline:3px solid var(--accent-fill);outline-offset:-1px}
+.ce-row.ce-now{box-shadow:inset 4px 0 0 var(--accent-fill)}.ce-row.ce-now .ce-tab{border-color:var(--accent-fill)}
+.ce-rtx.ce-now{background:color-mix(in srgb,var(--accent-fill) 14%,transparent);border-radius:6px;box-shadow:inset 4px 0 0 var(--accent-fill)}
 .ce-rtxs{max-height:70vh;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:var(--surface)}
 .ce-rtx{margin:0 0 10px}.ce-rth{font-size:.75rem;color:var(--muted);margin-bottom:2px}.ce-rth .ce-rplay{padding:1px 8px}
 .ce-rtx pre{margin:0;font-family:'D2Coding','Nanum Gothic Coding',Consolas,monospace;font-size:.9rem;line-height:1.45;white-space:pre;overflow-x:auto}
@@ -302,6 +305,7 @@ body[data-page="edit"] #boardScroll,body[data-page="edit"] .board-bar,body[data-
 .ce-rc.ok{border-color:#2e7d32}.ce-rc.type{border-color:#c79100;background:color-mix(in srgb,#c79100 10%,transparent)}.ce-rc.diff{border-color:#c0392b;background:color-mix(in srgb,#c0392b 10%,transparent)}
 .ce-rc small{color:var(--muted)}.ce-rc .ce-ra{color:#c0392b}
 .ce-rl .ce-rplay{display:block;margin:4px 0 0 auto;padding:2px 6px;font-size:.72rem;font-weight:600;white-space:nowrap}
+.ce-rl .ce-rplay.ce-orig{font-weight:400;opacity:.85}
 .ce-rl .ce-rplay.playing{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent)}
 .ce-rc{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:4px}
 .ce-row.sec-intro .ce-cell,.ce-row.sec-inter .ce-cell,.ce-row.sec-outro .ce-cell{background:color-mix(in srgb,var(--chip) 60%,var(--bg))}
@@ -3090,6 +3094,7 @@ function ceTabSheet(){
   const chordAt=sl=>{let c=null;for(const x of D){if(x.s<=sl)c=x;else break}return c};
   const canPlay=(CE.tabEl||'ceBox')==='ceBox';   /* 곡연습의 최종 반주 보기에는 듣기 버튼 없음 */
   const secSpan=ri=>{const k=rows[ri].kind;let a=ri,b=ri;while(a>0&&rows[a-1].kind===k)a--;while(b+1<rows.length&&rows[b+1].kind===k)b++;return [a,b]};
+  CE.tabRows=[];
   return `<div class="ce-sheet">`+rows.map((r,ri)=>{
     const st=r.bars[0]*16,en=(r.bars[r.bars.length-1]+1)*16,mode=r.kind?CE.sec[r.kind]:'pat',hl=(CE.step===r.kind)||(CE.step==='strum'&&!r.kind);
     const cs=D.filter(x=>x.s>=st&&x.s<en),pts=[];const c0=chordAt(st);if(c0&&(!cs.length||cs[0].s>st))pts.push({s:st,name:c0.name});cs.forEach(x=>pts.push({s:x.s,name:x.name}));
@@ -3099,16 +3104,17 @@ function ceTabSheet(){
       if(mode==='orig'&&g){
         const segs=pts.map((x,j)=>{const e=j+1<pts.length?pts[j+1].s:en;return {c:blChord(x.name)||blChord('C'),start:x.s-st,len:e-x.s,ly:lyOf(x.s,e)}});
         const notes=g.notes.filter(n=>n.s>=st&&n.s<en).map(n=>({t:n.s-st,dur:n.d||1,i:n.i,f:n.f})).sort((a,b)=>a.t-b.t);
-        pre=tabRender({segs,notes,total:en-st,bar:16},'ce'+ri,true,per);
+        const lk={segs,notes,total:en-st,bar:16};CE.tabRows.push({ri,st,en,lk});pre=tabRender(lk,'ce'+ri,true,per);
       }else{
         const segs=pts.map((x,j)=>{const e=j+1<pts.length?pts[j+1].s:en;return {c:blChord(x.name)||blChord('C'),len:Math.max(1,Math.round((e-x.s)/2)),ly:lyOf(x.s,e)}});
-        pre=tabRender(genArp({name:'',segs,vmap:CE.vmap},CE.pat),'ce'+ri,true,per);
+        const lk=genArp({name:'',segs,vmap:CE.vmap},CE.pat);CE.tabRows.push({ri,st,en,lk});pre=tabRender(lk,'ce'+ri,true,per);
       }
     }catch(e){pre='(이 줄은 TAB으로 만들지 못했습니다)'}
     const tag=r.kind?` · ${mode==='orig'?'원곡 기타':'반주 패턴'}`:'';
     let pb='';
-    if(canPlay){pb=`<button class="ghost sm ce-rplay" data-cerange="${st},${en}" title="이 줄(${r.bars[0]+1}~${r.bars[r.bars.length-1]+1}마디)을 원곡으로 듣기">▶ 듣기</button>`;
-      if(r.kind){const [a,b]=secSpan(ri);if(a===ri&&b>a)pb+=`<button class="ghost sm ce-rplay" data-cerange="${rows[a].bars[0]*16},${(rows[b].bars[rows[b].bars.length-1]+1)*16}" title="${esc(r.label)} 전체를 원곡으로 듣기">▶ ${esc(r.label)} 전체</button>`}}
+    if(canPlay){pb=`<button class="ghost sm ce-rplay" data-cesyn="1" data-cerange="${st},${en}" title="이 줄의 TAB(${mode==='orig'?'원곡 기타':esc(ARP[CE.pat].n)})을 기타 소리로 듣기">▶ 듣기</button>`;
+      if(r.kind){const [a,b]=secSpan(ri);if(a===ri&&b>a)pb+=`<button class="ghost sm ce-rplay" data-cesyn="1" data-cerange="${rows[a].bars[0]*16},${(rows[b].bars[rows[b].bars.length-1]+1)*16}" title="${esc(r.label)} 전체 TAB을 기타 소리로 듣기">▶ ${esc(r.label)} 전체</button>`}
+      pb+=`<button class="ghost sm ce-rplay ce-orig" data-cerange="${st},${en}" title="이 줄을 원곡으로 듣기 (비교)">원곡</button>`}
     return `<div class="ce-row${r.kind?' sec-'+r.kind:''}${hl?' ce-hl':''}"><div class="ce-rl">${esc(r.label)}<small>${r.bars[0]+1}~${r.bars[r.bars.length-1]+1}마디${tag}</small>${pb}</div><div class="tab ce-tab"><pre>${pre}</pre></div></div>`}).join('')+`</div>`;
 }
 /* 전체 진행: 가사 줄마다 한 줄, 노래 없는 구간은 전주 · 간주 · 후주 */
@@ -3171,6 +3177,43 @@ function cePlayBar(b){
   try{a.currentTime=t0;a.play();CE.stopAt=t1}catch(e){}
 }
 sgEl('ceAudio').addEventListener('timeupdate',e=>{if(CE.stopAt&&e.target.currentTime>=CE.stopAt){e.target.pause();CE.stopAt=0}});
+/* 편집 재생 따라가기: 지금 마디(가사 · 코드) · 지금 줄과 치는 음(타브) · 지금 묶음(리듬악보) — 화면 밖이면 스크롤 */
+function ceSlotAt(t){const B=CE.song&&CE.song.beats;if(!B||B.length<2)return 0;let lo=0,hi=B.length-2;
+  if(t<=B[0])return 0;while(lo<hi){const m=(lo+hi+1)>>1;if(B[m]<=t)lo=m;else hi=m-1}return (lo+Math.min(1,(t-B[lo])/((B[lo+1]-B[lo])||1)))*4}
+function ceFollow(){
+  const box=sgEl('ceBox'),a=sgEl('ceAudio');if(!box||box.hidden||!CE.song)return;
+  const sl=ceSlotAt(CE.syn?CE.syn.T0+(actx.currentTime-CE.syn.t0):a.currentTime),bar=Math.floor(sl/16);let el=null,key='',note=null;
+  box.querySelectorAll('.ce-now').forEach(x=>x.classList.remove('ce-now'));box.querySelectorAll('.ce-tab span[data-n].now').forEach(x=>x.classList.remove('now'));
+  if(CE.view==='tab'){const R=(CE.tabRows||[]).find(r=>sl>=r.st&&sl<r.en);
+    if(R){el=box.querySelectorAll('.ce-sheet .ce-row')[R.ri];key='r'+R.ri;
+      const rel=(sl-R.st)*(R.lk.bar||16)/16;let mt=-1;R.lk.notes.forEach(n=>{if(n.t<=rel+1e-6&&n.t>mt)mt=n.t});
+      if(mt>=0&&rel-mt<(R.lk.bar||16)/4)R.lk.notes.forEach((n,ni)=>{if(n.t===mt){const x=box.querySelector(`[data-n="ce${R.ri}-${ni}"]`);if(x){x.classList.add('now');note=note||x}}})}}
+  else if(CE.view==='rhythm'){el=[...box.querySelectorAll('.ce-rtx')].find(b=>{const r=b.querySelector('[data-cerange]');if(!r)return false;const [x,y]=r.dataset.cerange.split(',').map(Number);return sl>=x&&sl<y})||null;key=el?'k'+[...box.querySelectorAll('.ce-rtx')].indexOf(el):''}
+  else{const c=box.querySelector(`[data-cebar="${bar}"]`);el=c&&c.closest('.ce-cell');key='b'+bar}
+  if(el)el.classList.add('ce-now');
+  if(el&&key!==CE.fkey){CE.fkey=key;const r=el.getBoundingClientRect();if(r.top<60||r.bottom>innerHeight-20)el.scrollIntoView({block:'center',behavior:'smooth'})}
+  if(note&&note!==CE.fnote){CE.fnote=note;const pre=note.closest('.ce-tab');if(pre){const pr=pre.getBoundingClientRect(),nr=note.getBoundingClientRect();if(nr.left<pr.left+20||nr.right>pr.right-20)pre.scrollLeft+=nr.left-pr.left-pr.width/2}}
+}
+function ceFollowLoop(){const a=sgEl('ceAudio');ceFollow();if(!a.paused||CE.syn)CE.fraf=requestAnimationFrame(ceFollowLoop);else CE.fraf=0}
+function ceSynthStop(){const S=CE.syn;if(!S)return;S.srcs.forEach(s=>{try{s.stop()}catch(e){}});clearTimeout(S.tm);CE.syn=null;
+  document.querySelectorAll('#ceBox .ce-rplay.playing').forEach(x=>x.classList.remove('playing'))}
+function cePlayTab(s0,s1,btn){
+  sgEl('ceAudio').pause();ceSynthStop();
+  try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume()}catch(e){return}
+  const s=CE.song,T0=scTime(s,Math.max(0,s0)),out=actx.createGain();out.gain.value=0.36;out.connect(gOut());
+  const ev=[];
+  (CE.tabRows||[]).filter(r=>r.en>s0&&r.st<s1).forEach(r=>{const k=16/(r.lk.bar||16);
+    r.lk.notes.forEach(n=>{const sl=r.st+n.t*k;if(sl<s0||sl>=s1)return;
+      const p=n.p!=null?n.p:TUNE[n.i]+n.f,ds=(n.ring!=null?n.ring:(n.dur||1))*k;
+      const d=n.mute?0.07:Math.min(2.4,scTime(s,sl+ds)-scTime(s,sl)+0.3);
+      ev.push({t:scTime(s,sl)-T0+(n.sd||0)*0.012,p,d,mute:!!n.mute,a:n.amp||1})})});
+  if(!ev.length)return;
+  const t0=actx.currentTime+0.12,srcs=[];
+  ev.forEach(x=>{const b=actx.createBufferSource();b.buffer=makeBuf(x.p,x.d,x.mute?0.9:0.996,x.mute?0.8:0.9*x.a);b.connect(out);b.start(t0+x.t);srcs.push(b)});
+  const len=scTime(s,s1)-T0;CE.syn={t0,T0,srcs,tm:setTimeout(ceSynthStop,(len+0.8)*1000)};
+  if(btn)btn.classList.add('playing');CE.fkey='';if(!CE.fraf)CE.fraf=requestAnimationFrame(ceFollowLoop);
+}
+sgEl('ceAudio').addEventListener('play',()=>{ceSynthStop();CE.fkey='';if(!CE.fraf)CE.fraf=requestAnimationFrame(ceFollowLoop)});
 sgEl('ceAudio').addEventListener('pause',()=>document.querySelectorAll('#ceBox .ce-rplay.playing').forEach(x=>x.classList.remove('playing')));
 async function ceSave(markDone){
   const D=CE.D,rec=CE.rec&&CE.rec.kind==='saygita-backing'?CE.rec:{kind:'saygita-backing',version:1,done:{}};
@@ -3190,7 +3233,9 @@ sgEl('ceBox').addEventListener('click',async e=>{
   const t=e.target;
   const bar=t.closest('[data-cebar]');if(bar){cePlayBar(+bar.dataset.cebar);return}
   const rg=t.closest('[data-cerange]');if(rg){const a=sgEl('ceAudio');
-    if(rg.classList.contains('playing')){a.pause();CE.stopAt=0;rg.classList.remove('playing');return}
+    if(rg.classList.contains('playing')){a.pause();CE.stopAt=0;ceSynthStop();rg.classList.remove('playing');return}
+    if(rg.dataset.cesyn){document.querySelectorAll('#ceBox .ce-rplay.playing').forEach(x=>x.classList.remove('playing'));const [s0,s1]=rg.dataset.cerange.split(',').map(Number);cePlayTab(s0,s1,rg);return}
+    ceSynthStop();
     document.querySelectorAll('#ceBox .ce-rplay.playing').forEach(x=>x.classList.remove('playing'));
     const [s0,s1]=rg.dataset.cerange.split(',').map(Number);
     try{a.currentTime=Math.max(0,scTime(CE.song,s0));a.play();CE.stopAt=scTime(CE.song,s1)+0.2;rg.classList.add('playing')}catch(er){}return}
@@ -3225,7 +3270,7 @@ sgEl('ceBox').addEventListener('click',async e=>{
     CE.cur=-1;ceRender();return}
   const ch=t.closest('[data-cei]');if(ch){const i=+ch.dataset.cei;CE.cur=CE.cur===i?-1:i;ceRender();return}
   const b=t.closest('[data-ce]');if(!b)return;const v=b.dataset.ce;
-  if(v==='close'){sgEl('ceBox').hidden=true;try{sgEl('ceAudio').pause()}catch(er){}return}
+  if(v==='close'){sgEl('ceBox').hidden=true;ceSynthStop();try{sgEl('ceAudio').pause()}catch(er){}return}
   if(v==='diff'){CE.onlyDiff=!CE.onlyDiff;ceRender();return}
   if(v==='allscore'){CE.D.forEach(x=>{for(const [k] of CE_SRC)if(x.sug[k]){x.pick=k;x.name=x.sug[k].name;return}x.pick='audio';x.name=x.audio});ceRender();return}
   if(v==='allaudio'){CE.D.forEach(x=>{x.pick='audio';x.name=x.audio});ceRender();return}
