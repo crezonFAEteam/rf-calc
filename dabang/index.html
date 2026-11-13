@@ -2986,7 +2986,7 @@ async function ceGetRhythm(title){
 }
 /* 자리 맞추기: 숫자 1 = 8분음표(2칸) 또는 두 배로 적힌 것(1칸 → 절반) 중, 첫 가사 줄을 노래 시작 근처(±4마디)에 놓아 음원 코드와 가장 잘 맞는 것 */
 function ceRhyScore(){
-  const R=CE.rhy;if(!R||R.scored)return;R.scored=1;
+  const R=CE.rhy;if(!R||R.scored||R.auto)return;R.scored=1;
   const S=(CE.srcs||[]).filter(S=>(S.match||0)>=0.4).sort((a,b)=>(a.k==='tab'?0:1)-(b.k==='tab'?0:1))[0];if(!S)return;   /* 우선순위: 기타타브 > 기타악보 */
   const SL=ceRhyParse(S.text).filter(x=>x.chords.length);if(!SL.length)return;
   const roots=(cs,sh)=>{const a=[];cs.forEach(c=>{const b=blChord(c.n);for(let u=0;u<c.len;u++)a.push(b?mod(b.r+sh):-1)});return a};
@@ -3004,11 +3004,30 @@ function ceRhyScore(){
     L.orig={chords:L.chords,cl:L.cl,nl:L.nl};L.chords=nc;L.cl=line;L.nl=nc.map(c=>c.len).join(' ');L.src=S.label});
   R.scoreSrc=S.label;
 }
+function ceRhyGen(bare){
+  const s=CE.song,D=CE.D,at=sl=>{let c=null;for(const x of D){if(x.s<=sl)c=x;else break}return c},lines=[];
+  let {rows}=ceRows();
+  if(bare){rows=[];const b0=D.length?Math.floor(D[0].s/16):0;for(let b=b0;b<s.bars;b+=4)rows.push({bars:Array.from({length:Math.min(4,s.bars-b)},(_,k)=>b+k)})}
+  rows.forEach(r=>{if(r.kind)return;const a=r.bars[0]*16,e=(r.bars[r.bars.length-1]+1)*16,pts=[],c0=at(a);if(c0)pts.push({n:c0.name,s:a});
+    D.filter(x=>x.s>a&&x.s<e).forEach(x=>{if(!pts.length||pts[pts.length-1].n!==x.name)pts.push({n:x.name,s:x.s})});if(!pts.length)return;pts[0].s=a;
+    const chords=pts.map((c,j)=>{const ce=j+1<pts.length?pts[j+1].s:e;return {n:c.n.replace(/madd9$/,'ma9'),s:c.s,e:ce,len:(ce-c.s)/2,ly:''}});
+    const ws=(s.lyrics||[]).filter(w=>w.s>=a&&w.s<e).map(w=>({w:w.w,s:Math.round(w.s)})),ly=ws.map(w=>w.w).join(' ');
+    lines.push({chords,s:a,e,ly,label:'',cl:chords.map(c=>c.n).join('  '),raw:ly?[ly]:[],nl:chords.map(c=>c.len).join(' '),lw:ly?ws:null,auto:true})});
+  if(!lines.length)return null;
+  return {file:bare?'자동 생성 (결정한 코드만 — 가사 · 악보 없음)':'자동 생성 (결정한 코드 · 가사)',auto:true,lines,k:2,st:lines[0].s,r:1,d:0,n:lines.length,units:lines.reduce((a,L)=>a+(L.e-L.s)/2,0)};
+}
 function ceRhyPlace(){
-  const R=CE.rhy;if(!R)return;ceRhyScore();const D=CE.D,tot=CE.song.bars*16;
+  const R=CE.rhy;if(!R)return;
+  if(R.auto){   /* 자동 생성: 자리는 이미 박 위치 그대로 — 저장해 둔 고침만 */
+    const sv=(CE.rec&&CE.rec.rhyLy)||null,sc=(CE.rec&&CE.rec.rhyCh)||null;
+    R.lines.forEach((L,li)=>{if(sc&&Array.isArray(sc[li])){L.chords=sc[li].map(x=>({n:x[0],s:x[1],len:0,ly:''}));L.edCh=true}
+      if(sv&&Array.isArray(sv[li])&&L.lw)L.lw=sv[li].map(x=>({w:x[0],s:x[1]}));ceRhyEval(L);L.nl=L.chords.map(c=>c.len).join(' ')});
+    ceApplyRhyLyrics();return}
+  ceRhyScore();const D=CE.D,tot=CE.song.bars*16;
   const at=sl=>{let c=null;for(const x of D){if(x.s<=sl)c=x;else break}return c};
   const ev=[];let u=0;R.lines.forEach((L,li)=>{L.u0=u;L.chords.forEach((c,j)=>{ev.push({li,j,u,len:c.len});u+=c.len})});R.units=u;
-  const fl=R.lines.findIndex(L=>L.ly),vs=((CE.song.lines||[])[0]||{}).s;
+  const fl=R.lines.findIndex(L=>L.ly);let vs=((CE.song.lines||[])[0]||{}).s;
+  if((CE.song.lyrics||[]).length<10&&CE.ph&&CE.ph.length){const t=CE.ph.find(t=>t>=3)||CE.ph[0];vs=ceSlotAt(t)}   /* 받아 적은 가사가 부족 → 노래 트랙의 첫 구절 */
   const v0=vs!=null?Math.floor(vs/8)*8:0,u1=fl>=0?R.lines[fl].u0:0;
   let best=null;
   for(const k of [2,1])for(let d=-64;d<=64;d+=8){const st=v0-u1*k+d;let sc=0,n=0;
@@ -3018,7 +3037,7 @@ function ceRhyPlace(){
   Object.assign(R,best);
   const sv=(CE.rec&&CE.rec.rhyLy)||null,sc=(CE.rec&&CE.rec.rhyCh)||null;
   R.lines.forEach(L=>{L.s=R.st+L.u0*R.k;L.e=L.s+L.chords.reduce((a,c)=>a+c.len,0)*R.k;
-    let p=L.s;L.chords.forEach(c=>{c.s=p;c.e=p+c.len*R.k;const a=at(Math.max(0,Math.min(tot-1,p+Math.floor(c.len*R.k/2))));c.audio=a?a.name:'';c.sim=a?scSim(a.name,c.n):-1;p=c.e})});
+    let p=L.s;L.chords.forEach(c=>{c.s=p;c.e=p+c.len*R.k;const a=at(Math.max(0,Math.min(tot-1,p+Math.floor(c.len*R.k/2))));c.audio=a?a.name:'';c.sim=a?scSim(a.name,chAlias(c.n)):-1;p=c.e})});
   R.lines.forEach((L,li)=>{if(sc&&Array.isArray(sc[li])){L.chords=sc[li].map(x=>({n:x[0],s:x[1],len:0,ly:''}));L.edCh=true;ceRhyEval(L)}
     if(!L.ly)return;L.lw=sv&&Array.isArray(sv[li])?sv[li].map(x=>({w:x[0],s:x[1]})):ceRhyLyInit(L,R)});
   ceApplyRhyLyrics();
@@ -3057,7 +3076,7 @@ function ceRhyChordsToD(L){
   D.sort((a,b)=>a.s-b.s);
 }
 function ceRhyEval(L){const D=CE.D,tot=CE.song.bars*16,at=sl=>{let c=null;for(const x of D){if(x.s<=sl)c=x;else break}return c};
-  L.chords.forEach((c,j)=>{c.e=j+1<L.chords.length?L.chords[j+1].s:L.e;c.len=(c.e-c.s)/(CE.rhy.k||2);const a=at(Math.max(0,Math.min(tot-1,Math.floor((c.s+c.e)/2))));c.audio=a?a.audio:'';c.sim=a?scSim(a.audio||a.name,c.n):-1})}
+  L.chords.forEach((c,j)=>{c.e=j+1<L.chords.length?L.chords[j+1].s:L.e;c.len=(c.e-c.s)/(CE.rhy.k||2);const a=at(Math.max(0,Math.min(tot-1,Math.floor((c.s+c.e)/2))));c.audio=a?a.audio:'';c.sim=a?scSim(a.audio||a.name,chAlias(c.n)):-1})}
 function ceRhySheet(R,fmt,cls){
   const s=CE.song,D=CE.D,tot=s.bars*16,{rows}=ceRows();
   const kindAt=b=>{const r=rows.find(r=>r.bars.includes(b));return r&&r.kind?r.label:''};
@@ -3107,6 +3126,8 @@ function ceRhyText(){if(!CE.rhy)return '';const d=document.createElement('div');
 function ceRhyHtml(sheet){
   const R=CE.rhy;
   if(!R&&sheet)return '<p class="ce-sum">리듬악보가 없습니다 — 곡편집 입력의 [리듬악보]에서 TXT를 추가하세요.</p>';
+  if(R&&R.fromScore&&!sheet)return `<div class="ce-sum">④ 리듬악보 — 입력에 리듬악보가 없고 받아 적은 가사도 부족해서, <b>${esc(R.file.split('에서')[0])}에서 읽은 코드 · 가사 · 길이</b>로 만들었습니다 (${R.lines.length}줄, 첫 가사 줄 ${Math.floor(((R.lines.find(L=>L.ly)||R.lines[0]).s)/16)+1}마디 = 노래 트랙의 첫 구절). 📜 리듬악보 탭에서 코드 · 가사 줄을 눌러 띄어쓰기로 위치 · 글자를 고치고 [💾 모두 저장]하세요.</div>`;
+  if(R&&R.auto&&!sheet)return `<div class="ce-sum">④ 리듬악보 — 입력에 리듬악보가 없어 <b>결정한 코드 · 가사(박 위치 그대로)로 자동으로 만들었습니다</b> (${R.lines.length}줄). 아래 📜 리듬악보 탭에서 코드 · 가사 줄을 눌러 띄어쓰기로 위치를, 글자도 고칠 수 있습니다. [💾 모두 저장]하면 <b>리듬악보.txt</b> 로 저장되고 곡연습에도 나옵니다.</div>`;
   if(!R)return `<div class="ce-sum">④ 리듬악보 확인 — 입력에 <b>리듬악보</b>(TXT: 코드 줄 · 가사 줄 · 길이 숫자 줄)가 없습니다. 곡편집 입력의 [리듬악보]에서 TXT를 추가하면 여기서 노래와 맞춰 봅니다.</div>`;
   const fmt=n=>{const b=n/16;return b===Math.round(b)?b+'마디':b===0.5?'½마디':(Math.round(b*4)/4)+'마디'};
   const cls=v=>v>=3?'ok':v>=2?'type':'diff';
@@ -3157,7 +3178,13 @@ async function ceOpen(title,fresh){
       D.sort((a,b)=>a.s-b.s)}
     CE.D=D;CE.step=(CE.rec&&CE.rec.step)||'chords';CE.cur=-1;
     CE.ph=null;CE.lyAuto=null;if(!(CE.rec&&CE.rec.lyAuto)){say('가사를 노래 트랙에 맞추는 중…');try{await ceLyAuto()}catch(e){}}   /* 아직 맞춘 적 없는 곡: 가사 줄을 실제 노래 시작에 */
-    if(CE.rhy){try{await ceVocalPhrases()}catch(e){}}
+    if(!CE.rhy){   /* 리듬악보 입력이 없으면 만듦 */
+      const enough=(song.lyrics||[]).length>=10,sc=(CE.srcs||[]).find(S=>(S.match||0)>=0.3&&/[가-힣]/.test(S.text||''));
+      if(enough)CE.rhy=ceRhyGen();
+      else if(sc){const L=ceRhyParse(sc.text).filter(x=>x.chords.length);if(L.length)CE.rhy={file:sc.label+'에서 읽은 것 (자동 — 받아 적은 가사가 부족해서)',lines:L,fromScore:true}}
+      if(!CE.rhy)CE.rhy=ceRhyGen(true);
+    }
+    if(CE.rhy&&!CE.rhy.auto){try{await ceVocalPhrases()}catch(e){}}
     ceRhyPlace();ceRhySug();
     CE.base=(CE.rec&&CE.rec.chords&&CE.rec.chords.base)||ceBaseDefault();CE.cmp=null;CE.cmpDone=(CE.rec&&CE.rec.chords&&CE.rec.chords.cmpDone)||[];
     if(CE.base==='rhy'&&!(Array.isArray(saved)&&saved.length))D.forEach(cePickBase);
