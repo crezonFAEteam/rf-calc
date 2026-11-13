@@ -2423,7 +2423,11 @@ sgEl('sgDirIn').addEventListener('change',async e=>{
 });
 async function sgRecentBtn(){const b=sgEl('sgRecent'),n=await sgDB.get('lastName');b.hidden=true;if(0)if(n)b.textContent='최근 곡: '+n.replace(/ 분석$/,'')}
 /* ---------- 곡 불러오기 → 트랙 · 화면 ---------- */
-function sgLoad(song,urls){
+/* 당겨 부르기: 마디 시작 직전(1.5칸 = 약 ⅓박 안)에 들어오는 가사는 그 마디 첫 박으로 (마디 듣기 · 가사 칸이 노래와 맞게) */
+function lySnap(song){if(!song||song._lySnap)return song;song._lySnap=1;
+  const f=x=>{if(x&&typeof x.s==='number'){const r=16-((x.s%16)+16)%16;if(r>0&&r<=1.5){x.s0=x.s;x.s=Math.round(x.s+r)}}};
+  (song.lyrics||[]).forEach(f);(song.lines||[]).forEach(f);return song}
+function sgLoad(song,urls){lySnap(song);
   if(!song||song.kind!=='saygita-song'){alert('곡 분석 파일(song.json)이 아닙니다.');return}
   sgPause();Object.values(SG.els).forEach(a=>{try{a.pause();URL.revokeObjectURL(a.src)}catch(e){}});
   SG.song=song;sgKcLoad();SG._ch=null;SG.els={};SG.ids=[];SG.mix={};SG.lk={};SG.slot=-1;SG.word=-1;SG.from=0;SG.to=-1;
@@ -2926,7 +2930,7 @@ async function ceOpen(title){
   const say=m=>{box.innerHTML=`<p class="ce-sum">${m}</p>`};say('편집 준비 중… (음원분석 · 악보 읽기)');box.scrollIntoView({block:'start',behavior:'smooth'});
   try{
     const song=await (await fetch(ceUrl('출력','음원분석','song.json'),{cache:'no-store'})).json();
-    CE.song=song;CE.rec=await (await fetch(ceUrl('출력','최종악보','기타반주보정','반주보정.json'),{cache:'no-store'})).json().catch(()=>null);
+    lySnap(song);CE.song=song;CE.rec=await (await fetch(ceUrl('출력','최종악보','기타반주보정','반주보정.json'),{cache:'no-store'})).json().catch(()=>null);
     if(CE.rec&&CE.rec.kind!=='saygita-backing')CE.rec=null;
     const srcs=await ceGetScores(title,say);
     CE.rhy=await ceGetRhythm(title).catch(()=>null);
