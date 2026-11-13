@@ -295,6 +295,7 @@ body[data-page="edit"] #boardScroll,body[data-page="edit"] .board-bar,body[data-
 .ce-row.sec-intro .ce-rl,.ce-row.sec-inter .ce-rl,.ce-row.sec-outro .ce-rl{color:var(--ink);font-weight:700}
 .ce-rtxs.ce-rsheet{max-height:none}
 .ce-cell.ce-now{outline:3px solid var(--accent-fill);outline-offset:-1px}
+[data-ceez][aria-pressed="true"]{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent)}
 .ce-row.ce-now{box-shadow:inset 4px 0 0 var(--accent-fill)}.ce-row.ce-now .ce-tab{border-color:var(--accent-fill)}
 .ce-rtx.ce-now{background:color-mix(in srgb,var(--accent-fill) 14%,transparent);border-radius:6px;box-shadow:inset 4px 0 0 var(--accent-fill)}
 .ce-rtxs{max-height:70vh;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:var(--surface)}
@@ -3079,6 +3080,7 @@ function ceAuto(){
   ['intro','inter','outro'].forEach(k=>{const bars=rows.filter(r=>r.kind===k).flatMap(r=>r.bars);
     const n=g?g.notes.filter(x=>bars.includes(Math.floor(x.s/16))).length:0;CE.secAuto[k]=bars.length?(n>=bars.length*3?'orig':'pat'):null});
   CE.sec={...CE.secAuto,...((rec.sections)||{})};
+  CE.ez=rec.ezTab!==false;
   CE.vmap={};if(rec.voicings&&typeof rec.voicings==='object')Object.entries(rec.voicings).forEach(([n,v])=>{if(Array.isArray(v)&&v.length===6)CE.vmap[n]=v});
   CE.view=CE.step==='rhythm'?'rhythm':['strum','intro','inter','outro'].includes(CE.step)?'tab':(CE.view||'lead');
 }
@@ -3105,7 +3107,7 @@ function ceRender(){
   box.innerHTML=`<div class="ce-head"><b>✏️ 기타반주보정 — ${esc(CE.title)}</b><span><button class="ghost sm" data-ce="save">저장</button> <button class="ghost sm" data-ce="close">닫기</button></span></div>
     <div class="ce-steps">${steps}</div>
     <div class="ce-ctl">${ceStepHtml()}</div>
-    <div class="ce-views"><button class="ce-step" data-ceview="lead"${CE.view==='lead'?' aria-current="step"':''}>📄 가사 · 코드 악보</button><button class="ce-step" data-ceview="tab"${CE.view==='tab'?' aria-current="step"':''}>🎸 기타 타브 악보 (주법 · 전주 · 간주 · 후주)</button><button class="ce-step" data-ceview="rhythm"${CE.view==='rhythm'?' aria-current="step"':''}>📜 리듬악보</button></div>
+    <div class="ce-views"><button class="ce-step" data-ceview="lead"${CE.view==='lead'?' aria-current="step"':''}>📄 가사 · 코드 악보</button><button class="ce-step" data-ceview="tab"${CE.view==='tab'?' aria-current="step"':''}>🎸 기타 타브 악보 (주법 · 전주 · 간주 · 후주)</button><button class="ce-step" data-ceview="rhythm"${CE.view==='rhythm'?' aria-current="step"':''}>📜 리듬악보</button>${CE.view==='tab'?`<button class="ghost sm" data-ceez="1" aria-pressed="${CE.ez!==false}" title="원곡 기타 TAB을 오픈 코드(0~3프렛 · 개방현) 안으로 단순화 — 지금 코드의 쉬운 오픈 코드 모양 기준">🤚 쉬운 운지</button>`:''}</div>
     ${CE.view==='tab'?ceTabSheet():CE.view==='rhythm'?ceRhyHtml(true):ceLeadSheet()}
     <div class="ce-foot"><button class="ghost sm" data-ce="save">저장</button><button class="ghost sm" data-ce="next">검토 완료${nxt?' → '+nxt[1]:''}</button></div>`;
 }
@@ -3143,10 +3145,11 @@ function ceVoicings(n){const c=blChord(n);if(!c)return [];const bs=(c.b!=null&&c
   const d=getV(c);if(d){const i=L.findIndex(v=>v.join()===d.join());if(i>0){L.splice(i,1);L.unshift(d)}else if(i<0)L.unshift(d)}
   return L.slice(0,12)}
 function ceGFix(){   /* 원곡 기타 TAB 운지 검토 (결정한 코드의 운지 기준) — 운지 · 코드가 바뀌면 다시 */
-  const g=ceGuitar();if(!g)return [];const key=JSON.stringify(CE.vmap)+'|'+CE.D.map(x=>x.s+x.name).join();
+  const g=ceGuitar();if(!g)return [];const key=(CE.ez!==false?'ez|':'')+JSON.stringify(CE.vmap)+'|'+CE.D.map(x=>x.s+x.name).join();
   if(CE._gf&&CE._gf.key===key)return CE._gf.notes;
   const D=CE.D,at=t=>{let c=null;for(const x of D){if(x.s<=t)c=x;else break}return c};
-  const r=tabFix(g.notes.map(n=>({t:n.s,dur:n.d||1,i:n.i,f:n.f})),t=>{const c=at(t);if(!c)return null;return CE.vmap[c.name]||(ceVoicings(c.name)[0]||null)});
+  const shp=t=>{const c=at(t);if(!c)return null;return CE.vmap[c.name]||(ceVoicings(c.name)[0]||null)},src=g.notes.map(n=>({t:n.s,dur:n.d||1,i:n.i,f:n.f}));
+  const r=CE.ez!==false?tabEasy(src,shp):tabFix(src,shp);
   CE._gf={key,notes:r.notes,n:r.n};return r.notes}
 function ceVStr(v){return v.map(f=>f<0?'x':f>9?'('+f+')':f).join('')}
 function ceTabSheet(){
@@ -3170,7 +3173,7 @@ function ceTabSheet(){
         const lk=genArp({name:'',segs,vmap:CE.vmap},CE.pat);CE.tabRows.push({ri,st,en,lk});pre=tabRender(lk,'ce'+ri,true,per);
       }
     }catch(e){pre='(이 줄은 TAB으로 만들지 못했습니다)'}
-    const tag=r.kind?` · ${mode==='orig'?'원곡 기타':'반주 패턴'}${fxn?` · 운지 ${fxn}음 조정`:''}`:'';
+    const tag=r.kind?` · ${mode==='orig'?'원곡 기타':'반주 패턴'}${fxn?(CE.ez!==false?` · 🤚 쉬운 운지 ${fxn}음 옮김`:` · 운지 ${fxn}음 조정`):''}`:'';
     let pb='';
     if(canPlay){pb=`<button class="ghost sm ce-rplay" data-cesyn="1" data-cerange="${st},${en}" title="이 줄의 TAB(${mode==='orig'?'원곡 기타':esc(ARP[CE.pat].n)})을 기타 소리로 듣기">▶ 듣기</button>`;
       if(r.kind){const [a,b]=secSpan(ri);if(a===ri&&b>a)pb+=`<button class="ghost sm ce-rplay" data-cesyn="1" data-cerange="${rows[a].bars[0]*16},${(rows[b].bars[rows[b].bars.length-1]+1)*16}" title="${esc(r.label)} 전체 TAB을 기타 소리로 듣기">▶ ${esc(r.label)} 전체</button>`}
@@ -3279,7 +3282,7 @@ async function ceSave(markDone){
   const D=CE.D,rec=CE.rec&&CE.rec.kind==='saygita-backing'?CE.rec:{kind:'saygita-backing',version:1,done:{}};
   rec.title=CE.title;rec.step=CE.step;rec.made=new Date().toISOString();rec.done=rec.done||{};
   if(markDone)rec.done[markDone]=new Date().toISOString();
-  rec.strum={pat:CE.pat,name:ARP[CE.pat].n,auto:CE.patAuto};rec.sections={...CE.sec};rec.voicings={...CE.vmap};
+  rec.strum={pat:CE.pat,name:ARP[CE.pat].n,auto:CE.patAuto};rec.ezTab=CE.ez!==false;rec.sections={...CE.sec};rec.voicings={...CE.vmap};
   rec.chords={media:CE.song.source,sources:CE.srcs.map(S=>({kind:S.k,file:S.file,shift:S.shift})),decisions:D.map(x=>({s:x.s,name:x.name,pick:x.pick,audio:x.audio,add:x.add||undefined,tab:(x.sug.tab||{}).name||null,gt:(x.sug.gt||{}).name||null,k:x.k}))};
   CE.rec=rec;
   const post=(name,body)=>fetch(SG_HELPER+'/song-file?'+new URLSearchParams({song:CE.title,kind:'out',name}),{method:'POST',body:JSON.stringify(body,null,1)});
@@ -3301,6 +3304,7 @@ sgEl('ceBox').addEventListener('click',async e=>{
     const [s0,s1]=rg.dataset.cerange.split(',').map(Number);
     try{a.currentTime=Math.max(0,scTime(CE.song,s0));a.play();CE.stopAt=scTime(CE.song,s1)+0.2;rg.classList.add('playing')}catch(er){}return}
   const st=t.closest('[data-cestep]');if(st){CE.step=st.dataset.cestep;CE.cur=-1;CE.view=CE.step==='rhythm'?'rhythm':['strum','intro','inter','outro'].includes(CE.step)?'tab':'lead';ceRender();return}
+  if(t.closest('[data-ceez]')){CE.ez=CE.ez===false;ceRender();return}
   const vw=t.closest('[data-ceview]');if(vw){CE.view=vw.dataset.ceview;CE.cur=-1;ceRender();return}
   const pt=t.closest('[data-cepat]');if(pt){CE.pat=pt.dataset.cepat;ceRender();return}
   const vb=t.closest('[data-cevo]');if(vb){const n=vb.dataset.cevo,L=ceVoicings(n);if(L.length<2)return;const cur=CE.vmap[n];let i=cur?L.findIndex(v=>v.join()===cur.join()):0;if(i<0)i=0;
@@ -3582,6 +3586,19 @@ function tabFix(notes,shapeAt){
   });
   return {notes:out.filter(n=>!drop.has(n)),n:cnt,drop:drop.size};
 }
+/* 쉬운 운지 — 운지법의 오픈 코드 조건(0~3프렛 · 개방현)으로 단순화. 지금 코드의 쉬운 오픈 코드 모양 기준:
+   ① 모양에 같은 음 → 그 자리 ② 같은 이름 음(옥타브만 다름) → 모양의 그 자리(코드음) ③ 코드 밖 음 → 0~3프렛의 같은 음, 없으면 옥타브 옮겨서 */
+function tabEasy(notes,shapeAt){
+  const by=new Map();notes.forEach(n=>{if(!by.has(n.t))by.set(n.t,[]);by.get(n.t).push(n)});let cnt=0;const out=[];
+  [...by.keys()].sort((a,b)=>a-b).forEach(t=>{const v=shapeAt(t),used=new Set(),seen=new Set();
+    by.get(t).slice().sort((a,b)=>(TUNE[b.i]+b.f)-(TUNE[a.i]+a.f)).forEach(n=>{const pp=TUNE[n.i]+n.f,cands=[];
+      if(v)v.forEach((f,i)=>{if(f<0)return;const q=TUNE[i]+f;if(q===pp)cands.push({i,f,c:0});else if(mod(q-pp)===0)cands.push({i,f,c:1+Math.abs(q-pp)/24})});
+      for(const k of [0,-12,12,-24,24])for(let i=0;i<6;i++){const f=pp+k-TUNE[i];if(f<0||f>3)continue;
+        const clash=v&&v[i]>=0&&v[i]!==f?1:0;cands.push({i,f,c:(k?3+Math.abs(k)/12:2)+clash})}
+      cands.sort((a,b)=>a.c-b.c);const pick=cands.find(c=>!used.has(c.i)&&!seen.has(TUNE[c.i]+c.f));if(!pick)return;
+      used.add(pick.i);seen.add(TUNE[pick.i]+pick.f);const o={...n,i:pick.i,f:pick.f};if(o.i!==n.i||o.f!==n.f){o.fx=1;cnt++}out.push(o)})});
+  return {notes:out.sort((a,b)=>a.t-b.t),n:cnt};
+}
 function sgLick(pid){
   if(SG.lk[pid])return SG.lk[pid];
   const s=SG.song,total=s.bars*16,W=s.lyrics||[];
@@ -3591,9 +3608,10 @@ function sgLick(pid){
   const notes=(s.parts[pid].notes||[]).filter(n=>n.s>=0&&n.s<total).map(n=>{const q=(T||C)?sgFitNote(n,T,C):{i:n.i,f:n.f};return q&&{t:n.s,dur:n.d||1,i:q.i,f:q.f,p:TUNE[q.i]+q.f+C}}).filter(Boolean).sort((a,b)=>a.t-b.t);
   let fx={notes,n:0};
   if(s.parts[pid].kind==='guitar'){const at=t=>{let c=null;for(const x of CH0){if(x.s<=t)c=x;else break}return c};
-    fx=tabFix(notes,t=>{const c=at(t),cc=c&&blChord(c.name);return cc?sgEzV(cc,c.name):null});fx.notes.forEach(n=>n.p=TUNE[n.i]+n.f+C)}
+    const shp=t=>{const c=at(t),cc=c&&blChord(c.name);return cc?sgEzV(cc,c.name):null};
+    fx=SG.bd.ez?tabEasy(notes,shp):tabFix(notes,shp);fx.ez=SG.bd.ez;fx.notes.forEach(n=>n.p=TUNE[n.i]+n.f+C)}
   const nts=fx.notes,map={};nts.forEach((n,ni)=>{(map[n.t]=map[n.t]||[]).push(ni)});
-  return SG.lk[pid]={name:s.parts[pid].name+(C?` — 카포 ${C}프렛 기준`:'')+(fx.n?` · 잡기 어려운 운지 ${fx.n}곳 조정`:''),segs,notes:nts,total,bar:16,map,capo:C};
+  return SG.lk[pid]={name:s.parts[pid].name+(C?` — 카포 ${C}프렛 기준`:'')+(fx.ez?` · 🤚 쉬운 운지(오픈 코드) — ${fx.n}음 옮김`:fx.n?` · 잡기 어려운 운지 ${fx.n}곳 조정`:''),segs,notes:nts,total,bar:16,map,capo:C};
 }
 /* ---------- 하모니카(10홀 다이아토닉, 리히터 조율) 구멍 번호: 숫자 = 불기, 숫자 위 점 = 마시기, ' = 벤딩(반음씩 내림) ---------- */
 SG.harpKey=store.get('chordcalc-harpkey')||'auto';
@@ -3631,7 +3649,7 @@ function sgFinalView(){   /* 곡편집 › 기타반주보정 결과(주법 · �
   const s=SG.song,rec=s.backing||{},keep={...CE};
   try{
     CE.song=s;CE.D=s.chords.map(c=>({s:c.s,name:c.name}));CE.pat=(rec.strum&&ARP[rec.strum.pat])?rec.strum.pat:'slow';
-    CE.sec=rec.sections||{};CE.vmap=rec.voicings||{};CE.step='';CE.tabEl='sgTab';
+    CE.sec=rec.sections||{};CE.vmap=rec.voicings||{};CE.step='';CE.tabEl='sgTab';CE.ez=rec.ezTab!==false;CE._gf=null;
     const sec=['intro','inter','outro'].map(k=>({intro:'전주',inter:'간주',outro:'후주'}[k])+' '+(CE.sec[k]==='orig'?'원곡 기타':CE.sec[k]==='pat'?'반주 패턴':'—')).join(' · ');
     sgEl('sgTab').innerHTML=`<div class="tabttl" style="cursor:default">최종 반주 — ${esc(ARP[CE.pat].n)} · ${sec}${(SG.kc.t||SG.kc.c)?' (조옮김 · 카포는 이 보기에 적용되지 않음)':''}</div>`+ceTabSheet();
   }catch(e){sgEl('sgTab').innerHTML='<p class="sdesc">최종 반주를 만들지 못했습니다: '+esc(e.message||e)+'</p>'}
@@ -3745,7 +3763,8 @@ document.getElementById('p-song').addEventListener('click',e=>{
   if(b.id==='sgLoop'){SG.loop=!SG.loop;b.setAttribute('aria-pressed',SG.loop);sgSave();return}
   if(b.id==='sgAll'){SG.from=0;SG.to=-1;sgRender();return}
   if(b.id==='sgBack'){sgSeek(sgMaster().currentTime-5);if(!SG.playing)SG.cue=true;return}
-  if(ds.sgbd){SG.bd[ds.sgbd]=!SG.bd[ds.sgbd];sgBdSave();document.querySelectorAll('[data-sgbd]').forEach(b=>b.setAttribute('aria-pressed',SG.bd[b.dataset.sgbd]));drawBoard();return}
+  if(ds.sgbd){SG.bd[ds.sgbd]=!SG.bd[ds.sgbd];sgBdSave();document.querySelectorAll('[data-sgbd]').forEach(b=>b.setAttribute('aria-pressed',SG.bd[b.dataset.sgbd]));
+    if(ds.sgbd==='ez'){SG.lk={};if(SG.view!=='sheet')sgTabView()}drawBoard();return}
   if(ds.sgtr){SG.kc.t=Math.max(-11,Math.min(11,SG.kc.t+(+ds.sgtr)));sgKcSave();SG.lk={};SG._ch=null;sgRender();drawBoard();sgPitchApply();return}
   if(ds.sgsnd){SG.kc.s=!SG.kc.s;sgKcSave();sgRender();sgPitchApply();return}
   if(ds.sgcapo!=null){SG.kc.c=+ds.sgcapo;sgKcSave();SG.lk={};SG._ch=null;sgRender();drawBoard();return}
