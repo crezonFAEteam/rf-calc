@@ -3494,8 +3494,8 @@ function ceFollow(){
   else{const c=box.querySelector(`[data-cebar="${bar}"]`);el=c&&c.closest('.ce-cell');key='b'+bar}
   if(el)el.classList.add('ce-now');
   if(el&&CE.view==='rhythm'){const c=[...el.querySelectorAll('.ce-rt[data-rs]')].find(x=>sl>=+x.dataset.rs&&sl<+x.dataset.re);if(c)c.classList.add('now')}
-  if(el&&key!==CE.fkey){CE.fkey=key;const r=el.getBoundingClientRect();if(r.top<60||r.bottom>innerHeight-20)el.scrollIntoView({block:'center',behavior:'smooth'})}
-  if(note&&note!==CE.fnote){CE.fnote=note;const pre=note.closest('.ce-tab');if(pre){const pr=pre.getBoundingClientRect(),nr=note.getBoundingClientRect();if(nr.left<pr.left+20||nr.right>pr.right-20)pre.scrollLeft+=nr.left-pr.left-pr.width/2}}
+  if(el){CE.fkey=key;folY((note||el).getBoundingClientRect(),60,0.35)}
+  if(note&&note!==CE.fnote){CE.fnote=note;const pre=note.closest('.ce-tab');if(pre)folX(pre,note.getBoundingClientRect())}
 }
 function ceFollowLoop(){const a=sgEl('ceAudio');ceFollow();if(!a.paused||CE.syn)CE.fraf=requestAnimationFrame(ceFollowLoop);else CE.fraf=0}
 function ceSynthStop(){const S=CE.syn;if(!S)return;S.srcs.forEach(s=>{try{s.stop()}catch(e){}});clearTimeout(S.tm);CE.syn=null;
@@ -4505,19 +4505,30 @@ let follow=store.get('chordcalc-follow')!=='0';
 function followSync(){document.querySelectorAll('[data-follow]').forEach(b=>b.setAttribute('aria-pressed',follow))}
 followSync();
 document.addEventListener('click',e=>{const b=e.target.closest('[data-follow]');if(!b)return;follow=!follow;store.set('chordcalc-follow',follow?'1':'0');followSync()});
+const FOL={ty:null,xs:new Map(),raf:0};
+function folAnim(){let mv=false;
+  if(FOL.ty!=null){const d=FOL.ty-window.scrollY;if(Math.abs(d)>0.8){window.scrollTo(0,window.scrollY+d*0.1);mv=true}else FOL.ty=null}
+  FOL.xs.forEach((tx,box)=>{const d=tx-box.scrollLeft;if(Math.abs(d)>0.8){box.scrollLeft+=d*0.1;mv=true}else FOL.xs.delete(box)});
+  FOL.raf=mv?requestAnimationFrame(folAnim):0}
+function folY(r,top,at){   /* r = 지금 음의 화면 자리 → 위에서 at(비율) 높이에 오게 */
+  const h=window.innerHeight,want=top+(h-top)*at,d=r.top-want;if(Math.abs(d)<(r.height||16)*1.2&&FOL.ty==null)return;
+  FOL.ty=Math.max(0,Math.min(document.documentElement.scrollHeight-h,window.scrollY+d));if(!FOL.raf)FOL.raf=requestAnimationFrame(folAnim)}
+function folX(box,r){const br=box.getBoundingClientRect();if(r.left>=br.left+br.width*0.15&&r.right<=br.right-br.width*0.35)return;
+  FOL.xs.set(box,Math.max(0,box.scrollLeft+(r.left-br.left)-br.width*0.3));if(!FOL.raf)FOL.raf=requestAnimationFrame(folAnim)}
+window.addEventListener('wheel',()=>{FOL.ty=null},{passive:true});window.addEventListener('touchstart',()=>{FOL.ty=null},{passive:true});   /* 손으로 움직이면 그만 */
 function followNow(id){
   if(!follow)return;
   const box=document.getElementById(id),s=box&&box.querySelector('span.now');if(!s)return;
   const r=s.getBoundingClientRect(),lh=r.height||16;
   /* 가로: 악보 칸 안에서 옆으로 넘친 경우 */
   const br=box.getBoundingClientRect();
-  if(r.left<br.left+8||r.right>br.right-8)box.scrollTo({left:box.scrollLeft+(r.left-br.left)-br.width*0.3,behavior:'smooth'});
+  if(box.scrollWidth>box.clientWidth+4)folX(box,r);
   /* 세로: 위에 고정된 영역(지판 · 탭 줄) 아래부터 보이는 범위 */
   let top=0;const pin=document.getElementById('pin'),tabs=document.querySelector('.tabs');
   if(pin&&!pin.classList.contains('off')){const pr=pin.getBoundingClientRect();if(pr.top<=1)top=Math.max(top,pr.bottom)}
   if(tabs){const tr=tabs.getBoundingClientRect();if(tr.top<=top+2&&tr.bottom>top)top=tr.bottom}
   const h=window.innerHeight;
-  if(r.top<top+lh*4||r.bottom>h-lh*8)window.scrollBy({top:r.top-(top+(h-top)*0.3),behavior:'smooth'});   /* 위로 코드 이름 · 아래로 6줄이 보이게 */
+  folY(r,top,0.32);   /* 지금 음이 늘 비슷한 높이(위쪽 ⅓)에 — 조금씩 부드럽게 */
 }
 /* ---------- 재생 표시를 '실제로 들리는 시각'에 맞추기 ----------
    소리는 예약한 시각보다 출력 지연(휴대폰 · 블루투스 이어폰은 0.1~0.3초)만큼 늦게 나온다.
