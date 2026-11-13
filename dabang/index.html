@@ -2882,7 +2882,16 @@ function scClean(text){
       if(o.length&&o[o.length-1].n===null){o[o.length-1].n=n;o[o.length-1].d+=d;return}
       if(o.length&&o[o.length-1].n===n){o[o.length-1].d+=d;return}
       o.push({n,d})});
-    const q=o.filter(x=>x.n);L[P.i]=q.map(x=>x.n).join('  ');L[P.i+1]=q.map(x=>x.d).join(' ');if(!q.length){L[P.i]='';L[P.i+1]=''}});
+    P.q=o.filter(x=>x.n)});
+  /* 박 길이 바로잡기 — 악보는 같은 화성 리듬이 되풀이됨: ① 코드 순서가 같은 줄끼리 ② 마디(8칸)마다 같은 코드 조합끼리, 다수(3번 이상 · 2등의 2배 이상)와 다르면 다수대로 */
+  const vote=(items,keyOf,durOf,setDur)=>{const g={};items.forEach(it=>{(g[keyOf(it)]=g[keyOf(it)]||[]).push(it)});
+    Object.values(g).forEach(G=>{if(G.length<3)return;const c={};G.forEach(it=>{const k=durOf(it).join(' ');c[k]=(c[k]||0)+1});
+      const E=Object.entries(c).sort((a,b)=>b[1]-a[1]),[best,n]=E[0],n2=E[1]?E[1][1]:0;if(n<3||n<n2*2)return;   /* 3번 이상 · 2등의 2배 이상 */const bd=best.split(' ').map(Number);
+      G.forEach(it=>{if(durOf(it).join(' ')!==best)setDur(it,bd)})})};
+  vote(pairs.filter(P=>P.q.length),P=>P.q.map(x=>x.n).join('|'),P=>P.q.map(x=>x.d),(P,bd)=>P.q.forEach((x,j)=>x.d=bd[j]));
+  const bars=[];pairs.forEach(P=>{let cur=[],s=0;for(const x of P.q){cur.push(x);s+=x.d;if(s===8){bars.push(cur);cur=[];s=0}else if(s>8)break}});
+  vote(bars,B=>B.map(x=>x.n).join('|'),B=>B.map(x=>x.d),(B,bd)=>B.forEach((x,j)=>x.d=bd[j]));
+  pairs.forEach(P=>{const q=P.q;L[P.i]=q.map(x=>x.n).join('  ');L[P.i+1]=q.map(x=>x.d).join(' ');if(!q.length){L[P.i]='';L[P.i+1]=''}});
   return L.join('\n');
 }
 async function ceGetScores(title,say){
