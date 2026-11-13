@@ -2874,7 +2874,8 @@ function ceMeter(){return (CE.song.beatsPerBar||4)===3?6:8}
 function ceGuitar(){const ps=CE.song.parts||{};const k=Object.keys(ps).find(k=>ps[k].kind==='guitar');return k?ps[k]:null}
 function ceAuto(){
   const t=CE.song.tempo||90,six=ceMeter()===6,rec=CE.rec||{};
-  CE.patAuto=six?(t<100?'w_slow':'w_stroke'):(t<100?'slow':t<125?'stroke':'s8');
+  CE.patAuto=six?(t<100?'w_slow':'w_stroke'):(t<100?'slow':t<125?'stroke':'s8');CE.patWhy=`템포 ${t} BPM · ${six?'3/4':'4/4'}박자 규칙`;
+  ceStrumFromAudio();
   CE.pat=(rec.strum&&ARP[rec.strum.pat])?rec.strum.pat:CE.patAuto;
   const g=ceGuitar(),{rows}=ceRows();CE.secAuto={};
   ['intro','inter','outro'].forEach(k=>{const bars=rows.filter(r=>r.kind===k).flatMap(r=>r.bars);
@@ -2882,6 +2883,22 @@ function ceAuto(){
   CE.sec={...CE.secAuto,...((rec.sections)||{})};
   CE.vmap={};if(rec.voicings&&typeof rec.voicings==='object')Object.entries(rec.voicings).forEach(([n,v])=>{if(Array.isArray(v)&&v.length===6)CE.vmap[n]=v});
   CE.view=['strum','intro','inter','outro'].includes(CE.step)?'tab':(CE.view||'lead');
+}
+/* 원곡 기타에서 주법 고르기: ① 한 번에 3줄 이상 울리는 비율 → 스트로크 / 아르페지오 ② 한 마디에 소리 나는 횟수(밀도) → 패턴
+   (분석 템포가 140 넘으면 실제의 두 배로 잡힌 것으로 보고 두 마디를 한 마디로 셈) */
+function ceStrumFromAudio(){
+  const g=ceGuitar();if(!g||!g.notes||!g.notes.length)return;
+  const six=ceMeter()===6,{rows}=ceRows(),voc=new Set(rows.filter(r=>!r.kind).flatMap(r=>r.bars));if(!voc.size)return;
+  const bySlot={};g.notes.forEach(n=>{const b=Math.floor(n.s/16);if(voc.has(b))(bySlot[n.s]=bySlot[n.s]||new Set()).add(n.i)});
+  const slots=Object.keys(bySlot);if(slots.length<voc.size)return;   /* 기타 소리가 너무 적으면 규칙대로 */
+  const chordy=slots.filter(s=>bySlot[s].size>=3).length/slots.length,dbl=(CE.song.tempo||0)>140;
+  const d=slots.length/voc.size*(dbl?2:1),strum=chordy>=0.45;
+  let k;
+  if(six)k=strum?(d>=5?'w_stroke':'w_boom'):(d>=5?'w_slow':'w_easy');
+  else if(strum)k=d>=9?'s8':d>=6?'stroke':d>=4?'sballad':'s4';
+  else k=d>=4.5?'slow':'easy';   /* 8분 아르페지오들(발라드 · 트래비스 · 포크)은 원곡 기타 음 받아쓰기로는 구별이 어려워 가장 흔한 발라드로 */
+  if(!ARP[k])return;
+  CE.patAuto=k;CE.patWhy=`원곡 기타 기준 — 한 번에 3줄 이상 ${Math.round(chordy*100)}% → ${strum?'스트로크':'아르페지오'} · 한 마디에 소리 약 ${d.toFixed(1)}번${dbl?' (두 배 템포 보정)':''}`;
 }
 function ceRender(){
   const box=sgEl('ceBox');
@@ -2911,7 +2928,7 @@ function ceStepHtml(){
     const vo=names.map(n=>{const L=ceVoicings(n),cur=CE.vmap[n],i=cur?Math.max(0,L.findIndex(v=>v.join()===cur.join())):0,v=cur||L[0];
       return `<span class="ce-vo"><b>${esc(n)}</b> <code>${v?ceVStr(v):'?'}</code> <button class="ghost sm" data-cevo="${esc(n)}" data-d="-1"${L.length>1?'':' disabled'}>◀</button><span class="mt">${i+1}/${L.length}${i===0?' 기본':''}</span><button class="ghost sm" data-cevo="${esc(n)}" data-d="1"${L.length>1?'':' disabled'}>▶</button></span>`}).join('');
     return `<div class="ce-sum">코드 운지 — 기본은 <b>운지가 가장 쉬운 오픈 코드</b>(1번째). 꼭 다른 자리로 잡고 싶을 때만 ◀ ▶ 로 바꾸세요 (숫자 = 6번 줄 → 1번 줄 프렛, x = 치지 않음).</div><div class="ce-vos">${vo}</div>
-    <div class="ce-sum">④ 주법 결정 — 노래 부분의 반주 패턴. ★ = 템포 ${s.tempo} BPM · ${ceMeter()===6?'3/4':'4/4'}박자로 고른 추천. 고르면 아래 🎸 타브 악보가 바로 바뀝니다.<br>${esc(ARP[CE.pat].n)}: ${esc(ARP[CE.pat].d)}</div><div class="ce-pats">${chips}</div>`;
+    <div class="ce-sum">④ 주법 결정 — 노래 부분의 반주 패턴. ★ 추천 = ${esc(CE.patWhy||'')}.${s.tempo>140?` (분석 템포 ${s.tempo} BPM은 실제의 두 배일 수 있음 — 약 ${Math.round(s.tempo/2)} BPM)`:''} 고르면 아래 🎸 타브 악보가 바로 바뀝니다.<br>${esc(ARP[CE.pat].n)}: ${esc(ARP[CE.pat].d)}</div><div class="ce-pats">${chips}</div>`;
   }
   const k=CE.step,nm={intro:'전주',inter:'간주',outro:'후주'}[k];
   if(CE.sec[k]==null)return `<div class="ce-sum">${CE_STEPS.find(x=>x[0]===k)[1]} — 이 곡에서는 ${nm} 구간을 찾지 못했습니다 (노래 없는 구간이 없음).</div>`;
