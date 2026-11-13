@@ -293,6 +293,8 @@ body[data-page="edit"] #boardScroll,body[data-page="edit"] .board-bar,body[data-
 .ce-row{display:grid;grid-template-columns:3.6em 1fr;gap:6px;align-items:start}
 .ce-rl{font-size:.75rem;color:var(--muted);padding-top:4px;text-align:right;font-variant-numeric:tabular-nums}
 .ce-row.sec-intro .ce-rl,.ce-row.sec-inter .ce-rl,.ce-row.sec-outro .ce-rl{color:var(--ink);font-weight:700}
+.ce-rl .ce-rplay{display:block;margin:4px 0 0 auto;padding:2px 6px;font-size:.72rem;font-weight:600;white-space:nowrap}
+.ce-rl .ce-rplay.playing{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent)}
 .ce-rc{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:4px}
 .ce-row.sec-intro .ce-cell,.ce-row.sec-inter .ce-cell,.ce-row.sec-outro .ce-cell{background:color-mix(in srgb,var(--chip) 60%,var(--bg))}
 .ce-cell .no i{font-style:normal;margin-left:2px}
@@ -2970,6 +2972,8 @@ function ceVStr(v){return v.map(f=>f<0?'x':f>9?'('+f+')':f).join('')}
 function ceTabSheet(){
   const s=CE.song,D=CE.D,{rows,words}=ceRows(),g=ceGuitar(),meter=ceMeter(),per=Math.max(1,Math.min(4,tabPer(16,CE.tabEl||'ceBox')));
   const chordAt=sl=>{let c=null;for(const x of D){if(x.s<=sl)c=x;else break}return c};
+  const canPlay=(CE.tabEl||'ceBox')==='ceBox';   /* 곡연습의 최종 반주 보기에는 듣기 버튼 없음 */
+  const secSpan=ri=>{const k=rows[ri].kind;let a=ri,b=ri;while(a>0&&rows[a-1].kind===k)a--;while(b+1<rows.length&&rows[b+1].kind===k)b++;return [a,b]};
   return `<div class="ce-sheet">`+rows.map((r,ri)=>{
     const st=r.bars[0]*16,en=(r.bars[r.bars.length-1]+1)*16,mode=r.kind?CE.sec[r.kind]:'pat',hl=(CE.step===r.kind)||(CE.step==='strum'&&!r.kind);
     const cs=D.filter(x=>x.s>=st&&x.s<en),pts=[];const c0=chordAt(st);if(c0&&(!cs.length||cs[0].s>st))pts.push({s:st,name:c0.name});cs.forEach(x=>pts.push({s:x.s,name:x.name}));
@@ -2986,7 +2990,10 @@ function ceTabSheet(){
       }
     }catch(e){pre='(이 줄은 TAB으로 만들지 못했습니다)'}
     const tag=r.kind?` · ${mode==='orig'?'원곡 기타':'반주 패턴'}`:'';
-    return `<div class="ce-row${r.kind?' sec-'+r.kind:''}${hl?' ce-hl':''}"><div class="ce-rl">${esc(r.label)}<small>${r.bars[0]+1}~${r.bars[r.bars.length-1]+1}마디${tag}</small></div><div class="tab ce-tab"><pre>${pre}</pre></div></div>`}).join('')+`</div>`;
+    let pb='';
+    if(canPlay){pb=`<button class="ghost sm ce-rplay" data-cerange="${st},${en}" title="이 줄(${r.bars[0]+1}~${r.bars[r.bars.length-1]+1}마디)을 원곡으로 듣기">▶ 듣기</button>`;
+      if(r.kind){const [a,b]=secSpan(ri);if(a===ri&&b>a)pb+=`<button class="ghost sm ce-rplay" data-cerange="${rows[a].bars[0]*16},${(rows[b].bars[rows[b].bars.length-1]+1)*16}" title="${esc(r.label)} 전체를 원곡으로 듣기">▶ ${esc(r.label)} 전체</button>`}}
+    return `<div class="ce-row${r.kind?' sec-'+r.kind:''}${hl?' ce-hl':''}"><div class="ce-rl">${esc(r.label)}<small>${r.bars[0]+1}~${r.bars[r.bars.length-1]+1}마디${tag}</small>${pb}</div><div class="tab ce-tab"><pre>${pre}</pre></div></div>`}).join('')+`</div>`;
 }
 /* 전체 진행: 가사 줄마다 한 줄, 노래 없는 구간은 전주 · 간주 · 후주 */
 function ceRows(){
@@ -3048,6 +3055,7 @@ function cePlayBar(b){
   try{a.currentTime=t0;a.play();CE.stopAt=t1}catch(e){}
 }
 sgEl('ceAudio').addEventListener('timeupdate',e=>{if(CE.stopAt&&e.target.currentTime>=CE.stopAt){e.target.pause();CE.stopAt=0}});
+sgEl('ceAudio').addEventListener('pause',()=>document.querySelectorAll('#ceBox .ce-rplay.playing').forEach(x=>x.classList.remove('playing')));
 async function ceSave(markDone){
   const D=CE.D,rec=CE.rec&&CE.rec.kind==='saygita-backing'?CE.rec:{kind:'saygita-backing',version:1,done:{}};
   rec.title=CE.title;rec.step=CE.step;rec.made=new Date().toISOString();rec.done=rec.done||{};
@@ -3065,6 +3073,11 @@ async function ceSave(markDone){
 sgEl('ceBox').addEventListener('click',async e=>{
   const t=e.target;
   const bar=t.closest('[data-cebar]');if(bar){cePlayBar(+bar.dataset.cebar);return}
+  const rg=t.closest('[data-cerange]');if(rg){const a=sgEl('ceAudio');
+    if(rg.classList.contains('playing')){a.pause();CE.stopAt=0;rg.classList.remove('playing');return}
+    document.querySelectorAll('#ceBox .ce-rplay.playing').forEach(x=>x.classList.remove('playing'));
+    const [s0,s1]=rg.dataset.cerange.split(',').map(Number);
+    try{a.currentTime=Math.max(0,scTime(CE.song,s0));a.play();CE.stopAt=scTime(CE.song,s1)+0.2;rg.classList.add('playing')}catch(er){}return}
   const st=t.closest('[data-cestep]');if(st){CE.step=st.dataset.cestep;CE.cur=-1;CE.view=['strum','intro','inter','outro'].includes(CE.step)?'tab':'lead';ceRender();return}
   const vw=t.closest('[data-ceview]');if(vw){CE.view=vw.dataset.ceview;CE.cur=-1;ceRender();return}
   const pt=t.closest('[data-cepat]');if(pt){CE.pat=pt.dataset.cepat;ceRender();return}
