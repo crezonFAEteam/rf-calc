@@ -268,6 +268,16 @@ body[data-page="edit"] #boardScroll,body[data-page="edit"] .board-bar,body[data-
 .ce-sum{font-size:.85rem;line-height:1.6;margin:4px 0 6px}
 .ce-bar-tools{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px;align-items:center}
 .ce-sheet{display:flex;flex-direction:column;gap:6px}
+.ce-ctl{margin:4px 0 6px}.ce-views{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 8px;padding-top:6px;border-top:1px dashed var(--line)}
+.ce-rl small{display:block;font-weight:400;font-size:.66rem;color:var(--muted)}
+.ce-tab{margin-top:0;padding:6px 8px}.ce-tab pre{font-size:12px}
+.ce-row.ce-hl .ce-tab{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.ce-pats .pgrp{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:2px 0}.ce-pats .pgl{font-size:.78rem;color:var(--muted);min-width:5em}
+.ce-vos{display:flex;flex-wrap:wrap;gap:4px 10px;margin:2px 0 8px;font-size:.85rem}
+.ce-vo{display:inline-flex;align-items:center;gap:3px;border:1px solid var(--line);border-radius:8px;padding:1px 6px}
+.ce-vo code{font-family:ui-monospace,Consolas,monospace;letter-spacing:.06em}.ce-vo .mt{font-size:.72rem;color:var(--muted);min-width:3.2em;text-align:center}
+.ce-vo button{padding:0 5px;min-height:0;line-height:1.4}
+.ce-ly td{padding:1px 6px}.ce-ly button{padding:0 6px;min-height:0}
 .ce-row{display:grid;grid-template-columns:3.6em 1fr;gap:6px;align-items:start}
 .ce-rl{font-size:.75rem;color:var(--muted);padding-top:4px;text-align:right;font-variant-numeric:tabular-nums}
 .ce-row.sec-intro .ce-rl,.ce-row.sec-inter .ce-rl,.ce-row.sec-outro .ce-rl{color:var(--ink);font-weight:700}
@@ -1563,7 +1573,7 @@ function genArp(b,pk){
   const pat=ARP[pk].p,sw=!!ARP[pk].sw,acc=new Set(ad.accOv[pk]||ARP[pk].acc||[0]),segs=[],notes=[];let t=0;
   b.segs.forEach(s=>{segs.push({c:s.c,start:t,len:s.len,ly:s.ly});t+=s.len});
   segs.forEach(sg=>{
-    const v=getV(sg.c);if(!v)return;
+    const v=(b.vmap&&sg.c&&b.vmap[sg.c.name])||getV(sg.c);if(!v)return;
     for(let o=0;o<sg.len;o++){const tok=pat[o%pat.length];if(tok==='-')continue;
       if('DUdX'.includes(tok)){const ss=v.map((f,i)=>f>=0?i:-1).filter(i=>i>=0&&(tok==='D'||tok==='X'||i>=2));if(tok==='U')ss.reverse();ss.forEach((i,q)=>notes.push({t:sg.start+o,dur:1,ring:Math.min(2,sg.len-o),i,f:v[i],p:TUNE[i]+v[i],sd:q,mute:tok==='X',sw,dir:q===0?(tok==='U'?'U':'D'):null,acc:q===0&&acc.has(o%pat.length),amp:acc.has(o%pat.length)?1.2:0.72}));continue}
       const i=arpString(v,tok);if(i<0)continue;notes.push({t:sg.start+o,dur:1,ring:sg.len-o,i,f:v[i],p:TUNE[i]+v[i],sw,acc:acc.has(o%pat.length),amp:acc.has(o%pat.length)?1.2:0.78})}
@@ -2869,17 +2879,90 @@ async function ceOpen(title){
     const saved=CE.rec&&CE.rec.chords&&CE.rec.chords.decisions;
     if(Array.isArray(saved)&&saved.length===D.length)saved.forEach((x,i)=>{if(x&&x.pick){const pk=x.pick==='score'?'gt':x.pick;D[i].pick=pk;D[i].name=x.name}});
     CE.D=D;CE.step=(CE.rec&&CE.rec.step)||'chords';CE.cur=-1;
+    ceAuto();
     sgEl('ceAudio').src=ceUrl('출력','음원분석','원곡.mp3');
     ceRender();
   }catch(e){say('편집을 열지 못했습니다: '+esc(e&&e.message||e))}
 }
 function ceDone(st){return !!(CE.rec&&CE.rec.done&&CE.rec.done[st])}
+/* 최적 검토결과 (자동): 주법 = 템포 · 박자로, 전주 · 간주 · 후주 = 원곡 기타 TAB 이 충분하면 그것, 아니면 반주 패턴 */
+function ceMeter(){return (CE.song.beatsPerBar||4)===3?6:8}
+function ceGuitar(){const ps=CE.song.parts||{};const k=Object.keys(ps).find(k=>ps[k].kind==='guitar');return k?ps[k]:null}
+function ceAuto(){
+  const t=CE.song.tempo||90,six=ceMeter()===6,rec=CE.rec||{};
+  CE.patAuto=six?(t<100?'w_slow':'w_stroke'):(t<100?'slow':t<125?'stroke':'s8');
+  CE.pat=(rec.strum&&ARP[rec.strum.pat])?rec.strum.pat:CE.patAuto;
+  const g=ceGuitar(),{rows}=ceRows();CE.secAuto={};
+  ['intro','inter','outro'].forEach(k=>{const bars=rows.filter(r=>r.kind===k).flatMap(r=>r.bars);
+    const n=g?g.notes.filter(x=>bars.includes(Math.floor(x.s/16))).length:0;CE.secAuto[k]=bars.length?(n>=bars.length*3?'orig':'pat'):null});
+  CE.sec={...CE.secAuto,...((rec.sections)||{})};
+  CE.vmap={};if(rec.voicings&&typeof rec.voicings==='object')Object.entries(rec.voicings).forEach(([n,v])=>{if(Array.isArray(v)&&v.length===6)CE.vmap[n]=v});
+  CE.view=['strum','intro','inter','outro'].includes(CE.step)?'tab':(CE.view||'lead');
+}
 function ceRender(){
   const box=sgEl('ceBox');
   const steps=CE_STEPS.map(([k,n])=>`<button class="ce-step${ceDone(k)?' done':''}" data-cestep="${k}"${CE.step===k?' aria-current="step"':''}>${ceDone(k)?'✓ ':''}${n}</button>`).join('');
-  const body=CE.step==='chords'?ceChordsHtml():`<div class="ce-todo">${CE_TODO[CE.step]}</div>`;
+  const nxt=CE_STEPS[CE_STEPS.findIndex(s=>s[0]===CE.step)+1];
   box.innerHTML=`<div class="ce-head"><b>✏️ 기타반주보정 — ${esc(CE.title)}</b><span><button class="ghost sm" data-ce="save">저장</button> <button class="ghost sm" data-ce="close">닫기</button></span></div>
-    <div class="ce-steps">${steps}</div>${body}`;
+    <div class="ce-steps">${steps}</div>
+    <div class="ce-ctl">${ceStepHtml()}</div>
+    <div class="ce-views"><button class="ce-step" data-ceview="lead"${CE.view==='lead'?' aria-current="step"':''}>📄 가사 · 코드 악보</button><button class="ce-step" data-ceview="tab"${CE.view==='tab'?' aria-current="step"':''}>🎸 기타 타브 악보 (주법 · 전주 · 간주 · 후주)</button></div>
+    ${CE.view==='tab'?ceTabSheet():ceLeadSheet()}
+    <div class="ce-foot"><button class="ghost sm" data-ce="save">저장</button><button class="ghost sm" data-ce="next">검토 완료${nxt?' → '+nxt[1]:''}</button></div>`;
+}
+function ceStepHtml(){
+  const s=CE.song;
+  if(CE.step==='chords')return ceChordSum();
+  if(CE.step==='lyrics'||CE.step==='timing'){
+    const ls=(s.lines||[]),first=ls[0];
+    const list=ls.map((l,i)=>`<tr><td><button class="ghost sm" data-ceplay="${l.t}" data-ceend="${l.e}">▶</button></td><td>${sgFmt(l.t)}</td><td>${Math.floor(l.s/16)+1}</td><td>${esc(l.text)}</td></tr>`).join('');
+    return `<div class="ce-sum">${CE.step==='lyrics'?'② 가사 결정 — 우선순위 (기타악보 &gt; 기타타브). 지금은 <b>음원에서 받아 적은 가사</b>를 줄마다 보여 줍니다. 악보의 가사를 읽어 나란히 비교하는 것은 다음에 붙입니다(한글 악보 읽기).':
+      `③ 가사 타이밍 — 노래 시작 <b>${first?sgFmt(first.t)+' ('+(Math.floor(first.s/16)+1)+'마디)':'없음'}</b>. 줄마다 ▶로 들어 보고 시작 위치가 맞는지 확인하세요. (위치 고치기는 다음에 붙입니다)`}</div>
+      <div class="sc-list"><table class="ce-ly"><thead><tr><th></th><th>시간</th><th>마디</th><th>가사</th></tr></thead><tbody>${list||'<tr><td colspan="4">가사가 없습니다</td></tr>'}</tbody></table></div>`;
+  }
+  if(CE.step==='strum'){
+    const grp=ceMeter()===6?['waltz']:['arp','stroke','country'],GN={arp:'아르페지오',stroke:'스트로크',country:'컨트리',waltz:'3/4박자'};
+    const chips=grp.map(g=>`<div class="pgrp"><span class="pgl">${GN[g]}</span>${Object.entries(ARP).filter(([k,a])=>(a.g||'arp')===g&&(ceMeter()===6)===(a.m===6)).map(([k,a])=>`<button class="chip" data-cepat="${k}" aria-pressed="${CE.pat===k}">${a.n}${k===CE.patAuto?' ★':''}</button>`).join('')}</div>`).join('');
+    const names=[...new Set(CE.D.map(x=>x.name))];
+    const vo=names.map(n=>{const L=ceVoicings(n),cur=CE.vmap[n],i=cur?Math.max(0,L.findIndex(v=>v.join()===cur.join())):0,v=cur||L[0];
+      return `<span class="ce-vo"><b>${esc(n)}</b> <code>${v?ceVStr(v):'?'}</code> <button class="ghost sm" data-cevo="${esc(n)}" data-d="-1"${L.length>1?'':' disabled'}>◀</button><span class="mt">${i+1}/${L.length}${i===0?' 기본':''}</span><button class="ghost sm" data-cevo="${esc(n)}" data-d="1"${L.length>1?'':' disabled'}>▶</button></span>`}).join('');
+    return `<div class="ce-sum">코드 운지 — 기본은 <b>운지가 가장 쉬운 오픈 코드</b>(1번째). 꼭 다른 자리로 잡고 싶을 때만 ◀ ▶ 로 바꾸세요 (숫자 = 6번 줄 → 1번 줄 프렛, x = 치지 않음).</div><div class="ce-vos">${vo}</div>
+    <div class="ce-sum">④ 주법 결정 — 노래 부분의 반주 패턴. ★ = 템포 ${s.tempo} BPM · ${ceMeter()===6?'3/4':'4/4'}박자로 고른 추천. 고르면 아래 🎸 타브 악보가 바로 바뀝니다.<br>${esc(ARP[CE.pat].n)}: ${esc(ARP[CE.pat].d)}</div><div class="ce-pats">${chips}</div>`;
+  }
+  const k=CE.step,nm={intro:'전주',inter:'간주',outro:'후주'}[k];
+  if(CE.sec[k]==null)return `<div class="ce-sum">${CE_STEPS.find(x=>x[0]===k)[1]} — 이 곡에서는 ${nm} 구간을 찾지 못했습니다 (노래 없는 구간이 없음).</div>`;
+  const g=ceGuitar();
+  return `<div class="ce-sum">${CE_STEPS.find(x=>x[0]===k)[1]} — 우선순위 (음원 · 영상 · 링크 &gt; 기타타브 &gt; 기타악보). 추천: <b>${CE.secAuto[k]==='orig'?'원곡 기타 TAB':'반주 패턴'}</b>${g?'':' (원곡 기타 트랙 없음)'}.
+    아래 🎸 타브 악보의 ${nm} 줄을 보고 고르세요.</div>
+    <div class="ce-bar-tools"><button class="chip" data-cesec="orig" aria-pressed="${CE.sec[k]==='orig'}"${g?'':' disabled'}>원곡 기타 TAB</button><button class="chip" data-cesec="pat" aria-pressed="${CE.sec[k]==='pat'}">반주 패턴 (${esc(ARP[CE.pat].n)})</button></div>`;
+}
+/* 🎸 타브 악보: 줄마다 — 노래 부분은 반주 패턴, 전 · 간 · 후주는 고른 방법 */
+function ceVoicings(n){const c=blChord(n);if(!c)return [];const bs=(c.b!=null&&c.b!==c.r)?c.b:null;
+  const a=(bs!=null?findVoicings(c.r,c.qi,bs):[]).concat(findVoicings(c.r,c.qi,null));const seen=new Set();
+  const L=a.map(x=>x.v||x).filter(v=>{const k=v.join();if(seen.has(k))return false;seen.add(k);return true});
+  const d=getV(c);if(d){const i=L.findIndex(v=>v.join()===d.join());if(i>0){L.splice(i,1);L.unshift(d)}else if(i<0)L.unshift(d)}
+  return L.slice(0,12)}
+function ceVStr(v){return v.map(f=>f<0?'x':f>9?'('+f+')':f).join('')}
+function ceTabSheet(){
+  const s=CE.song,D=CE.D,{rows,words}=ceRows(),g=ceGuitar(),meter=ceMeter(),per=Math.max(1,Math.min(4,tabPer(16,'ceBox')));
+  const chordAt=sl=>{let c=null;for(const x of D){if(x.s<=sl)c=x;else break}return c};
+  return `<div class="ce-sheet">`+rows.map((r,ri)=>{
+    const st=r.bars[0]*16,en=(r.bars[r.bars.length-1]+1)*16,mode=r.kind?CE.sec[r.kind]:'pat',hl=(CE.step===r.kind)||(CE.step==='strum'&&!r.kind);
+    const cs=D.filter(x=>x.s>=st&&x.s<en),pts=[];const c0=chordAt(st);if(c0&&(!cs.length||cs[0].s>st))pts.push({s:st,name:c0.name});cs.forEach(x=>pts.push({s:x.s,name:x.name}));
+    const lyOf=(a,b)=>(s.lyrics||[]).filter(w=>w.s>=a&&w.s<b).map(w=>w.w).join(' ');
+    let pre='';
+    try{
+      if(mode==='orig'&&g){
+        const segs=pts.map((x,j)=>{const e=j+1<pts.length?pts[j+1].s:en;return {c:blChord(x.name)||blChord('C'),start:x.s-st,len:e-x.s,ly:lyOf(x.s,e)}});
+        const notes=g.notes.filter(n=>n.s>=st&&n.s<en).map(n=>({t:n.s-st,dur:n.d||1,i:n.i,f:n.f})).sort((a,b)=>a.t-b.t);
+        pre=tabRender({segs,notes,total:en-st,bar:16},'ce'+ri,true,per);
+      }else{
+        const segs=pts.map((x,j)=>{const e=j+1<pts.length?pts[j+1].s:en;return {c:blChord(x.name)||blChord('C'),len:Math.max(1,Math.round((e-x.s)/2)),ly:lyOf(x.s,e)}});
+        pre=tabRender(genArp({name:'',segs,vmap:CE.vmap},CE.pat),'ce'+ri,true,per);
+      }
+    }catch(e){pre='(이 줄은 TAB으로 만들지 못했습니다)'}
+    const tag=r.kind?` · ${mode==='orig'?'원곡 기타':'반주 패턴'}`:'';
+    return `<div class="ce-row${r.kind?' sec-'+r.kind:''}${hl?' ce-hl':''}"><div class="ce-rl">${esc(r.label)}<small>${r.bars[0]+1}~${r.bars[r.bars.length-1]+1}마디${tag}</small></div><div class="tab ce-tab"><pre>${pre}</pre></div></div>`}).join('')+`</div>`;
 }
 /* 전체 진행: 가사 줄마다 한 줄, 노래 없는 구간은 전주 · 간주 · 후주 */
 function ceRows(){
@@ -2900,6 +2983,18 @@ function ceRows(){
   push();
   return {rows,words};
 }
+function ceChordSum(){
+  const D=CE.D,s=CE.song,cnt={ok:0,type:0,diff:0,extra:0},pk={tab:0,gt:0,audio:0,custom:0};
+  D.forEach(x=>{cnt[x.k]=(cnt[x.k]||0)+1;pk[x.pick]=(pk[x.pick]||0)+1});
+  const srcTxt=CE.srcs.length?CE.srcs.map(S=>`${S.label}: ${esc(S.file)} (코드 ${S.n}개${S.shift?`, 키 차이 반음 ${Math.abs(S.shift)}개 맞춤`:''})`).join(' · '):'<span class="ed-warn">악보 없음 — 입력에 기타악보 · 기타타브를 넣으면 비교</span>';
+  return `<div class="ce-sum">① 코드 결정 — 음원분석 매체: <b>${esc(s.source||'')}</b> · ${srcTxt}<br>
+      우선순위: 기타타브 &gt; 기타악보 &gt; 음원 (매체는 음원분석 하나) · 음원 코드 ${D.length}개 — <span class="sc-ok">같음 ${cnt.ok||0}</span> · <span class="sc-type">종류 다름 ${cnt.type||0}</span> · <span class="sc-diff">다름 ${cnt.diff||0}</span> · <span class="sc-extra">음원에만 ${cnt.extra||0}</span>
+      &nbsp;|&nbsp; 결정: 타브 ${pk.tab||0} · 악보 ${pk.gt||0} · 음원 ${pk.audio||0} · 직접 ${pk.custom||0}</div>
+    <div class="ce-bar-tools"><button class="ghost sm" data-ce="diff" aria-pressed="${CE.onlyDiff}">다른 곳만 진하게</button>
+      <button class="ghost sm" data-ce="allscore">모두 우선순위대로</button><button class="ghost sm" data-ce="allaudio">모두 음원대로</button>
+      <span class="ed-hs">📄 악보에서 코드를 누르면 고르기 · 마디 번호(▶)를 누르면 그 마디 원곡 듣기</span></div>`;
+}
+function ceLeadSheet(){return ceChordsHtml()}
 function ceChordsHtml(){
   const D=CE.D,s=CE.song,cnt={ok:0,type:0,diff:0,extra:0},pk={tab:0,gt:0,audio:0,custom:0};
   D.forEach(x=>{cnt[x.k]=(cnt[x.k]||0)+1;pk[x.pick]=(pk[x.pick]||0)+1});
@@ -2916,16 +3011,7 @@ function ceChordsHtml(){
       const dim=CE.onlyDiff&&!ids.some(i=>D[i].k!=='ok'||D[i].pick==='audio'&&Object.keys(D[i].sug).length||D[i].pick==='custom');
       return `<div class="ce-cell k-${ids.length?k:'ok'}${ids.includes(CE.cur)?' k-cur':''}${dim?' dim':''}"><span class="no" data-cebar="${b}" title="이 마디 원곡 듣기">${b+1} ▶ <i>${sgFmt(scTime(s,b*16))}</i></span><div>${chips||cont}</div>${words[b].length?`<div class="ly">${esc(words[b].join(' '))}</div>`:''}${ids.includes(CE.cur)?cePop(CE.cur):''}</div>`}).join('');
     return `<div class="ce-row${r.kind?' sec-'+r.kind:''}"><div class="ce-rl">${esc(r.label)}</div><div class="ce-rc">${cells}</div></div>`}).join('');
-  const srcTxt=CE.srcs.length?CE.srcs.map(S=>`${S.label}: ${esc(S.file)} (코드 ${S.n}개${S.shift?`, 키 차이 반음 ${Math.abs(S.shift)}개 맞춤`:''})`).join(' · '):'<span class="ed-warn">악보 없음 — 입력에 기타악보 · 기타타브를 넣으면 비교</span>';
-  return `<div class="ce-sum">음원분석 매체: <b>${esc(s.source||'')}</b> · ${srcTxt}<br>
-      우선순위: 기타타브 &gt; 기타악보 &gt; 음원 · 영상 · 링크 (매체는 음원분석 하나 — 음원 &gt; 영상 &gt; 녹음 &gt; 링크 중 하나로 분석)<br>
-      음원 코드 ${D.length}개 — <span class="sc-ok">같음 ${cnt.ok||0}</span> · <span class="sc-type">종류 다름 ${cnt.type||0}</span> · <span class="sc-diff">다름 ${cnt.diff||0}</span> · <span class="sc-extra">음원에만 ${cnt.extra||0}</span>
-      &nbsp;|&nbsp; 결정: 타브 ${pk.tab||0} · 악보 ${pk.gt||0} · 음원 ${pk.audio||0} · 직접 ${pk.custom||0}</div>
-    <div class="ce-bar-tools"><button class="ghost sm" data-ce="diff" aria-pressed="${CE.onlyDiff}">다른 곳만 진하게</button>
-      <button class="ghost sm" data-ce="allscore">모두 우선순위대로</button><button class="ghost sm" data-ce="allaudio">모두 음원대로</button>
-      <span class="ed-hs">코드를 누르면 고르기 · 마디 번호(▶)를 누르면 그 마디 원곡 듣기</span></div>
-    <div class="ce-sheet">${html}</div>
-    <div class="ce-foot"><button class="ghost sm" data-ce="save">저장</button><button class="ghost sm" data-ce="next">검토 완료 → ② 가사 결정</button></div>`;
+  return `<div class="ce-sheet">${html}</div>`;
 }
 function cePop(i){const x=CE.D[i];
   return `<div class="ce-pop">${CE_SRC.filter(([k])=>x.sug[k]).map(([k,l])=>`<button class="ghost sm" data-cepick="${k}">${l}: ${esc(x.sug[k].name)}</button>`).join('')}
@@ -2940,6 +3026,7 @@ async function ceSave(markDone){
   const D=CE.D,rec=CE.rec&&CE.rec.kind==='saygita-backing'?CE.rec:{kind:'saygita-backing',version:1,done:{}};
   rec.title=CE.title;rec.step=CE.step;rec.made=new Date().toISOString();rec.done=rec.done||{};
   if(markDone)rec.done[markDone]=new Date().toISOString();
+  rec.strum={pat:CE.pat,name:ARP[CE.pat].n,auto:CE.patAuto};rec.sections={...CE.sec};rec.voicings={...CE.vmap};
   rec.chords={media:CE.song.source,sources:CE.srcs.map(S=>({kind:S.k,file:S.file,shift:S.shift})),decisions:D.map(x=>({s:x.s,name:x.name,pick:x.pick,audio:x.audio,tab:(x.sug.tab||{}).name||null,gt:(x.sug.gt||{}).name||null,k:x.k}))};
   CE.rec=rec;
   const post=(name,body)=>fetch(SG_HELPER+'/song-file?'+new URLSearchParams({song:CE.title,kind:'out',name}),{method:'POST',body:JSON.stringify(body,null,1)});
@@ -2952,7 +3039,13 @@ async function ceSave(markDone){
 sgEl('ceBox').addEventListener('click',async e=>{
   const t=e.target;
   const bar=t.closest('[data-cebar]');if(bar){cePlayBar(+bar.dataset.cebar);return}
-  const st=t.closest('[data-cestep]');if(st){CE.step=st.dataset.cestep;CE.cur=-1;ceRender();return}
+  const st=t.closest('[data-cestep]');if(st){CE.step=st.dataset.cestep;CE.cur=-1;CE.view=['strum','intro','inter','outro'].includes(CE.step)?'tab':'lead';ceRender();return}
+  const vw=t.closest('[data-ceview]');if(vw){CE.view=vw.dataset.ceview;CE.cur=-1;ceRender();return}
+  const pt=t.closest('[data-cepat]');if(pt){CE.pat=pt.dataset.cepat;ceRender();return}
+  const vb=t.closest('[data-cevo]');if(vb){const n=vb.dataset.cevo,L=ceVoicings(n);if(L.length<2)return;const cur=CE.vmap[n];let i=cur?L.findIndex(v=>v.join()===cur.join()):0;if(i<0)i=0;
+    i=(i+(+vb.dataset.d)+L.length)%L.length;if(i===0)delete CE.vmap[n];else CE.vmap[n]=L[i];ceRender();return}
+  const sc=t.closest('[data-cesec]');if(sc){CE.sec[CE.step]=sc.dataset.cesec;ceRender();return}
+  const pl=t.closest('[data-ceplay]');if(pl){const a=sgEl('ceAudio');try{a.currentTime=+pl.dataset.ceplay;a.play();CE.stopAt=+pl.dataset.ceend+0.3}catch(er){}return}
   const pk=t.closest('[data-cepick]');
   if(pk){const i=CE.cur,x=CE.D[i],v=pk.dataset.cepick;
     if(v==='play'){cePlayBar(Math.floor(x.s/16));return}
@@ -2967,7 +3060,7 @@ sgEl('ceBox').addEventListener('click',async e=>{
   if(v==='allscore'){CE.D.forEach(x=>{for(const [k] of CE_SRC)if(x.sug[k]){x.pick=k;x.name=x.sug[k].name;return}x.pick='audio';x.name=x.audio});ceRender();return}
   if(v==='allaudio'){CE.D.forEach(x=>{x.pick='audio';x.name=x.audio});ceRender();return}
   if(v==='save'||v==='next'){b.disabled=true;const o=b.textContent;b.textContent='저장하는 중…';
-    try{await ceSave(v==='next'?CE.step:null);if(v==='next'){const i=CE_STEPS.findIndex(s=>s[0]===CE.step);CE.step=(CE_STEPS[i+1]||CE_STEPS[i])[0]}ceRender()}
+    try{await ceSave(v==='next'?CE.step:null);if(v==='next'){const i=CE_STEPS.findIndex(s=>s[0]===CE.step);CE.step=(CE_STEPS[i+1]||CE_STEPS[i])[0];CE.view=['strum','intro','inter','outro'].includes(CE.step)?'tab':'lead'}ceRender()}
     catch(er){alert('저장하지 못했습니다: '+(er.message||er));b.disabled=false;b.textContent=o}return}
 });
 /* ---------- 🎼 악보로 개선: 악보(기준) ↔ 음원 분석 코드 비교 · 보정 ----------
