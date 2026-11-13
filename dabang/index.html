@@ -1159,7 +1159,7 @@ document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',(
 }));
 document.querySelectorAll('[data-zoom]').forEach(b=>b.addEventListener('click',()=>{
   const d=+b.dataset.zoom;
-  bzSet(d===0?bzFit():bz[bview]*(d>0?1.25:0.8));bzSave();
+  bzSet(d===0?bzFit():bz[bview]*(d>0?1.05:1/1.05));   /* 한 번에 5% */bzSave();
 }));
 let pz=null;
 const tdist=t=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);
@@ -1201,7 +1201,7 @@ function setUiz(z){
   try{if(st.tab==='adlib')renderAdTab();if(st.tab==='blues')blRender();if(st.tab==='song')sgRender()}catch(e){}   /* 한 줄 마디 수 다시 */
 }
 uizApply();
-document.querySelectorAll('[data-uiz]').forEach(b=>b.addEventListener('click',()=>{const d=+b.dataset.uiz;setUiz(d===0?1:uiz+d*0.1)}));
+document.querySelectorAll('[data-uiz]').forEach(b=>b.addEventListener('click',()=>{const d=+b.dataset.uiz;setUiz(d===0?1:uiz+d*0.05)}));
 window.addEventListener('resize',()=>{clearTimeout(pinFit.r);pinFit.r=setTimeout(pinFit,150)});
 
 /* ---------- 코드 박스 ---------- */
@@ -1784,7 +1784,7 @@ function tabPer(bar,id){
 let tabFs=+store.get('chordcalc-tabfs')||0;             /* 0 = 기본 (PC 13px, 휴대폰 12px) */
 const tabFsDef=()=>matchMedia('(max-width:640px)').matches?12:13;
 const tabFsNow=()=>tabFs||tabFsDef();
-function setTabFs(v){tabFs=Math.round(Math.max(4,Math.min(28,v))*2)/2;   /* 가장 작게: 4px (예전 최소 8px의 절반) */['adTab','blTab','sgTab'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.setProperty('--tabfs',tabFs+'px')});sgApplyZ()}
+function setTabFs(v){tabFs=Math.round(Math.max(4,Math.min(28,v))*10)/10;   /* 0.1px 단위 (5% 씩 바꿀 수 있게) */   /* 가장 작게: 4px (예전 최소 8px의 절반) */['adTab','blTab','sgTab'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.setProperty('--tabfs',tabFs+'px')});sgApplyZ()}
 function sgApplyZ(){const e=document.getElementById('p-song');if(e)e.style.setProperty('--sgz',(tabFsNow()/(matchMedia('(max-width:640px)').matches?12:13)).toFixed(3));try{if(SG.song&&SG.view==='sheet'){cancelAnimationFrame(SG.fitRaf);SG.fitRaf=requestAnimationFrame(sgLyFit)}}catch(e){/* 페이지 시작 중(SG 준비 전)엔 건너뜀 */}}   /* 곡연습 코드 · 가사 · 하모니카 칸 배율 */
 function tabFsDone(){store.set('chordcalc-tabfs',String(tabFs));renderAdTab();if(st.tab==='blues')blRender();if(st.tab==='song'&&SG.song&&SG.view!=='sheet')sgTabView()}   /* 다 바꾼 뒤 한 줄 마디 수 다시 계산 */
 if(tabFs)setTabFs(tabFs);
@@ -1795,8 +1795,8 @@ if(tabFs)setTabFs(tabFs);
   el.addEventListener('touchmove',e=>{if(!pz||e.touches.length!==2)return;e.preventDefault();setTabFs(pz.f*dist(e.touches)/pz.d)},{passive:false});
   el.addEventListener('touchend',e=>{if(pz&&e.touches.length<2){pz=null;tabFsDone()}});
   el.addEventListener('wheel',e=>{if(!e.ctrlKey)return;e.preventDefault();setTabFs(tabFsNow()*Math.exp(-e.deltaY*0.01));clearTimeout(setTabFs.t);setTabFs.t=setTimeout(tabFsDone,250)},{passive:false});
-  document.getElementById('tabZo').addEventListener('click',()=>{setTabFs(tabFsNow()/1.15);tabFsDone()});
-  document.getElementById('tabZi').addEventListener('click',()=>{setTabFs(tabFsNow()*1.15);tabFsDone()});
+  document.getElementById('tabZo').addEventListener('click',()=>{setTabFs(tabFsNow()/1.05);tabFsDone()});
+  document.getElementById('tabZi').addEventListener('click',()=>{setTabFs(tabFsNow()*1.05);tabFsDone()});
 })();
 window.addEventListener('resize',()=>{clearTimeout(tabRz);tabRz=setTimeout(()=>{if(st.tab==='adlib'&&ad.licks.length)renderAdTab()},150)});
 /* ====================================================================
@@ -2061,8 +2061,8 @@ document.getElementById('p-blues').addEventListener('click',e=>{
   if(b.id==='blLoop'){BL.loop=!BL.loop;b.setAttribute('aria-pressed',BL.loop);blSaveUI();return}   /* 재생 중이어도 다음 바퀴부터 */
   if(b.id==='blPrev')return blGo(BL.idx-1);
   if(b.id==='blNext')return blGo(BL.idx+1);
-  if(b.id==='blZo'){setTabFs(tabFsNow()/1.15);return tabFsDone()}
-  if(b.id==='blZi'){setTabFs(tabFsNow()*1.15);return tabFsDone()}
+  if(b.id==='blZo'){setTabFs(tabFsNow()/1.05);return tabFsDone()}
+  if(b.id==='blZi'){setTabFs(tabFsNow()*1.05);return tabFsDone()}
   if(!ex)return;
   if(b.id==='blAll'){BL.from=0;BL.to=-1}
   else if(b.id==='blShuf'){BL.shufOv[ex.id]=!blShuf(ex);blSaveUI()}
@@ -4072,8 +4072,8 @@ document.getElementById('p-song').addEventListener('click',e=>{
   if(ds.sgsnd){SG.kc.s=!SG.kc.s;sgKcSave();sgRender();sgPitchApply();return}
   if(ds.sgcapo!=null){SG.kc.c=+ds.sgcapo;sgKcSave();SG.lk={};SG._ch=null;sgRender();drawBoard();return}
   if(ds.sgkreset){SG.kc={t:0,c:0};sgKcSave();SG.lk={};SG._ch=null;sgRender();drawBoard();sgPitchApply();return}
-  if(b.id==='sgZo'){setTabFs(tabFsNow()/1.15);return tabFsDone()}
-  if(b.id==='sgZi'){setTabFs(tabFsNow()*1.15);return tabFsDone()}
+  if(b.id==='sgZo'){setTabFs(tabFsNow()/1.05);return tabFsDone()}
+  if(b.id==='sgZi'){setTabFs(tabFsNow()*1.05);return tabFsDone()}
   if(ds.sgv0){SG.ids.forEach(i=>SG.mix[i].vol=1);document.querySelectorAll('[data-sgv]').forEach(r=>{r.value=100;r.title='100% (100% = 원음 크기)';if(r.nextElementSibling)r.nextElementSibling.textContent='100%'});sgVol();return}
   if(ds.sgm){const x=SG.mix[ds.sgm];x.mute=!x.mute;sgVol();b.setAttribute('aria-pressed',!x.mute);b.textContent=x.mute?'끔':'켬';return}
   if(ds.sgs){const x=SG.mix[ds.sgs];x.solo=!x.solo;sgVol();b.setAttribute('aria-pressed',x.solo);return}
@@ -5260,8 +5260,8 @@ pdfEl('pdfKind').addEventListener('change',()=>pdfSaveCur());
 pdfEl('pdfFrom').addEventListener('change',e=>{const f=+e.target.value;pdfRange(f,Math.max(f,PDF.to))});
 pdfEl('pdfTo').addEventListener('change',e=>pdfRange(PDF.from,+e.target.value));
 pdfEl('pdfAll').addEventListener('click',()=>pdfRange(1,PDF.doc?PDF.doc.numPages:1));
-pdfEl('pdfZi').addEventListener('click',()=>{PDF.zoom=Math.min(3,PDF.zoom*1.25);pdfRender(true)});
-pdfEl('pdfZo').addEventListener('click',()=>{PDF.zoom=Math.max(0.5,PDF.zoom/1.25);pdfRender(true)});
+pdfEl('pdfZi').addEventListener('click',()=>{PDF.zoom=Math.min(3,PDF.zoom*1.05);pdfRender(true)});
+pdfEl('pdfZo').addEventListener('click',()=>{PDF.zoom=Math.max(0.5,PDF.zoom/1.05);pdfRender(true)});
 pdfEl('pdfWin').addEventListener('click',()=>{if(!PDF.blob)return;const u=URL.createObjectURL(PDF.blob);window.open(u+'#page='+PDF.from,'_blank');setTimeout(()=>URL.revokeObjectURL(u),60000)});
 pdfEl('pdfCmp').addEventListener('click',e=>{const b=e.currentTarget;b.setAttribute('aria-pressed',b.getAttribute('aria-pressed')==='true'?'false':'true');pdfDiff()});
 pdfEl('pdfFill').addEventListener('click',()=>{
