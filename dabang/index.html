@@ -259,6 +259,13 @@ body[data-page="edit"] #boardScroll,body[data-page="edit"] .board-bar,body[data-
 .ed-top{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .ed-top select{min-width:220px;max-width:100%}
 .ed-imp{margin-top:6px}
+.ed-pick{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:16px}
+.ed-pick>div{background:var(--surface);border-radius:12px;max-width:820px;width:100%;padding:12px 14px;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+.ed-pick .pk-bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}
+.ed-pick input[type=number]{width:4.2em;padding:2px 4px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink)}
+.ed-pick canvas{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:6px;background:#fff}
+.ed-pick .pk-in{outline:3px solid #2e7d32;outline-offset:-3px}
+.ed-pick .pk-sum{font-size:.85rem;color:var(--muted)}
 .ce{margin-top:12px;border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:10px 12px}
 .ce-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px;justify-content:space-between}
 .ce-steps{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0}
@@ -726,6 +733,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
         <input type="file" id="sgScoreFile" accept="application/pdf,.pdf" hidden>
       </div>
       <input type="file" id="edFile" hidden>
+      <div id="edPick" class="ed-pick" hidden></div>
     </div>
   </section>
 
@@ -2650,7 +2658,7 @@ function edRender(){
   const m=ED.list||ED_EMPTY;
   sgEl('edIn').innerHTML=ED_KINDS.map(K=>{
     const xs=(m.inputs||[]).filter(x=>x.kind===K.k||(K.k==='link'&&x.kind==='link_audio')||(K.k==='jj'&&x.kind==='chords')||(K.k==='gt'&&x.kind==='score_jj'));
-    const files=xs.map(x=>`<div class="ed-f"><label class="ed-use" title="체크하면 출력(곡 분석 · 최종악보)에 사용"><input type="checkbox" data-eduse="${esc(x.file)}"${x.use===false?'':' checked'}> 출력에 사용</label><span class="nm">${esc(x.url||x.file)}</span><span class="mt">${x.size?edFmtSize(x.size):''}${x.pages?' · '+esc(x.pages)+'쪽':''}</span><button class="ghost" data-eddel="${esc(x.file)}" data-edurl="${esc(x.url||'')}" title="입력에서 빼기 (파일 지움)">빼기</button></div>`).join('')||'<span class="ed-none">—</span>';
+    const files=xs.map(x=>`<div class="ed-f"><label class="ed-use" title="체크하면 출력(곡 분석 · 최종악보)에 사용"><input type="checkbox" data-eduse="${esc(x.file)}"${x.use===false?'':' checked'}> 출력에 사용</label><span class="nm">${esc(x.url||x.file)}</span><span class="mt">${x.size?edFmtSize(x.size):''}${x.pages?' · '+esc(x.pages)+'쪽':''}</span>${(K.k==='gt'||K.k==='tab')&&/\.pdf$/i.test(x.file)&&!x.pages?`<button class="ghost" data-edcut="${esc(x.file)}" data-edk="${K.k}" title="악보집이면 이 곡이 있는 쪽만 골라 잘라서 바꿈">쪽 고르기</button>`:''}<button class="ghost" data-eddel="${esc(x.file)}" data-edurl="${esc(x.url||'')}" title="입력에서 빼기 (파일 지움)">빼기</button></div>`).join('')||'<span class="ed-none">—</span>';
     return `<div class="ed-row"><div class="ed-k" title="${esc(K.d)}">${K.n}</div><div class="ed-files">${files}</div><div class="ed-act">${K.add.map(([t,a],i)=>`<button class="ghost sm" data-edadd="${K.k}" data-edi="${i}">${t}</button>`).join('')}</div></div>`}).join('');
   const an=m.analysis||[],busy=ED.busy[m.title];
   const anFiles=an.map(x=>`<div class="ed-f">✓ <span class="nm">${esc(x.file)}</span><span class="mt">${esc(x['설명'])} · ${esc(x.made)} · ${edFmtSize(x.size)}</span>${x['상태']!=='완료'?`<span class="ed-warn">⚠ ${esc(x['상태'])}</span>`:''}</div>`).join('')||'<span class="ed-none">· 아직 없음</span>';
@@ -2684,6 +2692,53 @@ async function edPoll(id,song,label){
     await new Promise(r=>setTimeout(r,1000));
   }
 }
+function edPickPages(blob,name,song){   /* → {a,b} (1부터) · 통째면 {a:1,b:N} · 취소면 null */
+  return new Promise(async res=>{
+    const box=sgEl('edPick');box.hidden=false;box.innerHTML='<div><p class="pk-sum">PDF 여는 중…</p></div>';
+    let doc;try{const lib=await pdfLib();doc=await lib.getDocument({data:new Uint8Array(await blob.arrayBuffer())}).promise}catch(e){box.hidden=true;alert('PDF를 열지 못했습니다: '+(e.message||e));return res(null)}
+    const N=doc.numPages;let cur=1,a=1,b=N,rt=0;
+    const done=v=>{box.hidden=true;box.innerHTML='';doc.destroy();res(v)};
+    const draw=async()=>{
+      const inR=cur>=a&&cur<=b;
+      box.innerHTML=`<div><b>${esc(song)} — 이 곡이 있는 쪽 고르기</b> <span class="pk-sum">${esc(name)} (전체 ${N}쪽)</span>
+        <div class="pk-bar"><button class="ghost sm" data-pk="prev10">◀◀</button><button class="ghost sm" data-pk="prev">◀</button>
+          <span>쪽 <input type="number" min="1" max="${N}" value="${cur}" data-pkcur> / ${N}</span>
+          <button class="ghost sm" data-pk="next">▶</button><button class="ghost sm" data-pk="next10">▶▶</button>
+          <button class="ghost sm" data-pk="a">이 쪽을 시작으로</button><button class="ghost sm" data-pk="b">이 쪽을 끝으로</button></div>
+        <div class="pk-bar">범위 <input type="number" min="1" max="${N}" value="${a}" data-pka> ~ <input type="number" min="1" max="${N}" value="${b}" data-pkb>쪽
+          <span class="pk-sum">${a===1&&b===N?'(전체)':(b-a+1)+'쪽만 잘라서 넣음'}</span></div>
+        <canvas class="${inR&&!(a===1&&b===N)?'pk-in':''}"></canvas>
+        <div class="pk-bar" style="justify-content:flex-end"><button class="ghost sm" data-pk="cancel">취소</button><button class="ghost sm" data-pk="all">통째로 넣기</button>
+          <button class="play" data-pk="ok">${a}~${b}쪽 넣기</button></div></div>`;
+      const my=++rt,pg=await doc.getPage(cur);if(my!==rt)return;
+      const c=box.querySelector('canvas'),w=Math.min(1600,Math.max(400,(c.clientWidth||760)*(devicePixelRatio||1))),v0=pg.getViewport({scale:1}),vp=pg.getViewport({scale:w/v0.width});
+      c.width=vp.width;c.height=vp.height;const cx=c.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,c.width,c.height);
+      await pg.render({canvasContext:cx,viewport:vp}).promise;
+    };
+    box.onclick=e=>{const t=e.target.closest('[data-pk]');if(!t){if(e.target===box)done(null);return}
+      const k=t.dataset.pk;
+      if(k==='cancel')return done(null);if(k==='all')return done({a:1,b:N});if(k==='ok')return done({a,b});
+      if(k==='prev')cur=Math.max(1,cur-1);if(k==='next')cur=Math.min(N,cur+1);if(k==='prev10')cur=Math.max(1,cur-10);if(k==='next10')cur=Math.min(N,cur+10);
+      if(k==='a'){a=cur;if(b<a)b=a}if(k==='b'){b=cur;if(a>b)a=b}
+      draw()};
+    box.onchange=e=>{const t=e.target,v=Math.round(+t.value)||1;
+      if(t.dataset.pkcur!==undefined)cur=Math.min(N,Math.max(1,v));
+      if(t.dataset.pka!==undefined){a=Math.min(N,Math.max(1,v));if(b<a)b=a;cur=a}
+      if(t.dataset.pkb!==undefined){b=Math.min(N,Math.max(1,v));if(a>b)a=b;cur=b}
+      draw()};
+    draw();
+  });
+}
+async function edAddPdf(song,k,blob,fname){   /* 악보 PDF → (쪽 고르기) → 그 쪽만 잘라 입력에 */
+  const lib=await pdfLib(),d0=await lib.getDocument({data:new Uint8Array(await blob.arrayBuffer())}).promise,N=d0.numPages;d0.destroy();
+  let A=1,B=N;
+  if(N>4){const r=await edPickPages(blob,fname,song);if(!r)return false;A=r.a;B=r.b}
+  const base=fname.replace(/\.pdf$/i,'').replace(/^(기타악보|기타타브|악보 - 잔잔|악보 - 기타) - /,''),pg=A===B?String(A):A+'-'+B;
+  let part=blob,name=fname.replace(/^(기타악보|기타타브) - /,'');
+  if(!(A===1&&B===N)){part=await pdfCut(blob,A,B);name=`${song} (${base} ${pg}쪽).pdf`}
+  await edApi('/song-file',{song,kind:k,name,pages:A===1&&B===N?'':pg,src:A===1&&B===N?'':fname},part);
+  return true;
+}
 function edPick(accept){return new Promise(res=>{const el=sgEl('edFile');el.accept=accept;el.value='';el.onchange=()=>res(el.files&&el.files[0]||null);el.click()})}
 async function edAdd(k,i){
   const song=ED.song;if(!song)return;const a=ED_KINDS.find(x=>x.k===k).add[i][1];
@@ -2694,14 +2749,7 @@ async function edAdd(k,i){
     if(a==='@adlib'){const t=document.getElementById('adSrc').value;if(!t.trim()){alert('애드립 탭의 코드 진행이 비어 있습니다.');return}
       await edApi('/song-file',{song,kind:'chords'},t);return edLoad(song)}
     const f=await edPick(a);if(!f)return;
-    if(k==='gt'||k==='tab'){
-      const lib=await pdfLib(),d0=await lib.getDocument({data:new Uint8Array(await f.arrayBuffer())}).promise,N=d0.numPages;d0.destroy();
-      let A=1,B=N;
-      if(N>4){const q=(prompt(`이 곡이 있는 쪽 (전체 ${N}쪽, 그 쪽만 잘라서 넣습니다). 예: 34-35 / 전체면 비워 두기`,'')||'').trim();
-        if(q){const mm=q.match(/(\d+)\s*(?:[-~]\s*(\d+))?/);if(mm){A=Math.max(1,+mm[1]);B=Math.min(N,+(mm[2]||mm[1]))}}}
-      const pg=A===B?String(A):A+'-'+B;let part=f,name=f.name;
-      if(!(A===1&&B===N)){part=await pdfCut(f,A,B);name=`${song} (${f.name.replace(/\.pdf$/i,'')} ${pg}쪽).pdf`}
-      await edApi('/song-file',{song,kind:k,name,pages:A===1&&B===N?'':pg,src:A===1&&B===N?'':f.name},part);return edLoad(song)}
+    if(k==='gt'||k==='tab'){if(await edAddPdf(song,k,f,f.name))return edLoad(song);return}
     await edApi('/song-file',{song,kind:k,name:f.name},f);return edLoad(song);
   }catch(e){alert('넣지 못했습니다: '+(e.message||e))}
 }
@@ -2746,6 +2794,10 @@ sgEl('p-edit').addEventListener('click',async e=>{
   if(b.dataset.edopen){if(song)edApi('/open',{song,sub:b.dataset.edopen},'').catch(er=>alert(er.message||er));return}
   if(sgEl('p-edit').classList.contains('ed-dis')&&!b.closest('.ed-top'))return;
   if(b.dataset.edadd)return edAdd(b.dataset.edadd,+b.dataset.edi);
+  if(b.dataset.edcut){b.disabled=true;b.textContent='여는 중…';
+    try{const blob=await (await fetch(SG_HELPER+'/song/'+[song,'입력',b.dataset.edcut].map(encodeURIComponent).join('/'))).blob();
+      if(await edAddPdf(song,b.dataset.edk,new Blob([blob],{type:'application/pdf'}),b.dataset.edcut))return edLoad(song)}catch(er){alert(er.message||er)}
+    edRender();return}
   if(b.dataset.eddel!==undefined){if(!confirm(`입력에서 뺄까요? (파일을 지웁니다)\n${b.dataset.edurl||b.dataset.eddel}`))return;
     try{ED.list=(await edApi('/song-del',{song,file:b.dataset.eddel,url:b.dataset.edurl},'')).list;edRender()}catch(er){alert(er.message||er)}return}
   if(b.dataset.edan){const again=(ED.list.analysis||[]).length>0;if(again&&!confirm('음원분석을 지우고 다시 분석할까요? (몇 분 걸립니다)'))return;
