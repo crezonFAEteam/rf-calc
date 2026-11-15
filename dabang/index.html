@@ -1043,7 +1043,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-15 22:30';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-15 22:40';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -2597,7 +2597,7 @@ function sgLoad(song,urls){lySnap(song);
   sgVol();sgRender();sgDgReset();if(SG.ps||sgPitchSemi())sgPitchApply();
   if((!song.quick||sgPhone())&&!SG.keepOff)sgKeep(song,urls);   /* 다음엔 '분석된 곡' 목록에서 바로 */
 }
-function sgMaster(){const m=SG.els[SG.ids[0]];if(SG.playing&&m&&m.paused){const o=SG.ids.map(i=>SG.els[i]).find(e=>e&&!e.paused);if(o)return o}return m}   /* 재생 중엔 실제로 움직이는 트랙을 기준으로 */
+function sgMaster(){const m=SG.els[SG.ids[0]];if(SG.playing&&m){let b=m.paused?null:m;SG.ids.forEach(i=>{const e=SG.els[i];if(e&&!e.paused&&(!b||e.currentTime>b.currentTime+0.3))b=e});if(b)return b}return m}   /* 재생 중엔 실제로 앞서 가는 트랙 기준 (아이패드는 어떤 트랙의 시각이 멈춰 있는 일이 있음) */   /* 재생 중엔 실제로 움직이는 트랙을 기준으로 */
 /* 재생 점검: 끊김 원인을 이 기기에서 바로 셈 → 문제가 있을 때만 재생 막대 아래에 표시 */
 function sgDgReset(){SG.dg={wait:0,who:{},nudge:0,seek:0,eng:0,eng0:null};sgDgShow()}
 function sgDg(k,who){if(!SG.playing||!SG.dg)return;SG.dg[k]++;if(who)SG.dg.who[who]=(SG.dg.who[who]||0)+1;sgDgShow()}
@@ -5049,7 +5049,7 @@ function followNow(id){
    getOutputTimestamp 가 알려 주는 '지금 스피커에서 나오는 시각'을 기준으로 화면 표시를 바꾼다 */
 function heardTime(){
   try{const ts=actx.getOutputTimestamp&&actx.getOutputTimestamp();
-    if(ts&&ts.contextTime>0&&ts.performanceTime>0)return ts.contextTime+(performance.now()-ts.performanceTime)/1000}catch(e){}
+    if(ts&&ts.contextTime>0&&ts.performanceTime>0){const v=ts.contextTime+(performance.now()-ts.performanceTime)/1000;if(Math.abs(v-actx.currentTime)<1)return v}}catch(e){}   /* 아이패드 사파리: 시계가 다른 값이 오는 일이 있음 → 소리 엔진 시각과 1초 넘게 다르면 버림 */
   return actx.currentTime-((actx.outputLatency||0)+(actx.baseLatency||0));
 }
 let hlQ=[],hlRaf=0,hlSorted=true;
