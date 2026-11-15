@@ -3338,6 +3338,32 @@ function ceRhyHtml(sheet){
     ${R.shift?`리듬악보는 음원보다 <b>반음 ${Math.abs(R.shift)}개 ${R.shift>0?'높은':'낮은'} 키</b> — 키를 맞춰 비교합니다(코드 결정에는 음원 키로). `:''}첫 가사 줄을 <b>${Math.floor(fl.s/16)+1}마디</b>에 맞췄을 때 음원 코드와 <b>${Math.round(R.r*100)}%</b> 일치${R.r<0.5?' <span class="ed-warn">— 많이 다릅니다. 이 곡의 리듬악보가 맞는지, 노래 시작 위치가 맞는지 확인하세요.</span>':''}.
     아래 <b>📜 리듬악보</b> 탭에서 묶음마다 ▶로 원곡을 들으며 확인하세요.${ratioLine} 코드 색: 초록 = 음원과 같음 · 노랑 = 종류만 다름 · 빨강 = 다름 (코드에 마우스를 올리면 음원 코드).</div>`;
 }
+/* 악보 가사(글자 인식) 고치기: 줄마다 참고 가사(원음 받아 적기 · 리듬악보)에서 가장 닮은 곳을 찾아 그 글자로.
+   닮음: 같은 글자 2 · 초성 · 중성 · 종성 중 2개 같음(잎/있, 년/닌) 1 · 다름 -1 · 빠짐/더함 -1 */
+function scLyFix(text,ref){
+  const H=c=>{const k=c.charCodeAt(0)-0xAC00;return k>=0&&k<11172?[Math.floor(k/588),Math.floor(k%588/28),k%28]:null};
+  const sim=(a,b)=>{if(a===b)return 2;const x=H(a),y=H(b);if(!x||!y)return -1;let n=0;for(let i=0;i<3;i++)if(x[i]===y[i])n++;return n>=2?1:-1};
+  const R=[...ref].filter(c=>H(c));if(R.length<10)return {text,fixed:0,lines:0};
+  const isCh=t=>{const w=t.trim().split(/[\s|]+/).filter(Boolean);return w.length&&w.every(x=>/^[A-G][#b]?[A-Za-z0-9#b+()]*(\/[A-G][#b]?)?$/.test(x))};
+  let fixed=0,nl=0;
+  const out=text.split('\n').map(line=>{
+    const t=line.trim();if(!t||t[0]==='#'||isCh(line)||/^[\d\s]+$/.test(t)||/^[\(\[].*[\)\]]$/.test(t))return line;
+    const pos=[];[...line].forEach((c,i)=>{if(H(c))pos.push(i)});if(pos.length<3)return line;
+    const O=pos.map(i=>[...line][i]),n=O.length,m=R.length;
+    /* 국소 정렬 (Smith-Waterman) */
+    const S=Array.from({length:n+1},()=>new Float32Array(m+1)),P=Array.from({length:n+1},()=>new Uint8Array(m+1));let bv=0,bi=0,bj=0;
+    for(let i=1;i<=n;i++)for(let j=1;j<=m;j++){const d=S[i-1][j-1]+sim(O[i-1],R[j-1]),u=S[i-1][j]-1,l=S[i][j-1]-1;let v=0,p=0;if(d>v){v=d;p=1}if(u>v){v=u;p=2}if(l>v){v=l;p=3}S[i][j]=v;P[i][j]=p;if(v>bv){bv=v;bi=i;bj=j}}
+    if(bv<n*0.9)return line;   /* 닮은 곳이 분명하지 않으면 그대로 */
+    nl++;
+    /* 되짚기: 악보 글자 i ↔ 참고 글자 j */
+    const map=new Array(n).fill(null),ins={};let i=bi,j=bj;
+    while(i>0&&j>0&&S[i][j]>0){const p=P[i][j];if(p===1){map[i-1]=R[j-1];i--;j--}else if(p===2){map[i-1]='';i--}else{(ins[i-1]=ins[i-1]||[]).unshift(R[j-1]);j--}}
+    const chars=[...line];let ch=0;
+    O.forEach((c,k)=>{let r=map[k];if(r==null)return;const add=(ins[k]||[]).join('');if(r!==c||add)ch++;chars[pos[k]]=r+add});
+    fixed+=ch;return chars.join('');
+  });
+  return {text:out.join('\n'),fixed,lines:nl};
+}
 async function ceOpen(title,fresh){
   const box=sgEl('ceBox');box.hidden=false;sgEl('edScoreOut').hidden=true;CE.title=title;
   const say=m=>{box.innerHTML=`<p class="ce-sum">${m}</p>`};say('편집 준비 중… (음원분석 · 악보 읽기)');box.scrollIntoView({block:'start',behavior:'smooth'});
@@ -3349,6 +3375,9 @@ async function ceOpen(title,fresh){
     CE.beats0=(song.beats||[]).slice();CE.off=+(CE.rec&&CE.rec.syncOff)||0;CE.lyShift={...((CE.rec&&CE.rec.lyShift)||{})};lyTune(song,CE.rec);
     const srcs=await ceGetScores(title,say);
     CE.rhy=await ceGetRhythm(title).catch(()=>null);
+    /* 악보 가사(글자 인식) 고치기: 참고 = 리듬악보 가사 + 원음 받아 적기 — 줄마다 분명히 닮은 곳이 있을 때만 (잎→있 · 년→닌 같은 비슷한 글자) */
+    {const ref=((CE.rhy&&CE.rhy.lines)||[]).map(L=>L.ly||'').join('')+'|'+(song.lyrics||[]).map(w=>w.w).join('');
+      srcs.forEach(S=>{if(S.k!=='gt'&&S.k!=='tab')return;try{const r=scLyFix(S.text,ref);if(r.fixed){S.text=r.text;S.lyFixed=r.fixed}}catch(e){}})}
     const cs=song.chords,tot=song.bars*16,A=scMerge(cs.map((c,i)=>({n:c.name,s:c.s,len:(i+1<cs.length?cs[i+1].s:tot)-c.s,idx:[i]})));
     const D=cs.map(c=>({s:c.s,audio:c.name,sug:{},k:'extra',pick:'audio',name:c.name}));
     CE.srcs=srcs.map(S=>{   /* 출처마다 따로 맞춤 (키 차이 · 반복 허용) */
