@@ -829,6 +829,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
       </div>
       <input type="range" id="sgSeek" class="sg-seek" min="0" max="1000" value="0" aria-label="재생 위치">
       <div id="sgDiag" class="sg-diag" role="status" hidden></div>
+      <details id="sgDbg" class="sg-diag" style="margin-top:4px"><summary>🔍 재생 상태 (안 될 때 이 부분을 열어 캡처해 주세요)</summary><pre id="sgDbgOut" style="white-space:pre-wrap;font-size:.75rem;margin:4px 0 0"></pre></details>
 
       <div class="sg-grid">
         <div class="sg-side">
@@ -2730,6 +2731,14 @@ function sgPlayCheck(t0){
     sgPause();sgPlay();return}
   if(d){d.hidden=false;d.textContent='재생되지 않습니다'+(names?' — '+names:'')+(m.readyState<2?' · 음원을 아직 받는 중일 수 있습니다 (잠시 뒤 다시 [재생])':'')+' · 무음 스위치 · 볼륨도 확인해 주세요'}
 }
+setInterval(()=>{try{const d=document.getElementById('sgDbg');if(!d||!d.open||!SG.song)return;
+  const rs=['없음','정보','현재','다음','충분'],ns=['비어있음','대기','받는중','없음'];
+  const L=[`기기: ${navigator.userAgent.replace(/.*?\(([^)]*)\).*/,'$1').slice(0,60)}`,`재생중: ${SG.playing} · 원곡하나: ${SG.solo1||'-'} · 속도 ${SG.rate}`,
+    `소리엔진 actx: ${actx?actx.state:'-'} · 트랙엔진: ${SG.ac?SG.ac.state:'-'} · 잠금풀기: ${!!SG.unlocked}`];
+  SG.ids.forEach(i=>{const e=SG.els[i],st=(SG.song.stems||[]).find(x=>x.id===i),x=SG.mix[i]||{};
+    L.push(`${(st?st.name:i).padEnd(8)} ${e.paused?'멈춤':'재생'} ${e.currentTime.toFixed(1)}s/${isFinite(e.duration)?e.duration.toFixed(0):'?'}s 준비:${rs[e.readyState]} 망:${ns[e.networkState]} 소리:${x.mute?'끔':'켬'} vol ${e.volume.toFixed(2)}${e.error?' 오류:'+e.error.code:''}${SG.perr&&SG.perr[i]?' play거부:'+SG.perr[i]:''}`)});
+  document.getElementById('sgDbgOut').textContent=L.join('\n');
+}catch(e){}},500);
 function sgUnlock(){
   try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
     if(!actx)actx=new AC();if(actx.state!=='running')actx.resume();
