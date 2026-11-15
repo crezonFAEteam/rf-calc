@@ -4403,7 +4403,7 @@ async function sgFiles(fs){
       fresh=true;
     }
     const key='q:'+au.name+'|'+au.size+'|'+au.lastModified;let song=fresh?null:await sgDB.get(key);   /* 같은 파일은 간이 분석을 다시 하지 않음 (새로 분석이면 다시) */
-    if(!song||song.kind!=='saygita-song'){song=await sgAnalyze(au);sgDB.set(key,song)}
+    if(!song||song.kind!=='saygita-song'){song=await sgAnalyze(au);sgDB.set(key,song)}sgStat(null);
     sgLoad(song,{mix:URL.createObjectURL(au)});
     sgDeep(au,fresh);   /* PC 분석 도우미가 켜져 있으면 이어서 정밀 분석 (fresh = 기존 분석 지우고 새로) */
   }catch(e){sgStat(null);const m=String(e&&e.message||e),nm=String(e&&e.name||''),big=/memory|allocation|RangeError/i.test(m+nm);
@@ -4427,10 +4427,10 @@ async function sgKeep(song,urls){   /* 연 곡을 기기에 저장 (곡 정보 +
   try{
     if(!song||(song.quick&&!sgPhone()))return;
     let idx0=(await sgDB.get('songIndex'))||[];if(song.quick&&idx0.some(x=>x.key==='song:'+song.title&&!x.quick))return;
-    if(song.quick&&urls.mix){try{const b=await (await fetch(urls.mix)).blob();if(b.size>100*1048576)return}catch(e){}}   /* 100MB 넘는 영상은 기기에 저장하지 않음 (다시 열 때 파일을 고르면 분석은 바로 — 결과는 기억) */   /* 정밀 분석본은 간이로 덮지 않음 */
-    const blobs={};for(const st of song.stems||[])if(urls[st.id])blobs[st.file]=await (await fetch(urls[st.id])).blob();
-    const key='song:'+song.title;await sgDB.set(key,{song,blobs});
-    let idx=(await sgDB.get('songIndex'))||[];idx=idx.filter(x=>x.key!==key);idx.unshift({key,title:song.title,at:Date.now(),quick:!!song.quick});
+    let big=null;if(song.quick&&urls.mix){try{const b=await (await fetch(urls.mix)).blob();if(b.size>100*1048576)big={name:song.source,size:b.size}}catch(e){}}   /* 100MB 넘는 영상은 기기에 저장하지 않음 (다시 열 때 파일을 고르면 분석은 바로 — 결과는 기억) */   /* 정밀 분석본은 간이로 덮지 않음 */
+    const blobs={};if(!big)for(const st of song.stems||[])if(urls[st.id])blobs[st.file]=await (await fetch(urls[st.id])).blob();
+    const key='song:'+song.title;await sgDB.set(key,{song,blobs,big});
+    let idx=(await sgDB.get('songIndex'))||[];idx=idx.filter(x=>x.key!==key);idx.unshift({key,title:song.title,at:Date.now(),quick:!!song.quick,big:!!big});
     for(const old of idx.slice(SG_KEEP))await sgDBdel(old.key);
     await sgDB.set('songIndex',idx.slice(0,SG_KEEP));sgListFill();
   }catch(e){}
@@ -4458,12 +4458,12 @@ async function sgListFill(){
   if(!dev.length&&!pcOnly.length&&pcDev)h=`<option value="">분석된 곡 ▼ (0) — ${SG.helperOn?'아직 없음':'PC 분석 도우미가 꺼져 있음'}</option>`;
   sel.innerHTML=h;sel.hidden=!dev.length&&!pcOnly.length&&!pcDev;
   const q=sgEl('sgQList');   /* 간이 분석 곡: 따로 */
-  q.innerHTML=`<option value="">간이 분석 곡 ▼ (${qk.length})</option>`+qk.map(x=>`<option value="d:${esc(x.key)}">${esc(x.title)} · ${d2(x.at)}</option>`).join('');
+  q.innerHTML=`<option value="">간이 분석 곡 ▼ (${qk.length})</option>`+qk.map(x=>`<option value="d:${esc(x.key)}">${esc(x.title)} · ${d2(x.at)}${x.big?' · 영상 다시 고름':''}</option>`).join('');
   q.hidden=!qk.length;
 }
 async function sgFindKnown(title){   /* 같은 이름의 분석 결과 → 열 값('d:…' 기기 저장본 / 'p:…' PC 도우미, 더 새로운 쪽) 또는 null */
   try{
-    const dev=(await sgDB.get('songIndex'))||[],d=dev.find(x=>x.title===title&&(!x.quick||sgPhone()));let x=null;
+    const dev=(await sgDB.get('songIndex'))||[],d=dev.find(x=>x.title===title&&(!x.quick||sgPhone())&&!x.big);let x=null;
     if(!sgPhone()&&await sgHelperOn()){
       const pc=(await (await fetch(SG_HELPER+'/songs',{cache:'no-store'})).json()).songs||[];x=pc.find(x=>x.title===title)||null}
     if(d&&(!x||x.mtime*1000<=d.at)&&await sgDB.get(d.key))return 'd:'+d.key;   /* 기기 저장본이 최신이면 그것 */
@@ -4475,6 +4475,7 @@ async function sgFindKnown(title){   /* 같은 이름의 분석 결과 → 열 �
 async function sgOpenKey(v,quiet){
   try{store.set('chordcalc-sglast',v);
     if(v.startsWith('d:')){const x=await sgDB.get(v.slice(2));if(!x){if(!quiet)alert('저장된 곡을 찾지 못했습니다.');return sgListFill()}
+      if(x.big&&!Object.keys(x.blobs||{}).length){if(quiet)return;sgStat('「'+x.big.name+'」 영상 파일을 다시 골라 주세요 — 큰 영상은 기기에 저장하지 않습니다 (분석 결과는 기억해서 바로 열림)');sgPickAudio();return}
       const urls={};for(const st of x.song.stems||[])if(x.blobs[st.file])urls[st.id]=URL.createObjectURL(x.blobs[st.file]);
       SG.keepOff=true;sgLoad(x.song,urls);SG.keepOff=false;return}
     if(v.startsWith('p:')){sgStat('PC 분석 도우미에서 불러오는 중…');const base=SG_HELPER+'/song/'+v.slice(2).split('/').map(encodeURIComponent).join('/')+'/';
