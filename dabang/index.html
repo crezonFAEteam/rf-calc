@@ -2432,6 +2432,20 @@ function tuCap(){const t=TUNINGS[TU.tun];return `조율기 · ${t.n} · A4=${TU.
 const SG={song:null,els:{},ids:[],mix:{},view:'sheet',rate:1,loop:false,from:0,to:-1,raf:0,sync:0,slot:-1,word:-1,lk:{},slotNotes:{},rec:null,dragging:false};
 (function(){try{const u=JSON.parse(store.get('chordcalc-song')||'{}');if(u.rate)SG.rate=u.rate;if(u.view)SG.view=u.view;if(u.loop!=null)SG.loop=!!u.loop}catch(e){}})();
 function sgSave(){store.set('chordcalc-song',JSON.stringify({rate:SG.rate,view:SG.view,loop:SG.loop}))}
+/* 새로 고침해도 곡연습 그대로: 마지막에 연 곡 + 곡마다 재생 위치 · 반복할 마디 · 믹서 */
+const SGP_KEY='chordcalc-sgpos';
+function sgPosSave(){if(!SG.song)return;
+  try{const a=JSON.parse(store.get(SGP_KEY)||'{}'),m=sgMaster();
+    a[SG.song.title]={t:m?Math.round(m.currentTime*100)/100:0,from:SG.from,to:SG.to,mix:SG.mix,at:Date.now()};
+    Object.keys(a).sort((x,y)=>(a[y].at||0)-(a[x].at||0)).slice(30).forEach(k=>delete a[k]);
+    store.set(SGP_KEY,JSON.stringify(a))}catch(e){}}
+function sgPosLoad(song,m){
+  try{const q=(JSON.parse(store.get(SGP_KEY)||'{}'))[song.title];if(!q)return;
+    const ok=x=>Number.isInteger(x)&&x>=0&&x<song.bars;
+    if(ok(q.from))SG.from=q.from;if(ok(q.to)||q.to===-1)SG.to=q.to;
+    if(q.mix)for(const id in q.mix)if(SG.mix[id]){const v=+q.mix[id].vol;SG.mix[id]={vol:v>=0&&v<=2?v:1,mute:!!q.mix[id].mute,solo:!!q.mix[id].solo}}
+    if(q.t>0)m.addEventListener('loadedmetadata',()=>{if(!SG.playing&&sgMaster()===m&&m.currentTime<0.5)sgSeek(Math.min(q.t,Math.max(0,m.duration-1)))},{once:true});
+  }catch(e){}}
 const sgEl=id=>document.getElementById(id);
 const sgFmt=t=>{t=Math.max(0,t||0);return Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0')};
 /* 시각 ↔ 칸 (한 박 = 4칸, 박 사이는 직선) */
@@ -2517,6 +2531,7 @@ function sgLoad(song,urls){lySnap(song);
     SG.els[st.id]=a;SG.ids.push(st.id);SG.mix[st.id]={vol:1,mute:st.id==='mix'&&hasStems,solo:false}}
   if(!SG.ids.length){alert('트랙 파일(mp3)을 찾지 못했습니다.');return}
   const m=SG.els[SG.ids[0]];m.addEventListener('loadedmetadata',()=>{sgEl('sgDur').textContent=sgFmt(m.duration)});
+  sgPosLoad(song,m);
   m.addEventListener('ended',()=>{if(SG.loop){sgSeek(SG.from?sgTime(SG.from*16):0);sgPlay()}else sgPause()});
   sgVol();sgRender();sgDgReset();if(SG.ps||sgPitchSemi())sgPitchApply();
   if(!song.quick&&!SG.keepOff)sgKeep(song,urls);   /* 다음엔 '분석된 곡' 목록에서 바로 */
@@ -4192,7 +4207,9 @@ sgEl('sgTab').addEventListener('click',e=>{
   el.addEventListener('wheel',e=>{if(!e.ctrlKey)return;e.preventDefault();setTabFs(tabFsNow()*Math.exp(-e.deltaY*0.01));clearTimeout(setTabFs.t);setTabFs.t=setTimeout(tabFsDone,250)},{passive:false});
 });
 window.addEventListener('resize',()=>{clearTimeout(sgShow.t);sgShow.t=setTimeout(()=>{if(st.tab==='song'&&SG.song&&SG.view!=='sheet')sgTabView()},200)});
-function sgShow(){sgApplyZ();sgListFill();sgLoadLast();sgEl('sgAutoL').hidden=true;sgEl('sgUrl').hidden=true;sgEl('sgRec').hidden=true;sgEl('sgFileBtn').hidden=true;sgRecentBtn();sgRender();if(!SG.raf&&SG.song)SG.raf=requestAnimationFrame(sgTick)}
+function sgShow(){
+  if(!SG.song&&!SG.autoTried){SG.autoTried=true;const k=store.get('chordcalc-sglast');if(k&&(k.startsWith('d:')||!sgPhone()))sgOpenKey(k,true)}   /* 새로 고침 → 마지막 곡 다시 */
+  sgApplyZ();sgListFill();sgLoadLast();sgEl('sgAutoL').hidden=true;sgEl('sgUrl').hidden=true;sgEl('sgRec').hidden=true;sgEl('sgFileBtn').hidden=true;sgRecentBtn();sgRender();if(!SG.raf&&SG.song)SG.raf=requestAnimationFrame(sgTick)}
 /* ---------- 이미 있는 음원 파일(mp3 · mp4 · m4a · wav …)을 이 기기에서 바로 분석: 박자 · 마디 · 코드 (PC · 휴대폰 공통) ----------
    PC 분석기(analyze.py)의 박자 · 코드 방법을 그대로 옮긴 간이판. 트랙 분리 · 가사 · TAB 은 PC 분석에서만 */
 function sgStat(msg,pct){const e=sgEl('sgStat');if(msg==null){e.hidden=true;return}e.hidden=false;e.innerHTML=esc(msg)+(pct!=null?` <progress max="100" value="${Math.round(pct)}"></progress>`:'')}
@@ -4382,9 +4399,9 @@ async function sgFindKnown(title){   /* 같은 이름의 분석 결과 → 열 �
   return null;
 }
 sgEl('sgList').addEventListener('change',e=>{const v=e.target.value;e.target.value='';if(v)sgOpenKey(v)});
-async function sgOpenKey(v){
-  try{
-    if(v.startsWith('d:')){const x=await sgDB.get(v.slice(2));if(!x){alert('저장된 곡을 찾지 못했습니다.');return sgListFill()}
+async function sgOpenKey(v,quiet){
+  try{store.set('chordcalc-sglast',v);
+    if(v.startsWith('d:')){const x=await sgDB.get(v.slice(2));if(!x){if(!quiet)alert('저장된 곡을 찾지 못했습니다.');return sgListFill()}
       const urls={};for(const st of x.song.stems||[])if(x.blobs[st.file])urls[st.id]=URL.createObjectURL(x.blobs[st.file]);
       SG.keepOff=true;sgLoad(x.song,urls);SG.keepOff=false;return}
     if(v.startsWith('p:')){sgStat('PC 분석 도우미에서 불러오는 중…');const base=SG_HELPER+'/song/'+v.slice(2).split('/').map(encodeURIComponent).join('/')+'/';
@@ -4394,7 +4411,7 @@ async function sgOpenKey(v){
       try{const bk=await (await fetch(fin('반주보정.json'),{cache:'no-store'})).json();if(bk&&bk.kind==='saygita-backing'){song.backing=bk;lyTune(song,bk)}}catch(e){}
       for(const st of song.stems||[])urls[st.id]=URL.createObjectURL(await (await fetch(base+encodeURIComponent(st.file))).blob());
       sgStat(null);sgLoad(song,urls)}
-  }catch(err){sgStat(null);alert('불러오지 못했습니다: '+(err&&err.message||err))}
+  }catch(err){sgStat(null);if(!quiet)alert('불러오지 못했습니다: '+(err&&err.message||err))}
 }
 (function(){const g=sgEl('sgGuide');if(!g)return;if(store.get('chordcalc-sgguide')==='0')g.open=false;g.addEventListener('toggle',()=>store.set('chordcalc-sgguide',g.open?'1':'0'))})();
 sgEl('sgAuto').addEventListener('change',e=>{SG.auto=e.target.checked;store.set('chordcalc-sgauto',SG.auto?'1':'0');if(!SG.auto)sgEl('sgDeep').hidden=true});
@@ -4589,11 +4606,23 @@ function folAnim(){let mv=false;
   FOL.xs.forEach((tx,box)=>{const d=tx-box.scrollLeft;if(Math.abs(d)>0.8){box.scrollLeft+=d*0.1;mv=true}else FOL.xs.delete(box)});
   FOL.raf=mv?requestAnimationFrame(folAnim):0}
 function folY(r,top,at){   /* r = 지금 음의 화면 자리 → 위에서 at(비율) 높이에 오게 */
-  const h=window.innerHeight,want=top+(h-top)*at,d=r.top-want;if(Math.abs(d)<(r.height||16)*1.2&&FOL.ty==null)return;
+  const h=window.innerHeight,want=top+(h-top)*at,d=r.top-want,rh=r.height||16;
+  /* 화면 안에 잘 보이면 움직이지 않음 — 아래로 벗어나려 할 때(TAB 은 줄 6개 여유) · 위로 가려졌을 때만 위쪽 ⅓ 로 */
+  const mb=rh>60?8:Math.min(Math.max(rh*6,40),(h-top)*0.25);
+  if(FOL.ty==null&&r.top>=top+4&&r.bottom<=h-mb)return;
   FOL.ty=Math.max(0,Math.min(document.documentElement.scrollHeight-h,window.scrollY+d));if(!FOL.raf)FOL.raf=requestAnimationFrame(folAnim)}
 function folX(box,r){const br=box.getBoundingClientRect();if(r.left>=br.left+br.width*0.15&&r.right<=br.right-br.width*0.35)return;
   FOL.xs.set(box,Math.max(0,box.scrollLeft+(r.left-br.left)-br.width*0.3));if(!FOL.raf)FOL.raf=requestAnimationFrame(folAnim)}
 window.addEventListener('wheel',()=>{FOL.ty=null},{passive:true});window.addEventListener('touchstart',()=>{FOL.ty=null},{passive:true});   /* 손으로 움직이면 그만 */
+/* 지금 음이 든 덩어리(TAB 한 단 = 빈 줄 사이 줄들 / 코드 · 가사 마디 칸)의 화면 자리 — 줄을 오르내리는 음 때문에 화면이 흔들리지 않게 */
+function folBlock(s){
+  const pre=s.closest('pre');
+  if(!pre){const c=s.closest('.sg-barbox,.sg-c');return (c||s).getBoundingClientRect()}
+  try{const rg=document.createRange();rg.setStart(pre,0);rg.setEndBefore(s);const li=rg.toString().split('\n').length-1;
+    const L=pre.textContent.split('\n'),pr=pre.getBoundingClientRect(),lh=pr.height/Math.max(1,L.length);
+    let a=li,b=li;while(a>0&&L[a-1].trim())a--;while(b<L.length-1&&L[b+1].trim())b++;
+    return {top:pr.top+a*lh,bottom:pr.top+(b+1)*lh,height:(b-a+1)*lh}}catch(e){return s.getBoundingClientRect()}
+}
 function followNow(id){
   if(!follow)return;
   const box=document.getElementById(id),s=box&&box.querySelector('span.now');if(!s)return;
@@ -4606,7 +4635,9 @@ function followNow(id){
   if(pin&&!pin.classList.contains('off')){const pr=pin.getBoundingClientRect();if(pr.top<=1)top=Math.max(top,pr.bottom)}
   if(tabs){const tr=tabs.getBoundingClientRect();if(tr.top<=top+2&&tr.bottom>top)top=tr.bottom}
   const h=window.innerHeight;
-  folY(r,top,0.32);   /* 지금 음이 늘 비슷한 높이(위쪽 ⅓)에 — 조금씩 부드럽게 */
+  /* 덩어리가 화면 안에 다 보이면 그대로 — 아래로 벗어나려 하거나 위로 가려지면 그 덩어리를 보이는 범위 맨 위 근처로 (부드럽게) */
+  const B=folBlock(s);
+  if(B.height<(h-top)*0.9)folY(B,top,0.03);else folY(r,top,0.32);
 }
 /* ---------- 재생 표시를 '실제로 들리는 시각'에 맞추기 ----------
    소리는 예약한 시각보다 출력 지연(휴대폰 · 블루투스 이어폰은 0.1~0.3초)만큼 늦게 나온다.
@@ -5417,6 +5448,7 @@ const AD_KEYS=['mode','meter','bend','vib','harm','accOv','secPat','arp','backSt
 let uiReady=false,uiT=null;
 function uiSave(){
   if(!uiReady)return;
+  try{sgPosSave()}catch(e){}
   const o={st:{},ad:{},y:Math.round(window.scrollY)};
   ST_KEYS.forEach(k=>o.st[k]=st[k]);
   AD_KEYS.forEach(k=>o.ad[k]=ad[k]);
@@ -5439,7 +5471,7 @@ if(uiSaved){
   if(!inr(st.qi,0,Q.length-1))st.qi=0;
   if(st.bass!=null&&!inr(st.bass,0,11))st.bass=null;
   if(!Array.isArray(st.nv)||st.nv.length!==6)st.nv=[-1,3,2,0,1,0];
-  if(!['find','name','scale','adlib','blues','song','tune'].includes(st.tab))   /* 조옮김 탭은 숨김 → 저장돼 있으면 첫 탭으로 */
+  if(!['find','name','scale','adlib','blues','song','tune','edit'].includes(st.tab))   /* 조옮김 탭은 숨김 → 저장돼 있으면 첫 탭으로 */
   st.tab='find';
   if(st.schShape&&!(inr(st.schShape.r,0,11)&&inr(st.schShape.qi,0,Q.length-1)&&inr(st.schShape.vi,0,20)))st.schShape=null;
   if(!inr(st.semi,-11,11))st.semi=0;
