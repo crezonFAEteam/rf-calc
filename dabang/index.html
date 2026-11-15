@@ -2730,7 +2730,7 @@ function edState(msg){   /* 도우미가 없거나 예전 버전: 안내 + 뼈�
   const dis=!!msg;['edSong','edOpenSong','edOpenDir','edImpFile','edImpLink','edImpRec'].forEach(i=>sgEl(i).disabled=dis);
   sgEl('p-edit').classList.toggle('ed-dis',dis);
 }
-const SG_HELPER_BUILD=20261117;   /* 이 앱에 맞는 도우미 설치본 판 — 도우미가 더 낮으면 새 설치 안내 */
+const SG_HELPER_BUILD=20261118;   /* 이 앱에 맞는 도우미 설치본 판 — 도우미가 더 낮으면 새 설치 안내 */
 async function edShow(){
   let ping=null;if(!sgPhone())try{ping=await (await fetch(SG_HELPER+'/ping',{cache:'no-store',signal:AbortSignal.timeout(1500)})).json()}catch(e){}
   sgEl('edRestart').hidden=!(ping&&ping.restart);
@@ -2740,7 +2740,7 @@ async function edShow(){
   try{
     const f=await edApi('/folders');
     const old=(ping.build||0)<SG_HELPER_BUILD;   /* 예전 설치본: 쓰는 건 되지만 새 기능(악보 가사 읽기 · 리듬악보 저장 등)이 빠질 수 있음 */
-    sgEl('edPaths').innerHTML=(old?`<div class="ed-warn ed-old">⚠ 이 PC의 분석 도우미가 <b>예전 설치본</b>입니다 (판 ${ping.build||'없음'} → 필요 ${SG_HELPER_BUILD}). <button class="play" data-sghelper>⬇ 새 설치 파일 받기 (암호)</button> → 압축 풀기 → <b>설치하기.bat</b> 다시 실행 (켜져 있는 도우미는 설치가 알아서 끄고 바꿉니다 · 라이브러리 · 곡 폴더는 그대로) → 끝나면 [새로고침]</div>`:'')+`분석폴더: <b>${esc(f.root)}</b>\\[곡명 폴더 자동 생성]<br>공유폴더: <b>${esc(f.share||'(정하지 않음)')}</b>${f.shareOk?'':' <span class="ed-warn">(이 PC에 없음 — 휴대폰용 zip 복사 안 됨)</span>'} <button class="ghost sm" data-edshare="1" title="휴대폰용 zip 을 복사할 폴더 — OneDrive · 구글 드라이브 등">바꾸기</button><br><span class="mt">도우미 판 ${ping.build||'없음'} · 설치 위치 ${esc(String(f.root||'').replace(/[\\/]songAnalyze[\\/]?$/,''))}</span> <button class="ghost sm" data-sghelper title="새 설치 파일을 받아 설치하기.bat 를 다시 실행 — 켜진 도우미는 설치가 끄고 바꿈 · 예전 위치(사용자 폴더)면 C:\saygita 로 옮김 · 라이브러리 · 곡 폴더 그대로">⬇ 설치 파일 받기 (다시 설치)</button>`;
+    sgEl('edPaths').innerHTML=(old&&ping.update?`<div class="ed-warn ed-old" id="edUpd">⬆ 분석 도우미 <b>새 판</b>이 있습니다 (판 ${ping.build} → ${SG_HELPER_BUILD}). <button class="play" data-edupd="1">⬆ 도우미 업데이트</button> <span class="mt">설치 파일 받기 · 압축 풀기 없이 바로 — 곡 폴더 · 라이브러리 · 설정 그대로</span></div>`:'')+(old&&!ping.update?`<div class="ed-warn ed-old">⚠ 이 PC의 분석 도우미가 <b>예전 설치본</b>입니다 (판 ${ping.build||'없음'} → 필요 ${SG_HELPER_BUILD}). <button class="play" data-sghelper>⬇ 새 설치 파일 받기 (암호)</button> → 압축 풀기 → <b>설치하기.bat</b> 다시 실행 (켜져 있는 도우미는 설치가 알아서 끄고 바꿉니다 · 라이브러리 · 곡 폴더는 그대로) → 끝나면 [새로고침]</div>`:'')+`분석폴더: <b>${esc(f.root)}</b>\\[곡명 폴더 자동 생성]<br>공유폴더: <b>${esc(f.share||'(정하지 않음)')}</b>${f.shareOk?'':' <span class="ed-warn">(이 PC에 없음 — 휴대폰용 zip 복사 안 됨)</span>'} <button class="ghost sm" data-edshare="1" title="휴대폰용 zip 을 복사할 폴더 — OneDrive · 구글 드라이브 등">바꾸기</button><br><span class="mt">도우미 판 ${ping.build||'없음'} · 설치 위치 ${esc(String(f.root||'').replace(/[\\/]songAnalyze[\\/]?$/,''))}</span> <button class="ghost sm" data-sghelper title="새 설치 파일을 받아 설치하기.bat 를 다시 실행 — 켜진 도우미는 설치가 끄고 바꿈 · 예전 위치(사용자 폴더)면 C:\saygita 로 옮김 · 라이브러리 · 곡 폴더 그대로">⬇ 설치 파일 받기 (다시 설치)</button>`;
     const fl=f.folders||[];if(!ED.song||!fl.some(x=>x.title===ED.song))ED.song=(fl[0]||{}).title||'';
     sgEl('edSong').innerHTML=fl.length?fl.map(x=>`<option value="${esc(x.title)}"${x.title===ED.song?' selected':''}>${esc(x.title)}${x.analyzed?'':'  (분석 전)'}</option>`).join(''):'<option value="">곡 폴더 없음 — [＋ 새 곡]</option>';
     if(ED.song)await edLoad(ED.song);else{sgEl('edIn').innerHTML='';sgEl('edOut').innerHTML=''}
@@ -2840,6 +2840,29 @@ async function edAddPdf(song,k,blob,fname){   /* 악보 PDF → (쪽 고르기) 
 function edPick(accept){return new Promise(res=>{const el=sgEl('edFile');el.accept=accept;el.value='';el.onchange=()=>res(el.files&&el.files[0]||null);el.click()})}
 /* 리듬악보 붙여넣기: 창에 TXT 를 붙여넣고 저장 → 입력\리듬악보 - ….txt (다른 리듬악보는 '출력에 사용' 끔) */
 /* 공유폴더 바꾸기: 후보(OneDrive · 구글 드라이브) 고르거나 경로 직접 */
+/* 도우미 스스로 업데이트: 설치본(암호)을 받아 풀어 → 도우미에 넘김 → 도우미가 프로그램 파일만 바꾸고 다시 시작 */
+async function edHelperUpdate(btn){
+  const box=sgEl('edUpd'),say=m=>{if(box)box.innerHTML=m};
+  let pw='';try{pw=localStorage.getItem('sg-helper-pw')||''}catch(e){}
+  if(!pw)pw=prompt('분석 도우미 설치 파일 암호 (한 번 넣으면 이 브라우저가 기억합니다)')||'';if(!pw)return;
+  if(btn)btn.disabled=true;say('⬆ 새 설치본 받는 중…');
+  try{
+    const o=await (await fetch('https://crezonfaeteam.github.io/rf-calc/dabang/helper/saygita-helper-setup.enc.json?v='+Date.now(),{cache:'no-store'})).json();
+    let buf;try{buf=await blDecryptBytes(o,pw)}catch(e){try{localStorage.removeItem('sg-helper-pw')}catch(_){}throw new Error('암호가 맞지 않습니다')}
+    try{localStorage.setItem('sg-helper-pw',pw)}catch(e){}
+    say('⬆ 도우미에 넘기는 중…');
+    const r=await (await fetch(SG_HELPER+'/update',{method:'POST',body:new Blob([buf],{type:'application/zip'})})).json();
+    if(!r.ok)throw new Error(r.error||'업데이트 실패');
+    say(`⬆ 프로그램 파일 ${r.files.length}개를 바꿨습니다${r.req?' · 라이브러리 확인 중 (몇 분 걸릴 수 있음)':''} — 도우미가 다시 시작합니다…`);
+    for(let i=0;i<600;i++){await new Promise(z=>setTimeout(z,1500));
+      const j=await fetch(SG_HELPER+'/job/update',{cache:'no-store'}).then(x=>x.json()).catch(()=>null);
+      if(j&&j.state==='running'&&j.msg)say('⬆ '+esc(j.msg)+' …');
+      if(j&&j.state==='error')throw new Error(j.msg);
+      const pg=await fetch(SG_HELPER+'/ping',{cache:'no-store'}).then(x=>x.json()).catch(()=>null);
+      if(pg&&(pg.build||0)>=SG_HELPER_BUILD){say(`✔ 도우미 업데이트 완료 (판 ${pg.build}) — 이전 판은 ${esc(r.backup)} 에 보관`);setTimeout(edShow,1500);return}}
+    throw new Error('도우미가 다시 켜지지 않습니다 — 바탕화면 [쎄이기타 분석 도우미]로 켜 주세요');
+  }catch(e){say('⚠ 도우미 업데이트 실패: '+esc(e.message||e)+' <button class="ghost sm" data-edupd="1">다시</button> <button class="ghost sm" data-sghelper>⬇ 설치 파일 받기 (수동)</button>')}
+}
 async function edShareDir(){
   const j=await (await fetch(SG_HELPER+'/share-dir',{cache:'no-store'})).json().catch(()=>null);
   if(!j){alert('도우미에서 공유폴더 정보를 받지 못했습니다 (도우미를 새로 시작해 보세요).');return}
@@ -2940,6 +2963,7 @@ sgEl('p-edit').addEventListener('click',async e=>{
   if(sgEl('p-edit').classList.contains('ed-dis')&&!b.closest('.ed-top'))return;
   if(b.dataset.edadd)return edAdd(b.dataset.edadd,+b.dataset.edi);
   if(b.dataset.edshare)return edShareDir();
+  if(b.dataset.edupd)return edHelperUpdate(b);
   if(b.dataset.edcut){b.disabled=true;b.textContent='여는 중…';
     try{const blob=await (await fetch(SG_HELPER+'/song/'+[song,'입력',b.dataset.edcut].map(encodeURIComponent).join('/'))).blob();
       if(await edAddPdf(song,b.dataset.edk,new Blob([blob],{type:'application/pdf'}),b.dataset.edcut))return edLoad(song)}catch(er){alert(er.message||er)}
