@@ -43,7 +43,7 @@ button,select,textarea{font:inherit;color:inherit}
 /* 제목: 한 줄로 작게 */
 .top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;flex-wrap:nowrap}
 .top h1{font-family:"Gowun Batang",serif;font-weight:700;font-size:1.65rem;line-height:1.1;margin:0;letter-spacing:-.01em;white-space:nowrap}
-.tops{display:flex;gap:5px;align-items:center;flex-wrap:nowrap;flex:none}
+.tops{display:flex;gap:5px;align-items:center;flex-wrap:wrap;justify-content:flex-end;row-gap:4px;flex:1 1 auto;min-width:0}   /* 좁으면 버튼이 다음 줄로 */
 /* 제목 줄 + 지판 고정. 탭 줄은 그 바로 아래에 붙는다 (--pinH = 고정 영역 높이, 스크립트가 잰다) */
 .pin{position:sticky;top:0;z-index:6;background:var(--bg);margin:0 -20px;padding:0 20px 6px}
 .pin.off{position:static}
@@ -582,7 +582,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
   <header class="top">
     <h1>쎄이기타</h1>
     <div class="tops">
-    <div class="lbl-tg pc-only" role="group" aria-label="화면 폭"><button id="sgBig" data-sgbig="1" aria-pressed="false" title="화면 폭 전체 사용 — 지판 · 악보 모두 넓게 · 곡연습은 트랙 믹서를 숨김 · 애드립 · 블루스는 악보를 위로 (다시 누르면 원래대로)">⛶ 넓게</button></div>
+    <div class="lbl-tg" role="group" aria-label="화면 폭"><button id="sgBig" data-sgbig="1" aria-pressed="false" title="화면 폭 전체 사용 — 지판 · 악보 모두 넓게 · 곡연습은 트랙 믹서를 숨김 · 애드립 · 블루스는 악보를 위로 (다시 누르면 원래대로)">⛶ 넓게</button></div>
     <div class="lbl-tg" role="group" aria-label="지판 보기 방식">
       <button data-view="1" aria-pressed="true" title="한 줄로 보기 (옆으로 밀어서)">1줄</button>
       <button data-view="2" aria-pressed="false" title="두 줄로 나눠 15프렛 전체 보기">2줄</button>
