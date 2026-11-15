@@ -1045,7 +1045,8 @@ let actx=null;
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
 let audioUnlocked=false;
 function audioUnlock(){
-  try{if(navigator.audioSession&&navigator.audioSession.type!=='playback'&&navigator.audioSession.type!=='play-and-record')navigator.audioSession.type='playback'}catch(e){}
+  const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
+  try{if(!mic&&navigator.audioSession&&navigator.audioSession.type!=='playback')navigator.audioSession.type='playback'}catch(e){}
   try{if(actx&&actx.state!=='running')actx.resume()}catch(e){}
   if(audioUnlocked)return;audioUnlocked=true;
   try{const n=2205,b=new ArrayBuffer(44+n*2),v=new DataView(b),w=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
@@ -2422,6 +2423,7 @@ async function tuStart(){
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.isSecureContext){tuHelp(v.inapp?'denied':'unsupported');document.getElementById('tuMsg').textContent='이 브라우저에서는 마이크를 쓸 수 없습니다.';return}
   try{
     actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();   /* 터치 안에서 먼저 깨움 (아이폰) */
+    try{if(navigator.audioSession)navigator.audioSession.type='play-and-record'}catch(e){}   /* iOS: 마이크는 '녹음+재생' 방식에서만 */
     TU.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
     if(actx.state==='suspended')await actx.resume();
     TU.stream.getAudioTracks().forEach(t=>{t.onended=()=>{if(TU.on&&!TU.rst&&TU.stream&&TU.stream.getAudioTracks().includes(t))tuRestart('마이크가 끊겨 다시 켭니다…')}});
@@ -2447,7 +2449,7 @@ document.addEventListener('visibilitychange',()=>{
 /* 페이지를 다시 열 때 바로 조율기 탭이면: 첫 터치에서 소리 엔진을 깨움 (휴대폰은 터치 전 소리 엔진이 잠겨 있음) */
 document.addEventListener('pointerdown',()=>{try{if(actx&&actx.state==='suspended')actx.resume()}catch(e){}},{passive:true});
 function tuStop(){
-  TU.on=false;if(TU.raf)cancelAnimationFrame(TU.raf);TU.raf=0;
+  TU.on=false;try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch(e){}   /* 다시 무음 모드와 상관없는 재생으로 */if(TU.raf)cancelAnimationFrame(TU.raf);TU.raf=0;
   try{TU.src&&TU.src.disconnect();TU.lp&&TU.lp.disconnect();TU.hp&&TU.hp.disconnect();TU.n1&&TU.n1.disconnect();TU.n2&&TU.n2.disconnect()}catch(e){}if(TU.stream)TU.stream.getTracks().forEach(t=>t.stop());TU.stream=null;TU.src=null;TU.cur=null;
   if(document.getElementById('tuMic'))tuRender();
 }
