@@ -258,6 +258,18 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .hp-ly{line-height:1.9}.hp-ly i.now .hp{color:var(--bg)}
 .sg-c.now .hp{color:var(--on-accent)}
 @media (max-width:900px){.sg-grid{grid-template-columns:minmax(0,1fr)}}
+.sg-sheet:has(> .rz){display:block;padding:8px 10px}   /* 코드 · 가사 흐름 보기: 마디 칸 격자 끔 */
+/* 📜 리듬악보 흐름 보기 (잔잔식): 길이 숫자 · 초록 코드 · 박 점 · 큰 가사 */
+.rz{font-size:calc(16px*var(--sgz,1));--bw:calc(16px*var(--sgz,1));line-height:1.25}
+.rz-row{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 3px;margin:0 0 12px}
+.rz-t{display:inline-flex;flex-direction:column;padding:3px 5px 4px;border-radius:7px;cursor:pointer;border-left:2px solid var(--line)}
+.rz-t:hover{background:color-mix(in srgb,var(--accent) 8%,transparent)}
+.rz-n{font-size:.68em;color:var(--muted);font-style:normal;line-height:1}
+.rz-c{color:var(--accent);font-weight:800;font-size:1.08em;white-space:nowrap}
+.rz-d{display:flex;gap:3px;margin:3px 0 2px;line-height:0}.rz-d i{display:block;width:calc(var(--bw)*.62);height:5px;border-radius:2px;background:var(--line)}.rz-d i:first-child{background:var(--muted)}.rz-d i.on{background:var(--accent-fill)}
+.rz-l{font-size:1.3em;font-weight:700;color:var(--ink);white-space:nowrap;min-height:1.25em}.rz-l i{font-style:normal}.rz-l i.now{color:var(--accent);text-decoration:underline 3px var(--accent-fill);text-underline-offset:5px}
+.rz-l .rz-sec{color:var(--muted);font-weight:600;font-size:.85em}
+#p-song .rz .rz-t.now{background:color-mix(in srgb,var(--accent-fill) 14%,transparent);color:inherit;border-left-color:var(--accent-fill);box-shadow:inset 0 -3px 0 var(--accent-fill);border-radius:7px}
 .phone-only{display:none}@media (pointer:coarse){.phone-only{display:inline}}
 /* 곡연습: 악보는 늘 전체 폭 — 믹서 · 반복 마디는 악보 위에 (넓으면 여러 칸) */
 #p-song .sg-grid{grid-template-columns:minmax(0,1fr)}
@@ -2462,6 +2474,7 @@ function tuCap(){const t=TUNINGS[TU.tun];return `조율기 · ${t.n} · A4=${TU.
    ==================================================================== */
 const SG={song:null,els:{},ids:[],mix:{},view:'sheet',rate:1,loop:false,from:0,to:-1,raf:0,sync:0,slot:-1,word:-1,lk:{},slotNotes:{},rec:null,dragging:false};
 (function(){try{const u=JSON.parse(store.get('chordcalc-song')||'{}');if(u.rate)SG.rate=u.rate;if(u.view)SG.view=u.view;if(u.loop!=null)SG.loop=!!u.loop}catch(e){}})();
+SG.rz=(()=>{try{return JSON.parse(store.get('chordcalc-rz')||'{}')}catch(e){return {}}})();
 function sgSave(){store.set('chordcalc-song',JSON.stringify({rate:SG.rate,view:SG.view,loop:SG.loop}))}
 /* 새로 고침해도 곡연습 그대로: 마지막에 연 곡 + 곡마다 재생 위치 · 반복할 마디 · 믹서 */
 const SGP_KEY='chordcalc-sgpos';
@@ -4054,7 +4067,7 @@ function sgRender(){
   sgEl('sgViews').innerHTML=views.map(([k,l])=>`<button class="chip" data-sgview="${k}" aria-pressed="${SG.view===k}">${esc(l)}</button>`).join('')+(s.quick?`<button class="ghost sm" data-sgrequick="1" title="지금 열린 음원을 간이 분석으로 새로 (넣은 리듬악보는 다시 맞춤)">↻ 다시 분석</button><button class="ghost sm" data-sgrhyin="1" title="리듬악보(코드 줄 · 가사 줄 · 길이 숫자 줄)를 넣으면 간이 분석한 박자에 맞춰 코드 · 가사 · 타이밍을 리듬악보대로">📜 리듬악보 ${s.rhyTxt?'다시 넣기':'넣기'}</button>${s.rhyTxt?'<button class="ghost sm" data-sgrhyout="1" title="리듬악보를 빼고 간이 분석 코드로">빼기</button>':''}${s.rhyInfo?`<span class="mt" style="margin-left:6px">${esc(s.rhyInfo)}</span>`:''}`:'');
   sgEl('sgKey').innerHTML=sgKeyBar();
   sgEl('sgSheet').hidden=SG.view!=='sheet';sgEl('sgTab').hidden=SG.view==='sheet';
-  if(SG.view==='sheet')sgSheet();else sgTabView();
+  if(SG.view==='sheet'){if(SG.rz.sheet!==false)sgRhyFlow('sheet');else sgSheet()}else sgTabView();
   SG.slot=-1;sgShowTime(sgMaster()?sgMaster().currentTime:0,true);
 }
 /* 코드 · 가사: 박마다 한 칸 (마디 = 4칸), 코드 이름 위 · 가사 아래 */
@@ -4273,17 +4286,46 @@ function sgRhyAuto(){
   finally{Object.keys(CE).forEach(k=>{if(!(k in keep))delete CE[k]});Object.assign(CE,keep)}
   SG._rhy={t:s.title,R};return R;
 }
+/* 📜 리듬악보 흐름 보기: 결정한 코드 · 가사(곡연습과 같은 것)로 — 코드마다 길이 숫자(8 = 한 마디) · 박 점(한 박 = 점 하나) · 가사 */
+function sgRzMark(root,sl,t,s){   /* 흐름 보기: 지금 코드 칸 · 박 막대 · 가사 낱말 */
+  document.querySelectorAll(root+' .rz-t.now,'+root+' .rz-d i.on,'+root+' .rz-l i.now').forEach(x=>x.classList.remove('now','on'));
+  const c=[...document.querySelectorAll(root+' .rz-t')].find(x=>sl>=+x.dataset.rs&&sl<+x.dataset.re);
+  if(c){c.classList.add('now');const d=c.querySelectorAll('.rz-d i')[Math.floor((sl-c.dataset.rs)/4)];if(d)d.classList.add('on')}
+  const W=s.lyrics||[];let wi=-1;for(let k=0;k<W.length;k++){if(W[k].t<=t+0.05)wi=k;else break}
+  if(wi>=0&&t<=W[wi].e+0.6){const w=document.querySelector(root+' .rz-l i[data-w="'+wi+'"]');if(w)w.classList.add('now')}
+}
+function sgRzSave(){try{store.set('chordcalc-rz',JSON.stringify(SG.rz))}catch(e){}}
+function sgRhyFlow(mode){
+  mode=mode||'rhythm';const s=SG.song,el=sgEl(mode==='sheet'?'sgSheet':'sgTab'),tot=s.bars*16,W=s.lyrics||[],br=SG.rz.br!==false;
+  const RB=mode==='rhythm'&&s.backing&&s.backing.rhythm&&s.backing.rhythm.blocks,LS=(RB?RB.map(b=>b.s):(s.lines||[]).map(l=>l.s)).filter(x=>x>0).sort((a,b)=>a-b);
+  const C=sgCh();if(!C.length){el.innerHTML='<p class="sdesc">코드가 없습니다.</p>';return}
+  let seg=C.map((c,i)=>({s:c.s,e:i+1<C.length?C[i+1].s:tot,n:c.name}));if(seg[0].s>0)seg.unshift({s:0,e:seg[0].s,n:''});seg=seg.reduce((o,g)=>{const q=o[o.length-1];if(q&&q.n===g.n)q.e=g.e;else o.push({...g});return o},[]);   /* 같은 코드가 이어지면 하나로 */
+  if(br){const o=[];seg.forEach(g=>{let a=g.s;LS.filter(x=>x>g.s&&x<g.e).forEach(x=>{const xx=Math.floor(x/4)*4;if(xx>a){o.push({...g,s:a,e:xx});a=xx}});o.push({...g,s:a})});seg=o}   /* 가사 줄이 코드 가운데서 시작하면 그 박에서 나눔 */
+  const ws=seg.map(()=>[]);W.forEach((w,k)=>{const i=seg.findIndex(g=>w.s>=g.s-0.5&&w.s<g.e-0.5);if(i>=0)ws[i].push(k)});
+  const f=ws.findIndex(x=>x.length),l=ws.length-1-[...ws].reverse().findIndex(x=>x.length);
+  const sec=seg.map((g,i)=>{if(ws[i].length)return '';if(f<0)return '';if(i<f)return i===0?'(전주)':'';if(i>l)return i===l+1?'(후주)':'';
+    let a=i;while(a>0&&!ws[a-1].length)a--;let b=i;while(b<seg.length-1&&!ws[b+1].length)b++;return a===i&&seg[b].e-seg[a].s>=64?'(간주)':''});
+  const rows=[[]];let li=0;
+  seg.forEach((g,i)=>{if(br&&li<LS.length&&LS[li]<=g.s+2&&rows[rows.length-1].length){rows.push([])}while(li<LS.length&&LS[li]<=g.s+2)li++;
+    if(br&&sec[i]&&rows[rows.length-1].length)rows.push([]);
+    const beats=Math.max(1,Math.round((g.e-g.s)/4)),len=Math.round((g.e-g.s)/2);
+    const ly=sec[i]?`<span class="rz-sec">${sec[i]}</span>`:ws[i].map(k=>`<i data-w="${k}">${esc(W[k].w)}</i>`).join(' ');
+    rows[rows.length-1].push(`<span class="rz-t" data-rs="${g.s}" data-re="${g.e}" style="min-width:calc(var(--bw)*${Math.min(beats,8)})"><i class="rz-n">${len}</i><b class="rz-c">${esc(g.n||'·')}</b><span class="rz-d">${'<i></i>'.repeat(Math.min(beats,16))}</span><span class="rz-l">${ly||'&nbsp;'}</span></span>`)});
+  el.innerHTML=`<div class="tabttl" style="cursor:default">${mode==='sheet'?'코드 · 가사':'📜 리듬악보'} <span class="chips" style="display:inline-flex;margin-left:8px"><button class="chip" data-sgrz="flow" data-m="${mode}" aria-pressed="true">흐름 보기</button><button class="chip" data-sgrz="box" data-m="${mode}" aria-pressed="false">${mode==='sheet'?'칸 보기':'묶음 보기'}</button></span> <button class="ghost sm" data-sgrzbr="1" aria-pressed="${br}" title="가사 줄마다 줄 바꿈 (끄면 이어서)">소절 줄바꿈 ${br?'ON':'OFF'}</button> <span class="mt">숫자 = 길이 (8 = 한 마디) · 막대 하나 = 한 박</span></div><div class="rz sg-rhy">`+rows.map(r=>`<div class="rz-row">${r.join('')}</div>`).join('')+'</div>';
+}
 function sgRhyView(){   /* 곡편집에서 저장한 완성 리듬악보 — 없으면 분석 결과로 자동 */
+  if(SG.rz.flow!==false)return sgRhyFlow();
   const R=(SG.song.backing&&SG.song.backing.rhythm&&SG.song.backing.rhythm.blocks)?SG.song.backing.rhythm:sgRhyAuto(),el=sgEl('sgTab');
   if(!R){el.innerHTML='<p class="sdesc">리듬악보를 만들지 못했습니다 (코드가 없음).</p>';return}
-  el.innerHTML=`<div class="tabttl" style="cursor:default">📜 리듬악보 — ${esc(R.file||'')}${(SG.kc.t||SG.kc.c)?' (조옮김 · 카포는 이 보기에 적용되지 않음)':''}</div><div class="ce-rtxs ce-rsheet sg-rhy">`+
+  el.innerHTML=`<div class="tabttl" style="cursor:default">📜 리듬악보 <span class="chips" style="display:inline-flex;margin-left:8px"><button class="chip" data-sgrz="flow" data-m="rhythm" aria-pressed="false">흐름 보기</button><button class="chip" data-sgrz="box" data-m="rhythm" aria-pressed="true">묶음 보기</button></span> — ${esc(R.file||'')}${(SG.kc.t||SG.kc.c)?' (조옮김 · 카포는 이 보기에 적용되지 않음)':''}</div><div class="ce-rtxs ce-rsheet sg-rhy">`+
     R.blocks.map((b,i)=>`<div class="ce-rtx${b.gen?' gen':''}" data-sgrb="${i}" data-s="${b.s}" data-e="${b.e}"><pre>${b.pre}</pre></div>`).join('')+'</div>';
 }
 function sgTabView(){if(SG.view==='final')return sgFinalView();if(SG.view==='rhythm')return sgRhyView();if(SG.song.parts[SG.view]&&SG.song.parts[SG.view].kind==='harmonica')return sgHarpView(SG.view);const lk=sgLick(SG.view);sgEl('sgTab').innerHTML=`<div class="tabttl" style="cursor:default">${esc(lk.name)}</div><pre>${tabRender(lk,'g',true,tabPer(16,'sgTab'))}</pre>`}
 function sgMark(t){
   const s=SG.song,sl=SG.slot;
   document.querySelectorAll('#p-song .now').forEach(x=>x.classList.remove('now'));
-  if(SG.view==='sheet'){
+  if(SG.view==='sheet'&&document.querySelector('#sgSheet .rz')){sgRzMark('#sgSheet',sl,t,s)
+  }else if(SG.view==='sheet'){
     const c=document.querySelector(`#sgSheet .sg-c[data-b="${Math.floor(sl/4)}"]`);if(c)c.classList.add('now');
     const W=s.lyrics||[];let wi=-1;for(let k=0;k<W.length;k++){if(W[k].t<=t+0.05)wi=k;else break}
     if(wi>=0&&t<=W[wi].e+0.6){const w=document.querySelector(`#sgSheet i[data-w="${wi}"]`);if(w)w.classList.add('now')}
@@ -4291,6 +4333,13 @@ function sgMark(t){
   }else if(s.parts[SG.view]&&s.parts[SG.view].kind==='harmonica'){
     const c=document.querySelector(`#sgTab .sg-c[data-b="${Math.floor(sl/4)}"]`);if(c)c.classList.add('now');
     const H=s.parts[SG.view].notes;H.forEach((n,ni)=>{const e=n.t!=null?n.t:sgTime(n.s);if(e<=t+0.05&&t<e+Math.max(0.25,sgTime(n.s+n.d)-sgTime(n.s))){const x=document.querySelector(`#sgTab i[data-hn="${ni}"]`);if(x)x.classList.add('now')}});
+  }else if(SG.view==='rhythm'&&document.querySelector('#sgTab .rz')){sgRzMark('#sgTab',sl,t,s)
+  }else if(false){
+    document.querySelectorAll('#sgTab .rz-t.now,#sgTab .rz-d i.on,#sgTab .rz-l i.now').forEach(x=>x.classList.remove('now','on'));
+    const c=[...document.querySelectorAll('#sgTab .rz-t')].find(x=>sl>=+x.dataset.rs&&sl<+x.dataset.re);
+    if(c){c.classList.add('now');const d=c.querySelectorAll('.rz-d i')[Math.floor((sl-c.dataset.rs)/4)];if(d)d.classList.add('on')}
+    const W=s.lyrics||[];let wi=-1;for(let k=0;k<W.length;k++){if(W[k].t<=t+0.05)wi=k;else break}
+    if(wi>=0&&t<=W[wi].e+0.6){const w=document.querySelector(`#sgTab .rz-l i[data-w="${wi}"]`);if(w)w.classList.add('now')}
   }else if(SG.view==='rhythm'){
     document.querySelectorAll('#sgTab .ce-now,#sgTab .ce-rt.now').forEach(x=>x.classList.remove('ce-now','now'));
     const b=[...document.querySelectorAll('#sgTab .ce-rtx')].find(x=>sl>=+x.dataset.s&&sl<+x.dataset.e);
@@ -4371,6 +4420,9 @@ function sgRecUi(){const b=sgEl('sgRec'),t=sgEl('sgRecT');
 /* ---------- 조작 ---------- */
 document.getElementById('p-song').addEventListener('click',e=>{
   const b=e.target.closest('button');
+  if(!b&&SG.song&&e.target.closest('#p-song .rz')){const c=e.target.closest('.rz-t[data-rs]');   /* 흐름 보기 (코드 · 가사 / 리듬악보) */
+    if(c){SG.seg=null;sgSeek(Math.max(0,sgTime(+c.dataset.rs)));sgPlay();return}
+    if(SG.playing){sgPause();SG.seg=null}else{SG.seg=null;sgPlay()}return}
   if(!b&&SG.song&&e.target.closest('#sgTab .sg-rhy')){   /* 📜 리듬악보: 코드 이름 → 그 자리부터 재생 · 다른 곳 → 멈춤/시작 (다른 악보 보기와 같게) */
     const c=e.target.closest('.ce-rt[data-rs]');
     if(c&&c.dataset.rs!=='undefined'){SG.seg=null;sgSeek(Math.max(0,sgTime(+c.dataset.rs)));sgPlay();return}
@@ -4387,6 +4439,8 @@ document.getElementById('p-song').addEventListener('click',e=>{
   }
   const ds=b.dataset;
   if(b.id==='sgOpen')return sgOpen();
+  if(b.dataset.sgrz){SG.rz[b.dataset.m==='sheet'?'sheet':'flow']=b.dataset.sgrz==='flow';sgRzSave();return sgRender()}
+  if(b.dataset.sgrzbr){SG.rz.br=!(SG.rz.br!==false);sgRzSave();return sgRender()}
   if(b.dataset.sgrhyin)return sgRhyIn();
   if(b.dataset.sgrequick)return sgReQuick();
   if(b.dataset.sgrhyout)return sgRhyOut();
