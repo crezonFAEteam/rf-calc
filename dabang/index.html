@@ -2969,8 +2969,9 @@ function edPasteRhy(song){
       if(!chk()){alert('코드 줄을 찾지 못했습니다. 코드 줄 · 가사 줄 · 길이 숫자 줄 형식인지 확인하세요.');return}
       const nm=(box.querySelector('.ed-pname').value||'붙여넣기').trim().replace(/\.txt$/i,'').replace(/[\\/:*?"<>|]/g,' ');
       t.disabled=true;t.textContent='저장하는 중…';
-      try{const txt='\ufeff'+ta.value.replace(/\r?\n/g,'\r\n');
-        const r=await edApi('/song-file',{song,kind:'jj',name:nm+'.txt'},new Blob([txt],{type:'text/plain;charset=utf-8'}));
+      try{const crlf=s=>'\ufeff'+s.replace(/\r?\n/g,'\r\n'),N=rhyNorm(ta.value,{alias:chAlias,isChord:x=>CH.test(x)});
+        if(N.changes.length)await edApi('/song-file',{song,kind:'jj',name:nm+' (원본).txt'},new Blob([crlf(ta.value)],{type:'text/plain;charset=utf-8'}));   /* 원본은 그대로 보관 (출력에는 안 씀) */
+        const r=await edApi('/song-file',{song,kind:'jj',name:nm+'.txt'},new Blob([crlf(N.changes.length?N.text:ta.value)],{type:'text/plain;charset=utf-8'}));   /* 우리 규칙으로 정리한 것을 사용 */
         /* 새로 넣은 것을 쓰게: 다른 리듬악보는 출력에 사용 끔 */
         const m=await (await fetch(SG_HELPER+'/list/'+encodeURIComponent(song),{cache:'no-store'})).json().catch(()=>null);
         const mine=r&&r.file?r.file.split(/[\\/]/).pop():'';
@@ -3142,11 +3143,73 @@ function ceRhyParse(txt){
   });
   return out;
 }
+/* 리듬악보 정리 (우리 규칙): 바이트 → 정리한 글 + 바뀐 곳 · 문제 목록. 원본은 그대로 두고 정리본을 따로.
+   규칙: 코드 줄 / 가사 줄(또는 [전주] 같은 구간 이름) / 길이 숫자 줄(4 = 반 마디, 8 = 한 마디), 묶음 사이 빈 줄 */
+function rhyDecode(bytes){
+  const b=bytes instanceof Uint8Array?bytes:new Uint8Array(bytes);let enc='utf-8',t;
+  if(b[0]===0xff&&b[1]===0xfe){enc='utf-16le';t=new TextDecoder('utf-16le').decode(b)}
+  else if(b[0]===0xfe&&b[1]===0xff){enc='utf-16be';t=new TextDecoder('utf-16be').decode(b)}
+  else{try{t=new TextDecoder('utf-8',{fatal:true}).decode(b)}catch(e){enc='euc-kr';t=new TextDecoder('euc-kr').decode(b)}}
+  return {text:t.replace(/^﻿/,''),enc};
+}
+function rhyNorm(raw,opt){
+  opt=opt||{};const alias=opt.alias||(x=>x),isChord=opt.isChord||(x=>/^[A-G][#b]?[A-Za-z0-9#b+()°ø-]*(\/[A-G][#b]?)?$/.test(x));
+  const ch=[],iss=[];const note=(k,m)=>{ch.push(k+(m?': '+m:''))};
+  let t=String(raw).replace(/\r\n?/g,'\n');
+  if(/\ufffd/.test(t)){const n=(t.match(/\ufffd/g)||[]).length;iss.push(`깨진 글자 ${n}개 — 파일 저장 형식 문제로 이미 글자가 사라짐 (복구 불가). 원본 리듬악보를 다시 붙여넣어 주세요`)}
+  if(/\t/.test(t)){t=t.replace(/\t/g,'    ');note('탭 → 띄어쓰기')}
+  const SEC={'전주':'전주','intro':'전주','간주':'간주','interlude':'간주','후주':'후주','outro':'후주','ending':'후주','엔딩':'후주','코다':'후주','하모니카':'하모니카','harmonica':'하모니카'};
+  const fixChord=w=>{let x=w.normalize('NFKC').replace(/♯/g,'#').replace(/♭/g,'b');
+    x=x.replace(/^([a-g])/,m=>m.toUpperCase());                    /* am → Am */
+    x=x.replace(/^([A-G][#b]?)min(?!or)/,'$1m').replace(/^([A-G][#b]?)-(?=$|7|\/)/,'$1m');   /* Amin · A- → Am */
+    x=alias(x);return x};
+  const L=t.split('\n'),out=[];let i=0,blocks=0;
+  const isNum=s=>/^[\d\s|]+$/.test(s.trim())&&/\d/.test(s);
+  const tryChordLine=s=>{const ws=s.trim().split(/[\s|]+/).filter(Boolean);if(!ws.length)return null;const fx=ws.map(fixChord);return fx.every(isChord)?{ws,fx}:null};
+  while(i<L.length){
+    const line=L[i].replace(/\s+$/,'');
+    if(!line.trim()){i++;continue}
+    if(/^\s*#/.test(line)){out.push(line);i++;continue}
+    const c=tryChordLine(line);
+    if(!c){   /* 코드 줄이 아닌데 묶음 밖: 그대로 두고 알림 */
+      iss.push(`${i+1}번째 줄: 코드 줄 없이 나온 줄 — "${line.trim().slice(0,20)}"`);out.push(line);i++;continue}
+    blocks++;
+    /* 코드 이름 고친 것: 위치(칸)는 그대로 — 바뀐 글자 수만큼 앞뒤 칸 맞춤 */
+    let cl=line;c.ws.forEach((w,k)=>{if(w!==c.fx[k]){note('코드 표기',`${w} → ${c.fx[k]}`);cl=cl.replace(w,c.fx[k])}});
+    if(out.length&&out[out.length-1]!=='')out.push('');
+    out.push(cl);i++;
+    /* 가사 줄 · 구간 이름 (코드 줄과 사이에 빈 줄이 있어도 같은 묶음) */
+    let ly=null;const skipBlank=()=>{let j=i;while(j<L.length&&!L[j].trim())j++;if(j<L.length&&!tryChordLine(L[j])&&!/^\s*#/.test(L[j]))i=j};skipBlank();
+    if(i<L.length&&L[i].trim()&&!isNum(L[i])&&!tryChordLine(L[i])){
+      ly=L[i].replace(/\s+$/,'');i++;
+      const lab=ly.trim().replace(/^[\(\[\{<]\s*|\s*[\)\]\}>]$/g,'').replace(/[:：]$/,'').trim().toLowerCase();
+      if(SEC[lab]){const nl='['+SEC[lab]+']';if(ly.trim()!==nl)note('구간 이름',`${ly.trim()} → ${nl}`);ly=nl}
+      else if(/[-~]{2,}/.test(ly)){const n=ly.replace(/[-~]{2,}/g,m=>' '.repeat(m.length));note('늘임 표시(---) → 띄어쓰기',ly.trim().slice(0,16));ly=n}
+      out.push(ly);
+    }
+    /* 숫자 줄: 코드 수와 맞춤 */
+    skipBlank();
+    const n=c.fx.length;
+    if(i<L.length&&isNum(L[i])){
+      let ns=L[i].trim().split(/[\s|]+/).filter(Boolean).map(Number);i++;
+      const bad=ns.filter(x=>!(x>0&&x<=64));if(bad.length)iss.push(`${blocks}번째 묶음: 이상한 길이 ${bad.join(',')}`);
+      if(ns.length<n){note('길이 숫자 모자람',`${blocks}번째 묶음 ${ns.length}개 → ${n}개 (8로 채움)`);while(ns.length<n)ns.push(8)}
+      else if(ns.length>n){note('길이 숫자 남음',`${blocks}번째 묶음 ${ns.length}개 → ${n}개`);ns=ns.slice(0,n)}
+      out.push(ns.join(' '));
+    }else{note('길이 숫자 줄 없음',`${blocks}번째 묶음 → 모두 8 (한 마디)`);out.push(Array(n).fill(8).join(' '))}
+    /* 묶음 뒤에 남은 줄(하모니카 ♪ 등)은 그대로 */
+    while(i<L.length&&L[i].trim()&&!tryChordLine(L[i])){out.push(L[i].replace(/\s+$/,''));i++}
+  }
+  const units=(()=>{let u=0;out.forEach((l,k)=>{if(isNum(l)&&k>0)u+=l.trim().split(/\s+/).map(Number).reduce((a,b)=>a+b,0)});return u})();
+  return {text:out.join('\n')+'\n',changes:ch,issues:iss,blocks,units};
+}
 async function ceGetRhythm(title){
   const m=await (await fetch(SG_HELPER+'/list/'+encodeURIComponent(title),{cache:'no-store'})).json();
   const x=(m.inputs||[]).find(x=>(x.kind==='jj'||x.kind==='chords')&&x.use!==false&&/\.txt$/i.test(x.file));if(!x)return null;
-  const lines=ceRhyParse(ceDecode(await (await fetch(ceUrl('입력',x.file),{cache:'no-store'})).arrayBuffer()));
-  return lines.length?{file:x.file,lines}:null;
+  const dec=rhyDecode(await (await fetch(ceUrl('입력',x.file),{cache:'no-store'})).arrayBuffer()),nm=rhyNorm(dec.text,{alias:chAlias,isChord:x=>CH.test(x)});   /* 우리 규칙으로 정리한 뒤 (원본 파일은 그대로) */
+  if(dec.enc!=='utf-8')nm.changes.unshift('파일 형식: '+dec.enc+' → UTF-8');
+  const lines=ceRhyParse(nm.text);
+  return lines.length?{file:x.file,lines,norm:{changes:nm.changes,issues:nm.issues}}:null;
 }
 /* 자리 맞추기: 숫자 1 = 8분음표(2칸) 또는 두 배로 적힌 것(1칸 → 절반) 중, 첫 가사 줄을 노래 시작 근처(±4마디)에 놓아 음원 코드와 가장 잘 맞는 것 */
 function ceRhyScore(){
@@ -3350,9 +3413,11 @@ function ceRhyHtml(sheet){
   const why=R.k===2?'숫자 1 = 8분음표 (4 = 반 마디, 8 = 한 마디) — 적힌 그대로':R.k===4?'음원 분석의 박이 실제의 <b>두 배 빠르기</b>로 잡혀 있어 리듬악보 한 마디 = 분석 두 마디로 맞춤':'숫자가 <b>두 배</b>로 적힌 것으로 보고 절반으로 (8 = 반 마디, 16 = 한 마디)';
   const fl=R.lines.find(L=>L.ly)||R.lines[0];
   if(sheet)return ceRhySheet(R,fmt,cls);
+  const nmI=R.norm&&(R.norm.changes.length||R.norm.issues.length)?(()=>{const c={};R.norm.changes.forEach(x=>{const k=x.split(':')[0];c[k]=(c[k]||0)+1});
+    return `<br><span class="mt">리듬악보 정리(우리 규칙): ${Object.entries(c).map(([k,v])=>esc(k)+' '+v+'곳').join(' · ')||'바꿀 곳 없음'}${R.norm.issues.length?' · <b>⚠ '+R.norm.issues.map(esc).join(' / ')+'</b>':''} — 리듬악보는 참고용 (코드 이름 · 가사 · 순서만, 자리와 길이는 원음)</span>`})():'';
   return `<div class="ce-sum">④ 리듬악보 확인 — <b>${esc(R.file)}</b> · ${R.lines.length}줄 · ${fmt(R.units*R.k)}. 박자 읽기: ${why}.
     ${R.shift?`리듬악보는 음원보다 <b>반음 ${Math.abs(R.shift)}개 ${R.shift>0?'높은':'낮은'} 키</b> — 키를 맞춰 비교합니다(코드 결정에는 음원 키로). `:''}첫 가사 줄을 <b>${Math.floor(fl.s/16)+1}마디</b>에 맞췄을 때 음원 코드와 <b>${Math.round(R.r*100)}%</b> 일치${R.r<0.5?' <span class="ed-warn">— 많이 다릅니다. 이 곡의 리듬악보가 맞는지, 노래 시작 위치가 맞는지 확인하세요.</span>':''}.
-    아래 <b>📜 리듬악보</b> 탭에서 묶음마다 ▶로 원곡을 들으며 확인하세요.${ratioLine} 코드 색: 초록 = 음원과 같음 · 노랑 = 종류만 다름 · 빨강 = 다름 (코드에 마우스를 올리면 음원 코드).</div>`;
+    아래 <b>📜 리듬악보</b> 탭에서 묶음마다 ▶로 원곡을 들으며 확인하세요.${nmI}${ratioLine} 코드 색: 초록 = 음원과 같음 · 노랑 = 종류만 다름 · 빨강 = 다름 (코드에 마우스를 올리면 음원 코드).</div>`;
 }
 /* 악보 가사(글자 인식) 고치기: 줄마다 참고 가사(원음 받아 적기 · 리듬악보)에서 가장 닮은 곳을 찾아 그 글자로.
    닮음: 같은 글자 2 · 초성 · 중성 · 종성 중 2개 같음(잎/있, 년/닌) 1 · 다름 -1 · 빠짐/더함 -1 */
@@ -4111,7 +4176,7 @@ function sgFinalView(){   /* 곡편집 › 기타반주보정 결과(주법 · �
 }
 /* ---------- 간이 분석 + 리듬악보: 리듬악보의 코드 · 가사를 간이 분석 박자에 맞춤 (곡편집과 같은 자리 찾기 — 박자 비율 · 키 · 줄마다 시작 마디) ---------- */
 function sgRhyFit(s,txt){
-  const lines=ceRhyParse(txt).filter(L=>L.chords.length);if(!lines.length)throw new Error('코드 줄을 찾지 못했습니다 — 코드 줄 · 가사 줄 · 길이 숫자 줄 형식인지 확인하세요');
+  const lines=ceRhyParse(rhyNorm(txt,{alias:chAlias,isChord:x=>CH.test(x)}).text).filter(L=>L.chords.length);if(!lines.length)throw new Error('코드 줄을 찾지 못했습니다 — 코드 줄 · 가사 줄 · 길이 숫자 줄 형식인지 확인하세요');
   const base=s.chords0||s.chords,keep={...CE};
   try{
     CE.song=JSON.parse(JSON.stringify({...s,chords:base,lyrics:[],lines:[],backing:null}));
