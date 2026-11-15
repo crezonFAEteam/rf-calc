@@ -2734,12 +2734,19 @@ function sgCh(){   /* 화면에 보일 코드 (조옮김 + 카포 모양) */
   if(SG._ch&&SG._ch.key===key)return SG._ch.list;
   const list=SG.song.chords.map(c=>({s:c.s,name:sgTrName(c.name,k),orig:c.name}));SG._ch={key,list};return list;
 }
-function sgKey0(){   /* 분석한 코드로 곡의 키(장조 기준) 추정: 그 키의 다이아토닉 코드(I ii iii IV V vi)가 차지하는 시간이 가장 긴 키 */
-  if(SG._k0&&SG._k0.t===SG.song.title)return SG._k0.k;
-  const cs=SG.song.chords,tot=SG.song.bars*16;let best=0,bs=-1;
-  for(let k=0;k<12;k++){let sc=0;cs.forEach((c,i)=>{const d=(i+1<cs.length?cs[i+1].s:tot)-c.s,x=blChord(c.name);if(!x)return;const r=mod(x.r-k),m=/^m(?!aj)/.test(x.s);
-      if((!m&&(r===0||r===5||r===7))||(m&&(r===2||r===4||r===9)))sc+=d*(r===0?1.2:1)});if(sc>bs){bs=sc;best=k}}
-  SG._k0={t:SG.song.title,k:best};return best;
+function sgKey0(){   /* 곡의 키(장조 기준 값) + 단조 여부. 그 키의 다이아토닉 코드가 차지하는 시간 — 중심 코드(I · vi)에 더 무게, V7 · 처음 · 끝 코드도 반영
+     (예: Em · G · D 만 나오는 곡은 G 와 D 모두 다이아토닉 → Em 이 중심이면 G) */
+  if(SG._k0&&SG._k0.t===SG.song.title&&SG._k0.n===SG.song.chords)return SG._k0.k;
+  const cs=SG.song.chords,tot=SG.song.bars*16,D=i=>(i+1<cs.length?cs[i+1].s:Math.max(tot,cs[i].s+16))-cs[i].s;
+  const P=cs.map(c=>blChord(c.name)),isM=x=>/^m(?!aj)/.test(x.s),W={0:1.3,5:1,7:1},Wm={9:1.15,2:0.85,4:0.8};
+  let best=-1,k0=0;
+  for(let k=0;k<12;k++){let v=0;
+    P.forEach((x,i)=>{if(!x)return;const r=mod(x.r-k),m=isM(x),d=D(i);if(!m&&W[r]!=null)v+=d*(r===7&&/^7/.test(x.s)?1.2:W[r]);else if(m&&Wm[r]!=null)v+=d*Wm[r]});
+    [P[0],P[P.length-1]].forEach((x,e)=>{if(!x)return;const r=mod(x.r-k),m=isM(x);if((!m&&r===0)||(m&&r===9))v+=tot*(e?0.05:0.03)});
+    if(v>best){best=v;k0=k}}
+  let mj=0,mn=0;P.forEach((x,i)=>{if(!x)return;const r=mod(x.r-k0),m=isM(x);if(!m&&r===0)mj+=D(i);if(m&&r===9)mn+=D(i)});
+  [P[0],P[P.length-1]].forEach((x,e)=>{if(!x)return;const r=mod(x.r-k0),m=isM(x);if(!m&&r===0)mj+=tot*(e?0.08:0.04);if(m&&r===9)mn+=tot*(e?0.08:0.04)});
+  SG._k0={t:SG.song.title,n:SG.song.chords,k:k0,minor:mn>mj*1.1};return k0;
 }
 function sgCapoHint(key){   /* 쉬운 코드 모양(G C D A E)이 되도록 하는 가장 낮은 카포 */
   for(let c=0;c<=7;c++){const sh=mod(key-c);if([7,0,2,9,4].includes(sh))return {c,sh}}return null;
@@ -2749,7 +2756,8 @@ function sgShapes(key){   /* 이 키를 쉬운 코드 모양(G C D A E)으로 �
 }
 function sgKeyBar(){
   const k0=sgKey0(),T=SG.kc.t,C=SG.kc.c,S=!!SG.kc.s,key=mod(k0+T),shape=mod(key-C),hint=sgCapoHint(key);
-  return `<div class="sg-key">곡 키 <b>${nn(key)}</b>${T?`<span class="sg-k0">(분석 ${nn(k0)})</span>`:''}
+  const mi=SG._k0&&SG._k0.minor;
+  return `<div class="sg-key">곡 키 <b>${nn(key)}</b>${mi?`<span class="sg-k0" title="${nn(mod(key+9))}m 이 중심인 곡 — ${nn(key)} 메이저와 같은 음 (나란한조)">(${nn(mod(key+9))}m 중심)</span>`:''}${T?`<span class="sg-k0">(분석 ${nn(k0)}${mi?' · '+nn(mod(k0+9))+'m':''})</span>`:''}
     <span class="sg-kgrp">조옮김 <button class="ghost sm" data-sgtr="-1" aria-label="반음 내림">−</button><b class="sg-kv">${T>0?'+'+T:T}</b><button class="ghost sm" data-sgtr="1" aria-label="반음 올림">+</button>
       <button class="ghost sm sg-snd" data-sgsnd="1" aria-pressed="${S}" title="조옮김한 만큼 음원(노래 · 반주 모두) 소리도 올리고 내림. 빠르기는 그대로">🔊 음원도 같이</button></span>
     <span class="sg-kgrp">카포 <select id="sgCapo">${Array.from({length:10},(_,i)=>`<option value="${i}"${i===C?' selected':''}>${i?i+'프렛':'없음'}</option>`).join('')}</select></span>
