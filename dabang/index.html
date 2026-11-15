@@ -2742,8 +2742,8 @@ async function edShow(){
     const old=(ping.build||0)<SG_HELPER_BUILD;   /* 예전 설치본: 쓰는 건 되지만 새 기능(악보 가사 읽기 · 리듬악보 저장 등)이 빠질 수 있음 */
     sgEl('edPaths').innerHTML=(old&&ping.update?`<div class="ed-warn ed-old" id="edUpd">⬆ 분석 도우미 <b>새 판</b>이 있습니다 (판 ${ping.build} → ${SG_HELPER_BUILD}). <button class="play" data-edupd="1">⬆ 도우미 업데이트</button> <span class="mt">설치 파일 받기 · 압축 풀기 없이 바로 — 곡 폴더 · 라이브러리 · 설정 그대로</span></div>`:'')+(old&&!ping.update?`<div class="ed-warn ed-old">⚠ 이 PC의 분석 도우미가 <b>예전 설치본</b>입니다 (판 ${ping.build||'없음'} → 필요 ${SG_HELPER_BUILD}). <button class="play" data-sghelper>⬇ 새 설치 파일 받기 (암호)</button> → 압축 풀기 → <b>설치하기.bat</b> 다시 실행 (켜져 있는 도우미는 설치가 알아서 끄고 바꿉니다 · 라이브러리 · 곡 폴더는 그대로) → 끝나면 [새로고침]</div>`:'')+`분석폴더: <b>${esc(f.root)}</b>\\[곡명 폴더 자동 생성]<br>공유폴더: <b>${esc(f.share||'(정하지 않음)')}</b>${f.shareOk?'':' <span class="ed-warn">(이 PC에 없음 — 휴대폰용 zip 복사 안 됨)</span>'} <button class="ghost sm" data-edshare="1" title="휴대폰용 zip 을 복사할 폴더 — OneDrive · 구글 드라이브 등">바꾸기</button><br><span class="mt">도우미 판 ${ping.build||'없음'}${old?'':' <b style="color:#2e9d5b">✔ 최신</b>'} · 설치 위치 ${esc(String(f.root||'').replace(/[\\/]songAnalyze[\\/]?$/,''))}</span> <button class="ghost sm" data-sghelper title="새 설치 파일을 받아 설치하기.bat 를 다시 실행 — 켜진 도우미는 설치가 끄고 바꿈 · 예전 위치(사용자 폴더)면 C:\saygita 로 옮김 · 라이브러리 · 곡 폴더 그대로">${old?'⬇ 설치 파일 받기 (다시 설치)':'수동 재설치 (문제 있을 때만)'}</button>`;
     const fl=f.folders||[];if(!ED.song||!fl.some(x=>x.title===ED.song))ED.song=(fl[0]||{}).title||'';
-    sgEl('edSong').innerHTML=fl.length?fl.map(x=>`<option value="${esc(x.title)}"${x.title===ED.song?' selected':''}>${esc(x.title)}${x.analyzed?'':'  (분석 전)'}</option>`).join(''):'<option value="">곡 폴더 없음 — [＋ 새 곡]</option>';
-    if(ED.song)await edLoad(ED.song);else{sgEl('edIn').innerHTML='';sgEl('edOut').innerHTML=''}
+    sgEl('edSong').innerHTML='<option value="@new">＋ 새 곡 (매체를 넣으면 그 이름으로 곡 폴더)</option>'+(fl.length?fl.map(x=>`<option value="${esc(x.title)}"${x.title===ED.song?' selected':''}>${esc(x.title)}${x.analyzed?'':'  (분석 전)'}</option>`).join(''):'');
+    if(ED.song)await edLoad(ED.song);else edNewSong();
   }catch(e){sgEl('edPaths').textContent='도우미에서 폴더를 읽지 못했습니다: '+(e.message||e)+' (도우미를 다시 켜 주세요)'}
 }
 async function edLoad(song){
@@ -2910,18 +2910,30 @@ function edPasteRhy(song){
 async function edAdd(k,i){
   const song=ED.song;if(!song)return;const a=ED_KINDS.find(x=>x.k===k).add[i][1];
   try{
-    if(a==='@link'){const url=(prompt('유튜브 등 링크 주소 (원음을 받아 입력에 넣습니다. 분석은 [곡 분석])','')||'').trim();if(!url)return;
+    if(a==='@link'){const url=(prompt('「'+song+'」 곡에 넣을 유튜브 등 링크 주소 (원음을 받아 입력에 넣습니다. 분석은 [곡 분석])\n※ 다른 새 곡이면 [취소] → 위쪽 「새 곡 — 🔗 링크 가져오기」','')||'').trim();if(!url)return;
       const j=await edApi('/song-link',{song,url},'');ED.busy[song]='링크에서 원음 받는 중…';edRender();edPoll(j.id,song,'링크 받기');return}
     if(a==='@rec'){SG.recTarget=song;sgRecord();return}
     if(a==='@paste'){if(await edPasteRhy(song))return edLoad(song);return}
     if(a==='@adlib'){const t=document.getElementById('adSrc').value;if(!t.trim()){alert('애드립 탭의 코드 진행이 비어 있습니다.');return}
       await edApi('/song-file',{song,kind:'chords'},t);return edLoad(song)}
     const f=await edPick(a);if(!f)return;
+    /* 다른 곡 같은 매체를 지금 곡에 잘못 넣는 것 막기: 파일 이름에 곡 이름이 없으면 확인 */
+    const nz=s=>String(s).toLowerCase().replace(/[^0-9a-z가-힣]/g,'');
+    if((k==='audio'||k==='video')&&nz(song)&&!nz(f.name).includes(nz(song))&&!confirm('「'+f.name+'」 을(를) 지금 곡 「'+song+'」 에 넣을까요?\n\n다른 새 곡이면 [취소] → 위쪽 「새 곡 — 🎵 음원 · 영상 가져오기」 를 쓰세요 (파일 이름으로 새 곡 폴더를 만듭니다).'))return;
     if(k==='gt'||k==='tab'){if(await edAddPdf(song,k,f,f.name))return edLoad(song);return}
     await edApi('/song-file',{song,kind:k,name:f.name},f);return edLoad(song);
   }catch(e){alert('넣지 못했습니다: '+(e.message||e))}
 }
-sgEl('edSong').addEventListener('change',e=>{if(e.target.value)edLoad(e.target.value)});
+sgEl('edSong').addEventListener('change',e=>{const v=e.target.value;if(v==='@new')return edNewSong();if(v)edLoad(v)});
+/* ＋ 새 곡: 아직 폴더 없음 — 매체(음원 · 영상 파일 이름 / 링크 영상 제목 / 녹음 이름)를 넣으면 그 제목으로 곡 폴더를 만듦 */
+function edNewSong(){
+  ED.song='';ED.list=null;const o=sgEl('edScoreOut');o.hidden=true;o.innerHTML='';sgEl('ceBox').hidden=true;try{sgEl('ceAudio').pause()}catch(e){}
+  sgEl('edSong').value='@new';
+  sgEl('edIn').innerHTML=`<div class="ed-row"><div class="ed-k">＋ 새 곡</div><div class="ed-files"><div class="ed-rule">매체를 하나 넣으면 그 <b>제목으로 곡 폴더</b>를 만들고, 그 곡으로 바뀝니다. 그다음 리듬악보 · 기타악보 · 기타타브 등은 그 곡에 넣으세요.</div>
+    <div class="ed-act" style="justify-content:flex-start;margin-top:8px"><button class="play" data-ednew="edImpFile">🎵 음원 · 영상 파일 (파일 이름 → 곡 제목)</button><button class="play" data-ednew="edImpLink">🔗 링크 (영상 제목 → 곡 제목)</button><button class="ghost sm" data-ednew="edImpRec">🔴 녹음 (이름 정하기)</button></div></div></div>`;
+  sgEl('edOut').innerHTML='';
+}
+sgEl('edIn').addEventListener('click',e=>{const b=e.target.closest('[data-ednew]');if(b)sgEl(b.dataset.ednew).click()});
 sgEl('edReload').addEventListener('click',edShow);
 sgEl('edOpenDir').addEventListener('click',()=>{if(ED.song)edApi('/open',{song:ED.song},'').catch(e=>alert(e.message||e))});
 sgEl('edRestart').addEventListener('click',async()=>{
