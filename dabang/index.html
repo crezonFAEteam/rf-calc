@@ -2528,7 +2528,7 @@ async function ceVocalPhrases(){
   const close=(a,k)=>{const o=a.slice();for(let i=0;i<a.length;i++)if(!a[i]){let L=i;while(L>0&&!a[L-1]&&i-L<k)L--;let R=i;while(R<a.length-1&&!a[R+1]&&R-i<k)R++;if(L>0&&R<a.length-1&&a[L-1]&&a[R+1]&&R-L+1<=k)o[i]=true}return o};
   v=close(v,8);for(let i=0;i<n;){if(!v[i]){i++;continue}let e=i;while(e+1<n&&v[e+1])e++;if(e-i+1<6)for(let k=i;k<=e;k++)v[k]=false;i=e+1}   /* 0.16초 틈 메우기 · 0.12초보다 짧은 소리 지우기 */
   const ph=[];let off=-9;for(let i=1;i<n;i++){if(v[i-1]&&!v[i])off=i*0.02;if(v[i]&&!v[i-1]&&i*0.02-off>0.35)ph.push(i*0.02)}
-  return CE.ph=ph;
+  CE.vact=v;return CE.ph=ph;
 }
 /* 가사 줄마다 가장 가까운 구절 시작으로 (±1.5초 안 · 순서 지킴 · 한 구절에 한 줄) → 줄 옮김(¼박 단위) */
 async function ceLyAuto(){
@@ -3251,12 +3251,16 @@ function ceRhyShift(R){
 const ceRK=n=>{const s=CE.rhy&&CE.rhy.shift;return s?sgTrName(n,s):n},ceAK=n=>{const s=CE.rhy&&CE.rhy.shift;return s?sgTrName(n,-s):n};
 function ceAnc(L){
   const W=CE.wl;if(!W||!W.length||!L.ly)return [];
-  const nz=x=>String(x||'').replace(/[^가-힣a-zA-Z0-9]/g,''),a=nz(L.ly).slice(0,8);if(a.length<3)return [];
+  const re=/[가-힣a-zA-Z0-9]/,nz=x=>String(x||'').replace(/[^가-힣a-zA-Z0-9]/g,''),A=nz(L.ly),a=A.slice(0,8);if(a.length<3)return [];
   const lcs=(x,y)=>{let p=new Array(y.length+1).fill(0);for(const cx of x){const c=[0];for(let j=1;j<=y.length;j++)c[j]=cx===y[j-1]?p[j-1]+1:Math.max(p[j],c[j-1]);p=c}return p[y.length]};
-  return W.filter(w=>{const b=nz(w.text).slice(0,a.length+2);return b.length>=3&&lcs(a,b)>=Math.max(3,a.length*0.6)}).map(w=>w.s);
+  const raw=(L.raw||[])[0]||'',colOf=k=>{let n=0;for(let c=0;c<raw.length;c++){if(re.test(raw[c])){if(n===k)return c;n++}}return null},off0=ceLyOff(L),out=[];
+  W.forEach(w=>{const b=nz(w.text);if(b.length<3)return;
+    if(lcs(a,b.slice(0,a.length+2))>=Math.max(3,a.length*0.6)){out.push({s:w.s,off:off0,p:true});return}
+    if(b.length>=4){const k=A.indexOf(b.slice(0,4),1);if(k>0){const col=colOf(k);if(col!=null)out.push({s:w.s,off:ceLyOff(L,col),p:false})}}});
+  return out;
 }
-function ceLyOff(L){
-  const raw=(L.raw||[])[0];if(!raw||!L.ly)return 0;const c=raw.search(/\S/);if(c<0)return 0;
+function ceLyOff(L,col){
+  const raw=(L.raw||[])[0];if(!raw||!L.ly)return 0;const c=col!=null?col:raw.search(/\S/);if(c<0)return 0;
   const idx=[];L.cl.replace(/[^\s|]+/g,(m,i)=>{idx.push(i);return m});if(!idx.length)return 0;
   let u=0;const us=L.chords.map(x=>{const a=u;u+=x.len;return a});let j=0;while(j+1<idx.length&&idx[j+1]<=c)j++;
   const c0=idx[j],c1=j+1<idx.length?idx[j+1]:Math.max(L.cl.length,raw.length)+2;return us[j]+Math.max(0,Math.min(1,(c-c0)/Math.max(1,c1-c0)))*(L.chords[j]?L.chords[j].len:0);
@@ -3280,7 +3284,14 @@ function ceRhyPlace(){
   const Ds=D.map(x=>x.s),atI=sl=>{let lo=0,hi=Ds.length-1,r=-1;while(lo<=hi){const m=(lo+hi)>>1;if(Ds[m]<=sl){r=m;lo=m+1}else hi=m-1}return r};
   const simC=new Map(),simOf=(an,rn)=>{const key=an+'|'+rn;let v=simC.get(key);if(v==null){const x=scSim(ceRK(an),chAlias(rn));v=x>=3?1:x>=2?0.8:0;simC.set(key,v)}return v};
   const PH=(CE.ph||[]).map(t=>ceSlotAt(t)),phAt=(a,b)=>PH.some(x=>x>=a&&x<b);   /* 노래 트랙의 구절 시작 (가사 줄 자리 잡기 도움) */
-  let best=null;const NB=Math.ceil(tot/16),GAP=0.35,VOX=3,ANCW=6,ANC=R.lines.map(L=>ceAnc(L)),OFF=R.lines.map(L=>ceLyOff(L));   /* 건너뛴 마디 하나 = 코드 0.35개 덜 맞은 것으로 */
+  let best=null;const NB=Math.ceil(tot/16),GAP=0.35,VOX=3,ANCW=6,ANC=R.lines.map(L=>ceAnc(L)),VACT=8,SKP=3;
+  /* 마디마다 노래가 들리는 비율 (노래 트랙) — 가사 줄은 노래가 있는 곳에 · 노래가 전혀 없는 곳의 가사 줄은 이 녹음에서 안 부른 줄일 수 있음 */
+  const SING=BA=>{if(!BA)return null;const s=Array.from(BA,x=>x>0.15),n=s.length;
+    for(let i=0;i<n;){if(s[i]){i++;continue}let j=i;while(j<n&&!s[j])j++;if(i>0&&j<n&&j-i<=3)for(let t=i;t<j;t++)s[t]=true;i=j}
+    for(let i=0;i<n;){if(!s[i]){i++;continue}let j=i;while(j<n&&s[j])j++;if(j-i<=2)for(let t=i;t<j;t++)s[t]=false;i=j}return s};
+  const BA=(()=>{const v=CE.vact;if(!v||!v.length)return null;const a=new Float32Array(NB);for(let b=0;b<NB;b++){const t0=scTime(CE.song,b*16),t1=scTime(CE.song,(b+1)*16);let n=0,m=0;for(let f=Math.max(0,Math.floor(t0/0.02));f<Math.min(v.length,Math.ceil(t1/0.02));f++){n++;if(v[f])m++}a[b]=n?m/n:0}return a})(),SG_=SING(BA);
+  if(SG_){const sec=[];let i=0;while(i<NB){const v=SG_[i];let j=i;while(j<NB&&SG_[j]===v)j++;sec.push({s:i,e:j,sing:v});i=j}   /* ④ 에 보이기 */
+    R.struct=sec.map((x,k)=>({...x,name:x.sing?'노래':k===0?'전주':k===sec.length-1?'후주':'간주'}))}   /* 건너뛴 마디 하나 = 코드 0.35개 덜 맞은 것으로 */
   /* 박자 비율은 먼저 길이로: 리듬악보 길이 × 비율이 곡 길이의 70~120% 인 것만 (없으면 셋 다) — 짧게 읽으면 줄 사이를 건너뛰며 아무 데나 붙는 것 막기 */
   if(R.kForce==null&&CE.rec&&CE.rec.rhyFile===R.file&&CE.rec.rhyK)R.kForce=CE.rec.rhyK;
   let KS=[4,2,1].filter(k=>{const r=R.units*k/16/NB;return r>=0.7&&r<=1.2});if(!KS.length)KS=[4,2,1];R.lenFit=KS.length<3;   /* 기본 2배(4) 먼저 — 길이가 맞는 것만 */
@@ -3288,21 +3299,27 @@ function ceRhyPlace(){
   for(const k of KS){
     const lines=R.lines.map(L=>{let cu=0;const cs=L.chords.map(c=>{const o={n:c.n,u:cu,len:c.len};cu+=c.len;return o});return {cs,lb:Math.max(1,Math.round(cu*k/16)),ly:!!L.ly}});
     const score=(i,b)=>{let s=0,n=0;for(const c of lines[i].cs){const sl=b*16+c.u*k+Math.floor(c.len*k/2);if(sl>=tot)break;const j=atI(sl);if(j<0)continue;n++;s+=simOf(D[j].name,c.n)}
-      const an=ANC[i].length?ANCW*Math.max(0,...ANC[i].map(w=>1-Math.abs(w-b*16-OFF[i]*k)/12)):0;   /* 받아 적기에서 같은 가사가 시작된 자리 근처면 큰 가산점 */
-      const x=(lines[i].ly&&PH.length&&phAt(b*16-4,b*16+4*k*3)?VOX:0)+an;return {s:s+x,n,x}};   /* 가사 줄 앞부분(첫 3박 안)에 실제 노래 시작이 있으면 가산점 */
-    const N=lines.length,dp=[],bk=[];
-    for(let i=0;i<N;i++){dp.push(new Float64Array(NB).fill(-1e9));bk.push(new Int32Array(NB).fill(-1));
+      const an=ANC[i].length?ANCW*Math.max(0,...ANC[i].map(w=>1-Math.abs(w.s-b*16-w.off*k)/12)):0;   /* 받아 적기에서 같은 가사가 시작된 자리 근처면 큰 가산점 */
+      let va=0;if(BA){let m=0,c=0,si=0;for(let q=b;q<Math.min(NB,b+lines[i].lb);q++){m+=BA[q];si+=SG_[q]?1:0;c++}const f=c?si/c:0;
+        if(lines[i].ly)va=VACT*((c?m/c:0)-0.4)-(f<0.4?15:0);   /* 가사 줄: 노래 있는 곳 + · 대부분 연주 구간이면 거의 불가 (이 녹음에서 안 부른 줄 → 건너뜀) */
+        else va=f>0.6?-6:0}   /* 전주 · 간주 · 후주 줄이 노래 구간에 놓이면 감점 */
+      const x=(lines[i].ly&&PH.length&&phAt(b*16-4,b*16+4*k*3)?VOX:0)+an+va;return {s:s+x,n,x}};   /* 가사 줄 앞부분(첫 3박 안)에 실제 노래 시작이 있으면 가산점 */
+    const N=lines.length,dp=[],bk=[],skc=[];
+    for(let i=0;i<N;i++){dp.push(new Float64Array(NB).fill(-1e9));bk.push(new Int32Array(NB).fill(-1));skc.push(new Uint8Array(NB));
       for(let b=0;b<NB;b++){const {s}=score(i,b);
         if(i===0){dp[0][b]=s;continue}
         let bv=-1e9,bb=-1;const L0=lines[i-1].lb,fx=!lines[i-1].ly;   /* 가사 없는 줄(전주 · 간주 · 후주)은 리듬악보에 길이가 대략 적힌 경우가 많아 짧게 · 길게 모두 허용 (가사 줄은 그대로) */
         for(let q=0;q+(fx?1:L0)<=b;q++){if(dp[i-1][q]<-1e8)continue;const v=dp[i-1][q]-(fx?0.15*Math.abs(b-q-L0):GAP*(b-q-L0));if(v>bv){bv=v;bb=q}}
-        if(bb>=0){dp[i][b]=bv+s;bk[i][b]=bb}}}
+        let bsk=0;if(BA)for(let sk=1;sk<=2;sk++){const j=i-1-sk;if(j<0)break;let okk=true;for(let t=j+1;t<i;t++)if(!lines[t].ly){okk=false;break}if(!okk)break;   /* 노래 트랙이 있을 때만 */
+          const Lj=lines[j].lb,fj=!lines[j].ly;for(let q=0;q+(fj?1:Lj)<=b;q++){if(dp[j][q]<-1e8)continue;const v=dp[j][q]-SKP*sk-(fj?0.15*Math.abs(b-q-Lj):GAP*(b-q-Lj));if(v>bv){bv=v;bb=q;bsk=sk}}}
+        if(bb>=0){dp[i][b]=bv+s;bk[i][b]=bb;skc[i][b]=bsk}}}
     let eb=-1,ev=-1e9;for(let b=0;b<NB;b++)if(dp[N-1][b]>ev){ev=dp[N-1][b];eb=b}
-    if(eb<0)continue;const pos=new Array(N);for(let i=N-1,b=eb;i>=0;i--){pos[i]=b;b=bk[i][b]}
-    let tm=0,tn=0;pos.forEach((b,i)=>{const r=score(i,b);tm+=r.s-r.x;tn+=r.n});
+    if(eb<0)continue;const pos=new Array(N).fill(null);for(let i=N-1,b=eb;i>=0;){pos[i]=b;const sk=skc[i][b],pb=bk[i][b];i-=1+sk;b=pb}
+    let tm=0,tn=0;pos.forEach((b,i)=>{if(b==null)return;const r=score(i,b);tm+=r.s-r.x;tn+=r.n});
     const r=tn?tm/tn:0,q=tn?ev/tn:0;if(!best||q>best.q+0.03)best={k,pos,r,q,st:pos[0]*16,d:0,n:tn}}   /* 앞 후보(2배)가 비슷하면 그대로 — 분명히 더 맞을 때만 바꿈 */
   if(!best)best={k:2,pos:R.lines.map((L,i)=>Math.round((v0-u1*2)/16)+Math.round(L.u0*2/16)),r:0,q:0,st:0,d:0,n:0};
   Object.assign(R,best);
+  R.skipped=[];if(R.pos&&R.pos.some(x=>x==null)){R.skipped=R.lines.filter((L,i)=>R.pos[i]==null).map(L=>(L.ly||L.label||'').slice(0,24));R.lines=R.lines.filter((L,i)=>R.pos[i]!=null);R.pos=R.pos.filter(x=>x!=null)}   /* 리듬악보에는 있지만 이 녹음에서 안 부른 줄 */
   const same=CE.rec&&(CE.rec.rhyFile?CE.rec.rhyFile===R.file&&(R.auto||CE.rec.rhyPos===(R.k+':'+(R.pos||[R.st]).join(','))):false),sv=(same&&CE.rec.rhyLy)||null,sc=(same&&CE.rec.rhyCh)||null;   /* 같은 리듬악보일 때만 */
   R.lines.forEach((L,i)=>{L.s=(R.pos?R.pos[i]*16:R.st+L.u0*R.k);L.e=L.s+L.chords.reduce((a,c)=>a+c.len,0)*R.k;
     let p=L.s;L.chords.forEach(c=>{c.s=p;c.e=p+c.len*R.k;const a=at(Math.max(0,Math.min(tot-1,p+Math.floor(c.len*R.k/2))));c.audio=a?a.name:'';c.sim=a?scSim(ceRK(a.name),chAlias(c.n)):-1;p=c.e})});
@@ -3322,7 +3339,7 @@ function ceRhyLyInit(L,R){
   let u=0;const us=chs.map(c=>{const a=u;u+=c.len;return a});let vw=0;for(const ch of raw)vw+=ceVW(ch);const end=Math.max(vw,cl.length)+2;
   const slotAt=col=>{let j=0;while(j+1<idx.length&&idx[j+1]<=col)j++;const c0=idx[j]||0,c1=j+1<idx.length?idx[j+1]:end;return L.s+(us[j]+Math.max(0,Math.min(1,(col-c0)/Math.max(1,c1-c0)))*chs[j].len)*R.k};
   const ws=ceTok(raw).map(o=>({w:o.t,s:Math.round(slotAt(o.c))}));
-  const an=ws.length?ceAnc(L).filter(s=>Math.abs(s-ws[0].s)<=32).sort((a,b)=>Math.abs(a-ws[0].s)-Math.abs(b-ws[0].s))[0]:null;
+  const an=ws.length?ceAnc(L).filter(x=>x.p).map(x=>x.s).filter(s=>Math.abs(s-ws[0].s)<=32).sort((a,b)=>Math.abs(a-ws[0].s)-Math.abs(b-ws[0].s))[0]:null;
   if(an!=null){const d=Math.round(an)-ws[0].s;ws.forEach(w=>w.s+=d)}
   else if(ws.length&&CE.ph&&CE.ph.length){const p=CE.ph.map(t=>ceSlotAt(t)).filter(x=>Math.abs(x-ws[0].s)<=8).sort((a,b)=>Math.abs(a-ws[0].s)-Math.abs(b-ws[0].s))[0];if(p!=null){const d=Math.round(p)-ws[0].s;ws.forEach(w=>w.s+=d)}}
   return ws.filter(w=>w.s>=L.s-4&&w.s<L.e+4);
@@ -3417,7 +3434,7 @@ function ceRhyHtml(sheet){
     return `<br><span class="mt">리듬악보 정리(우리 규칙): ${Object.entries(c).map(([k,v])=>esc(k)+' '+v+'곳').join(' · ')||'바꿀 곳 없음'}${R.norm.issues.length?' · <b>⚠ '+R.norm.issues.map(esc).join(' / ')+'</b>':''} — 리듬악보는 참고용 (코드 이름 · 가사 · 순서만, 자리와 길이는 원음)</span>`})():'';
   return `<div class="ce-sum">④ 리듬악보 확인 — <b>${esc(R.file)}</b> · ${R.lines.length}줄 · ${fmt(R.units*R.k)}. 박자 읽기: ${why}.
     ${R.shift?`리듬악보는 음원보다 <b>반음 ${Math.abs(R.shift)}개 ${R.shift>0?'높은':'낮은'} 키</b> — 키를 맞춰 비교합니다(코드 결정에는 음원 키로). `:''}첫 가사 줄을 <b>${Math.floor(fl.s/16)+1}마디</b>에 맞췄을 때 음원 코드와 <b>${Math.round(R.r*100)}%</b> 일치${R.r<0.5?' <span class="ed-warn">— 많이 다릅니다. 이 곡의 리듬악보가 맞는지, 노래 시작 위치가 맞는지 확인하세요.</span>':''}.
-    아래 <b>📜 리듬악보</b> 탭에서 묶음마다 ▶로 원곡을 들으며 확인하세요.${nmI}${ratioLine} 코드 색: 초록 = 음원과 같음 · 노랑 = 종류만 다름 · 빨강 = 다름 (코드에 마우스를 올리면 음원 코드).</div>`;
+    아래 <b>📜 리듬악보</b> 탭에서 묶음마다 ▶로 원곡을 들으며 확인하세요.${nmI}${R.struct&&R.struct.length>1?`<br><span class="mt">곡 구조(노래 트랙): ${R.struct.map(x=>x.name+' '+(x.s+1)+'~'+x.e+'마디').join(' · ')}</span>`:''}${R.skipped&&R.skipped.length?`<br><span class="mt">리듬악보에 있지만 이 녹음에서는 부르지 않은 줄 <b>${R.skipped.length}개</b> — 빼고 맞춤: ${R.skipped.map(esc).join(' · ')}</span>`:''}${ratioLine} 코드 색: 초록 = 음원과 같음 · 노랑 = 종류만 다름 · 빨강 = 다름 (코드에 마우스를 올리면 음원 코드).</div>`;
 }
 /* 악보 가사(글자 인식) 고치기: 줄마다 참고 가사(원음 받아 적기 · 리듬악보)에서 가장 닮은 곳을 찾아 그 글자로.
    닮음: 같은 글자 2 · 초성 · 중성 · 종성 중 2개 같음(잎/있, 년/닌) 1 · 다름 -1 · 빠짐/더함 -1 */
