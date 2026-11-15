@@ -1043,6 +1043,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
+const APP_VER='2026-11-15 22:30';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -2747,7 +2748,7 @@ function sgPlayCheck(t0){
 }
 setInterval(()=>{try{const d=document.getElementById('sgDbg');if(!d||!d.open||!SG.song)return;
   const rs=['없음','정보','현재','다음','충분'],ns=['비어있음','대기','받는중','없음'];
-  const L=[`기기: ${navigator.userAgent.replace(/.*?\(([^)]*)\).*/,'$1').slice(0,60)}`,`재생중: ${SG.playing} · 원곡하나: ${SG.solo1||'-'} · 속도 ${SG.rate}`,
+  const L=[`앱 판: ${APP_VER} · 소리 방식: ${navigator.audioSession?navigator.audioSession.type:'(지원 안 함)'} · 홈 화면 앱: ${(navigator.standalone||matchMedia('(display-mode: standalone)').matches)?'예':'아니오'}`,`기기: ${navigator.userAgent.replace(/.*?\(([^)]*)\).*/,'$1').slice(0,60)}`,`재생중: ${SG.playing} · 원곡하나: ${SG.solo1||'-'} · 속도 ${SG.rate}`,
     `소리엔진 actx: ${actx?actx.state:'-'} · 트랙엔진: ${SG.ac?SG.ac.state:'-'} · 잠금풀기: ${!!SG.unlocked}`];
   SG.ids.forEach(i=>{const e=SG.els[i],st=(SG.song.stems||[]).find(x=>x.id===i),x=SG.mix[i]||{};
     L.push(`${(st?st.name:i).padEnd(8)} ${e.paused?'멈춤':'재생'} ${e.currentTime.toFixed(1)}s/${isFinite(e.duration)?e.duration.toFixed(0):'?'}s 준비:${rs[e.readyState]} 망:${ns[e.networkState]} 소리:${x.mute?'끔':'켬'} vol ${e.volume.toFixed(2)}${e.error?' 오류:'+e.error.code:''}${SG.perr&&SG.perr[i]?' play거부:'+SG.perr[i]:''}`)});
