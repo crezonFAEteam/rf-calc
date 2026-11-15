@@ -3921,9 +3921,9 @@ function sgRender(){
   sgEl('sgFrom').innerHTML=opt(SG.from);sgEl('sgTo').innerHTML=opt(SG.to<0?s.bars-1:SG.to);
   sgEl('sgRate').value=String(SG.rate);sgEl('sgLoop').setAttribute('aria-pressed',SG.loop);
   /* 보기 고르기: 코드 · 가사 / 각 TAB */
-  const views=[['sheet','코드 · 가사']].concat(s.backing?[['final','🎸 최종 반주 TAB']]:[]).concat((s.backing&&s.backing.rhythm&&s.backing.rhythm.blocks)||(s.chords&&s.chords.length)?[['rhythm','📜 리듬악보']]:[]).concat(Object.entries(s.parts||{}).filter(([k,p])=>p.kind!=='harmonica').map(([k,p])=>[k,p.name.split(' — ')[0]+' TAB']));   /* 하모니카는 노래와 같이 불지 않으므로 코드 · 가사 보기의 노래 없는 마디에 */
+  const views=[['sheet','코드 · 가사']].concat(s.backing&&!s.quick?[['final','🎸 최종 반주 TAB']]:[]).concat((s.backing&&s.backing.rhythm&&s.backing.rhythm.blocks)||(s.chords&&s.chords.length)?[['rhythm','📜 리듬악보']]:[]).concat(Object.entries(s.parts||{}).filter(([k,p])=>p.kind!=='harmonica').map(([k,p])=>[k,p.name.split(' — ')[0]+' TAB']));   /* 하모니카는 노래와 같이 불지 않으므로 코드 · 가사 보기의 노래 없는 마디에 */
   if(!views.some(v=>v[0]===SG.view))SG.view='sheet';
-  sgEl('sgViews').innerHTML=views.map(([k,l])=>`<button class="chip" data-sgview="${k}" aria-pressed="${SG.view===k}">${esc(l)}</button>`).join('');
+  sgEl('sgViews').innerHTML=views.map(([k,l])=>`<button class="chip" data-sgview="${k}" aria-pressed="${SG.view===k}">${esc(l)}</button>`).join('')+(s.quick?`<button class="ghost sm" data-sgrhyin="1" title="리듬악보(코드 줄 · 가사 줄 · 길이 숫자 줄)를 넣으면 간이 분석한 박자에 맞춰 코드 · 가사 · 타이밍을 리듬악보대로">📜 리듬악보 ${s.rhyTxt?'다시 넣기':'넣기'}</button>${s.rhyTxt?'<button class="ghost sm" data-sgrhyout="1" title="리듬악보를 빼고 간이 분석 코드로">빼기</button>':''}${s.rhyInfo?`<span class="mt" style="margin-left:6px">${esc(s.rhyInfo)}</span>`:''}`:'');
   sgEl('sgKey').innerHTML=sgKeyBar();
   sgEl('sgSheet').hidden=SG.view!=='sheet';sgEl('sgTab').hidden=SG.view==='sheet';
   if(SG.view==='sheet')sgSheet();else sgTabView();
@@ -4063,6 +4063,66 @@ function sgFinalView(){   /* 곡편집 › 기타반주보정 결과(주법 · �
   }catch(e){sgEl('sgTab').innerHTML='<p class="sdesc">최종 반주를 만들지 못했습니다: '+esc(e.message||e)+'</p>'}
   finally{Object.keys(CE).forEach(k=>{if(!(k in keep))delete CE[k]});Object.assign(CE,keep)}
 }
+/* ---------- 간이 분석 + 리듬악보: 리듬악보의 코드 · 가사를 간이 분석 박자에 맞춤 (곡편집과 같은 자리 찾기 — 박자 비율 · 키 · 줄마다 시작 마디) ---------- */
+function sgRhyFit(s,txt){
+  const lines=ceRhyParse(txt).filter(L=>L.chords.length);if(!lines.length)throw new Error('코드 줄을 찾지 못했습니다 — 코드 줄 · 가사 줄 · 길이 숫자 줄 형식인지 확인하세요');
+  const base=s.chords0||s.chords,keep={...CE};
+  try{
+    CE.song=JSON.parse(JSON.stringify({...s,chords:base,lyrics:[],lines:[],backing:null}));
+    CE.D=base.map(c=>({s:c.s,name:c.name,audio:c.name,sug:{},k:'ok',pick:'audio'}));CE.vmap={};CE.sec={};CE.srcs=[];CE.tabEl='sgTab';CE.rec=null;CE.ph=[];
+    CE.rhy={file:'리듬악보 (간이 분석 박자에 맞춤)',lines};
+    ceRhyPlace();
+    const R=CE.rhy,ins=[],rng=R.lines.map(L=>[L.s,L.e]);
+    R.lines.forEach(L=>L.chords.forEach(c=>ins.push({s:c.s,name:ceAK(chAlias(c.n))})));
+    const out=base.filter(x=>!rng.some(([a,b])=>x.s>=a&&x.s<b)).map(x=>({s:x.s,name:x.name}));
+    rng.forEach(([a,b])=>{if(!out.some(x=>x.s===b)&&!ins.some(x=>x.s===b)){const pv=base.filter(x=>x.s<=b).pop();if(pv)out.push({s:b,name:pv.name})}});
+    const chords=[...out,...ins].filter(c=>c.s<s.bars*16).sort((a,b)=>a.s-b.s).filter((c,i,a)=>i===0||c.name!==a[i-1].name);
+    R.lines.forEach(L=>ceRhyEval(L));
+    const d=document.createElement('div');d.innerHTML=ceRhyHtml(true);
+    const blocks=[...d.querySelectorAll('.ce-rtx')].map(b=>{const r=b.querySelector('[data-cerange]'),[s0,e0]=(r?r.dataset.cerange:'0,0').split(',').map(Number);
+      return {s:s0,e:e0,gen:b.classList.contains('gen'),pre:b.querySelector('pre')?b.querySelector('pre').innerHTML:[...b.querySelectorAll('.ce-gl')].map(x=>x.innerHTML).join('\n')}});
+    const sh=R.shift||0;
+    return {chords,lyrics:CE.song.lyrics||[],lines:CE.song.lines||[],blocks,
+      info:`리듬악보 ${R.lines.length}줄 맞춤 · 박자 ${R.k===4?'2배':R.k===1?'½배':'1배'}${sh?' · 키 '+(sh>0?'+':'')+sh:''} · 음원 코드와 ${Math.round((R.r||0)*100)}% 일치`};
+  }finally{Object.keys(CE).forEach(k=>{if(!(k in keep))delete CE[k]});Object.assign(CE,keep)}
+}
+async function sgRhySave(){   /* 간이 분석 곡: 기억(같은 파일 다시 열 때) + 기기 목록 저장본 */
+  const s=SG.song;try{if(s.qkey)await sgDB.set(s.qkey,s);const k='song:'+s.title,x=await sgDB.get(k);if(x){x.song=s;await sgDB.set(k,x)}}catch(e){}
+}
+function sgRhyApply(s,txt){
+  if(!s.chords0)s.chords0=s.chords;
+  const r=sgRhyFit(s,txt);s.chords=r.chords;s.lyrics=r.lyrics;s.lines=r.lines;s.lyricsVer=2;
+  s.backing=Object.assign({},s.backing||{},{rhythm:{file:'리듬악보 · 간이 분석 박자에 맞춤',blocks:r.blocks}});s.rhyTxt=txt;s.rhyInfo=r.info;
+  SG._ch=null;SG._k0=null;SG._rhy=null;SG.lk={};
+}
+function sgRhyIn(){
+  const s=SG.song;if(!s)return;
+  let box=document.getElementById('sgRhyBox');if(!box){box=document.createElement('div');box.id='sgRhyBox';box.className='ed-pick';document.body.appendChild(box)}
+  box.hidden=false;
+  box.innerHTML=`<div><b>${esc(s.title)} — 리듬악보 넣기</b>
+    <p class="pk-sum">코드 줄 / 가사 줄(또는 [전주] 같은 구간 이름) / 길이 숫자 줄(4 = 반 마디, 8 = 한 마디)을 묶음마다 빈 줄로 나눠 붙여넣으세요. 간이 분석한 박자에 맞춰 코드 · 가사 · 타이밍을 리듬악보대로 바꿉니다 (키 · 박자 비율은 자동).</p>
+    <textarea class="ed-paste" spellcheck="false" placeholder="G     D        Ema9 G      D          Ema9&#10; 그대 보내고 멀리    가을 새와 작별하듯&#10;4 4 8 4 4 8">${esc(s.rhyTxt||'')}</textarea>
+    <div class="pk-bar"><button class="ghost sm" data-rk="file">📄 TXT 파일에서</button><input type="file" accept=".txt,text/plain" hidden><span class="pk-sum" data-rk="info"></span></div>
+    <div class="pk-bar" style="justify-content:flex-end"><button class="ghost sm" data-rk="cancel">취소</button><button class="play" data-rk="ok">맞추기</button></div></div>`;
+  const ta=box.querySelector('textarea'),info=box.querySelector('[data-rk="info"]'),fi=box.querySelector('input[type=file]');
+  const chk=()=>{const L=ceRhyParse(ta.value).filter(x=>x.chords.length);info.textContent=ta.value.trim()?(L.length?`읽힌 묶음 ${L.length}개 · 가사 줄 ${L.filter(x=>x.ly).length}개`:'코드 줄을 찾지 못했습니다'):'';return L.length};
+  ta.addEventListener('input',chk);chk();
+  fi.addEventListener('change',async()=>{const f=fi.files[0];if(!f)return;const b=await f.arrayBuffer();let t;try{t=new TextDecoder('utf-8',{fatal:true}).decode(b)}catch(e){t=new TextDecoder('euc-kr').decode(b)}ta.value=t.replace(/^\ufeff/,'');chk()});
+  const done=()=>{box.hidden=true;box.innerHTML=''};
+  box.onclick=async e=>{const t=e.target.closest('[data-rk]');if(!t){if(e.target===box&&!ta.value.trim())done();return}
+    if(t.dataset.rk==='cancel')return done();
+    if(t.dataset.rk==='file')return fi.click();
+    if(t.dataset.rk!=='ok')return;
+    if(!chk()){alert('코드 줄을 찾지 못했습니다. 코드 줄 · 가사 줄 · 길이 숫자 줄 형식인지 확인하세요.');return}
+    t.disabled=true;t.textContent='맞추는 중…';await sgWait();
+    try{sgRhyApply(s,ta.value);await sgRhySave();done();if(SG.view!=='rhythm'&&SG.view!=='sheet')SG.view='sheet';sgRender()}
+    catch(er){alert('맞추지 못했습니다: '+(er.message||er));t.disabled=false;t.textContent='맞추기'}};
+}
+async function sgRhyOut(){
+  const s=SG.song;if(!s||!s.chords0)return;if(!confirm('리듬악보를 빼고 간이 분석 코드로 되돌릴까요?'))return;
+  s.chords=s.chords0;delete s.chords0;s.lyrics=[];s.lines=[];delete s.rhyTxt;delete s.rhyInfo;if(s.backing)delete s.backing.rhythm;
+  SG._ch=null;SG._k0=null;SG._rhy=null;SG.lk={};await sgRhySave();sgRender();
+}
 function sgRhyAuto(){
   const s=SG.song;if(SG._rhy&&SG._rhy.t===s.title)return SG._rhy.R;
   const keep={...CE};let R=null;
@@ -4190,6 +4250,8 @@ document.getElementById('p-song').addEventListener('click',e=>{
   }
   const ds=b.dataset;
   if(b.id==='sgOpen')return sgOpen();
+  if(b.dataset.sgrhyin)return sgRhyIn();
+  if(b.dataset.sgrhyout)return sgRhyOut();
   if(b.id==='sgFileBtn')return sgPickAudio();
   if(b.id==='sgRecent'){sgDB.get('lastDir').then(h=>h?sgOpen(h):sgOpen());return}
   if(b.id==='sgRec')return sgRecord();
@@ -4403,7 +4465,7 @@ async function sgFiles(fs){
       fresh=true;
     }
     const key='q:'+au.name+'|'+au.size+'|'+au.lastModified;let song=fresh?null:await sgDB.get(key);   /* 같은 파일은 간이 분석을 다시 하지 않음 (새로 분석이면 다시) */
-    if(!song||song.kind!=='saygita-song'){song=await sgAnalyze(au);sgDB.set(key,song)}sgStat(null);
+    if(!song||song.kind!=='saygita-song'){song=await sgAnalyze(au);sgDB.set(key,song)}sgStat(null);song.qkey=key;
     sgLoad(song,{mix:URL.createObjectURL(au)});
     sgDeep(au,fresh);   /* PC 분석 도우미가 켜져 있으면 이어서 정밀 분석 (fresh = 기존 분석 지우고 새로) */
   }catch(e){sgStat(null);const m=String(e&&e.message||e),nm=String(e&&e.name||''),big=/memory|allocation|RangeError/i.test(m+nm);
