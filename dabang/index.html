@@ -3923,7 +3923,7 @@ function sgRender(){
   /* 보기 고르기: 코드 · 가사 / 각 TAB */
   const views=[['sheet','코드 · 가사']].concat(s.backing&&!s.quick?[['final','🎸 최종 반주 TAB']]:[]).concat((s.backing&&s.backing.rhythm&&s.backing.rhythm.blocks)||(s.chords&&s.chords.length)?[['rhythm','📜 리듬악보']]:[]).concat(Object.entries(s.parts||{}).filter(([k,p])=>p.kind!=='harmonica').map(([k,p])=>[k,p.name.split(' — ')[0]+' TAB']));   /* 하모니카는 노래와 같이 불지 않으므로 코드 · 가사 보기의 노래 없는 마디에 */
   if(!views.some(v=>v[0]===SG.view))SG.view='sheet';
-  sgEl('sgViews').innerHTML=views.map(([k,l])=>`<button class="chip" data-sgview="${k}" aria-pressed="${SG.view===k}">${esc(l)}</button>`).join('')+(s.quick?`<button class="ghost sm" data-sgrhyin="1" title="리듬악보(코드 줄 · 가사 줄 · 길이 숫자 줄)를 넣으면 간이 분석한 박자에 맞춰 코드 · 가사 · 타이밍을 리듬악보대로">📜 리듬악보 ${s.rhyTxt?'다시 넣기':'넣기'}</button>${s.rhyTxt?'<button class="ghost sm" data-sgrhyout="1" title="리듬악보를 빼고 간이 분석 코드로">빼기</button>':''}${s.rhyInfo?`<span class="mt" style="margin-left:6px">${esc(s.rhyInfo)}</span>`:''}`:'');
+  sgEl('sgViews').innerHTML=views.map(([k,l])=>`<button class="chip" data-sgview="${k}" aria-pressed="${SG.view===k}">${esc(l)}</button>`).join('')+(s.quick?`<button class="ghost sm" data-sgrequick="1" title="지금 열린 음원을 간이 분석으로 새로 (넣은 리듬악보는 다시 맞춤)">↻ 다시 분석</button><button class="ghost sm" data-sgrhyin="1" title="리듬악보(코드 줄 · 가사 줄 · 길이 숫자 줄)를 넣으면 간이 분석한 박자에 맞춰 코드 · 가사 · 타이밍을 리듬악보대로">📜 리듬악보 ${s.rhyTxt?'다시 넣기':'넣기'}</button>${s.rhyTxt?'<button class="ghost sm" data-sgrhyout="1" title="리듬악보를 빼고 간이 분석 코드로">빼기</button>':''}${s.rhyInfo?`<span class="mt" style="margin-left:6px">${esc(s.rhyInfo)}</span>`:''}`:'');
   sgEl('sgKey').innerHTML=sgKeyBar();
   sgEl('sgSheet').hidden=SG.view!=='sheet';sgEl('sgTab').hidden=SG.view==='sheet';
   if(SG.view==='sheet')sgSheet();else sgTabView();
@@ -4118,6 +4118,15 @@ function sgRhyIn(){
     try{sgRhyApply(s,ta.value);await sgRhySave();done();if(SG.view!=='rhythm'&&SG.view!=='sheet')SG.view='sheet';sgRender()}
     catch(er){alert('맞추지 못했습니다: '+(er.message||er));t.disabled=false;t.textContent='맞추기'}};
 }
+async function sgReQuick(){   /* 간이 분석 다시: 지금 재생 중인 음원(파일)으로 */
+  const s=SG.song,a=sgMaster();if(!s||!s.quick||!a)return;
+  if(!confirm('이 곡을 간이 분석으로 새로 분석할까요? (박자 · 코드)'+(s.rhyTxt?'\n넣은 리듬악보는 새 분석에 다시 맞춥니다.':'')))return;
+  try{sgPause();const b=await (await fetch(a.src)).blob(),f=new File([b],s.source||s.title,{type:b.type||'audio/mpeg'});
+    const song=await sgAnalyze(f);song.title=s.title;song.source=s.source;song.qkey=s.qkey;
+    if(s.rhyTxt){try{sgRhyApply(song,s.rhyTxt)}catch(e){}}
+    sgLoad(song,{mix:URL.createObjectURL(b)});await sgRhySave();
+  }catch(e){sgStat(null);alert('다시 분석하지 못했습니다: '+(e&&e.message||e))}
+}
 async function sgRhyOut(){
   const s=SG.song;if(!s||!s.chords0)return;if(!confirm('리듬악보를 빼고 간이 분석 코드로 되돌릴까요?'))return;
   s.chords=s.chords0;delete s.chords0;s.lyrics=[];s.lines=[];delete s.rhyTxt;delete s.rhyInfo;if(s.backing)delete s.backing.rhythm;
@@ -4251,6 +4260,7 @@ document.getElementById('p-song').addEventListener('click',e=>{
   const ds=b.dataset;
   if(b.id==='sgOpen')return sgOpen();
   if(b.dataset.sgrhyin)return sgRhyIn();
+  if(b.dataset.sgrequick)return sgReQuick();
   if(b.dataset.sgrhyout)return sgRhyOut();
   if(b.id==='sgFileBtn')return sgPickAudio();
   if(b.id==='sgRecent'){sgDB.get('lastDir').then(h=>h?sgOpen(h):sgOpen());return}
@@ -4459,13 +4469,19 @@ async function sgFiles(fs){
     /* 이미 분석한 곡: PC(도우미 켜짐)에서는 '지우고 새로 분석 / 기존 결과 열기'를 물음. 휴대폰 · 도우미 없음은 새로 해도 간이 분석뿐이라 기존 결과를 엶 */
     SG.pickInfo=au.name+' ('+(au.size/1048576).toFixed(au.size<10485760?1:0)+'MB · '+(au.type||'형식 모름')+')';
     const title=au.name.replace(/\.[^.]+$/,''),known=await sgFindKnown(title);let fresh=false;
-    if(known){
+    let oldRhy=null;
+    if(known&&sgPhone()){const o=await sgDB.get(known.slice(2));oldRhy=o&&o.song&&o.song.rhyTxt||null;
+      if(!confirm(`"${title}"은(는) 이미 분석한 곡입니다.\n\n[확인] 새로 간이 분석 (박자 · 코드${oldRhy?' — 넣은 리듬악보는 다시 맞춤':''})\n[취소] 기존 결과 바로 열기`)){await sgOpenKey(known);return}
+      fresh=true}
+    else if(known){
       const canDeep=!sgPhone()&&SG.auto&&SG.helperOn;
       if(!canDeep||!confirm(`"${title}"은(는) 이미 정밀 분석한 곡입니다.\n\n[확인] 기존 분석을 지우고 최신 분석기로 새로 분석 (곡당 몇 분)\n[취소] 기존 분석 결과 바로 열기`)){await sgOpenKey(known);return}
       fresh=true;
     }
     const key='q:'+au.name+'|'+au.size+'|'+au.lastModified;let song=fresh?null:await sgDB.get(key);   /* 같은 파일은 간이 분석을 다시 하지 않음 (새로 분석이면 다시) */
-    if(!song||song.kind!=='saygita-song'){song=await sgAnalyze(au);sgDB.set(key,song)}sgStat(null);song.qkey=key;
+    if(song&&song.kind==='saygita-song'&&sgPhone()&&!SG.reopenBig&&!known&&confirm(`"${title}"은(는) 이미 간이 분석한 파일입니다.\n\n[확인] 새로 간이 분석\n[취소] 기존 결과 바로 열기`)){oldRhy=song.rhyTxt||null;song=null}
+    SG.reopenBig=false;
+    if(!song||song.kind!=='saygita-song'){song=await sgAnalyze(au);if(oldRhy){try{sgRhyApply(song,oldRhy)}catch(e){}}sgDB.set(key,song)}sgStat(null);song.qkey=key;
     sgLoad(song,{mix:URL.createObjectURL(au)});
     sgDeep(au,fresh);   /* PC 분석 도우미가 켜져 있으면 이어서 정밀 분석 (fresh = 기존 분석 지우고 새로) */
   }catch(e){sgStat(null);const m=String(e&&e.message||e),nm=String(e&&e.name||''),big=/memory|allocation|RangeError/i.test(m+nm);
@@ -4537,7 +4553,7 @@ async function sgFindKnown(title){   /* 같은 이름의 분석 결과 → 열 �
 async function sgOpenKey(v,quiet){
   try{store.set('chordcalc-sglast',v);
     if(v.startsWith('d:')){const x=await sgDB.get(v.slice(2));if(!x){if(!quiet)alert('저장된 곡을 찾지 못했습니다.');return sgListFill()}
-      if(x.big&&!Object.keys(x.blobs||{}).length){if(quiet)return;sgStat('「'+x.big.name+'」 영상 파일을 다시 골라 주세요 — 큰 영상은 기기에 저장하지 않습니다 (분석 결과는 기억해서 바로 열림)');sgPickAudio();return}
+      if(x.big&&!Object.keys(x.blobs||{}).length){if(quiet)return;sgStat('「'+x.big.name+'」 영상 파일을 다시 골라 주세요 — 큰 영상은 기기에 저장하지 않습니다 (분석 결과는 기억해서 바로 열림)');SG.reopenBig=true;sgPickAudio();return}
       const urls={};for(const st of x.song.stems||[])if(x.blobs[st.file])urls[st.id]=URL.createObjectURL(x.blobs[st.file]);
       SG.keepOff=true;sgLoad(x.song,urls);SG.keepOff=false;return}
     if(v.startsWith('p:')){sgStat('PC 분석 도우미에서 불러오는 중…');const base=SG_HELPER+'/song/'+v.slice(2).split('/').map(encodeURIComponent).join('/')+'/';
