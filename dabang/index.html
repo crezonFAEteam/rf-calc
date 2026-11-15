@@ -2176,7 +2176,7 @@ function tuNewString(cur,pre,hz){
 const tuCt=(a,b)=>1200*Math.log2(a/b);
 /* 위아래 1/4을 버린 평균 (6개 미만이면 중앙값) */
 const tuTM=a=>{const s=[...a].sort((p,q)=>p-q);if(s.length<6)return s[s.length>>1];const k=s.length>>2,m=s.slice(k,s.length-k);return m.reduce((p,q)=>p+q,0)/m.length};
-function tuReset(){TU.hist2=[];TU.cand=[];TU.wc=null;TU.lockSi=null;TU.shown=false;TU.pend=false;TU.fl=false}
+function tuReset(){TU.body=[];TU.tailDone=false;TU.rep=null;TU.lateN=0;TU.noFz=false;TU.hist2=[];TU.cand=[];TU.wc=null;TU.lockSi=null;TU.shown=false;TU.pend=false;TU.fl=false}
 /* 정밀 측정 대역 통과: 목표 줄 기본음 ×0.7 아래(저음 잡음)와 6배음 위만 자름.
    기타 소리의 힘은 기본음보다 2·3배음에 많아서 배음은 살려야 잡음 속에서도 또렷함 (줄이 정해지지 않으면 50~900Hz) */
 function tuSetBand(si,now){
@@ -2211,13 +2211,13 @@ function tuTick0(){
   /* 새로 튕김: 앞 음이 울리는 중이어도 음량이 갑자기 1.8배 넘게 커지면 새 음 → 이전 측정값을 버리고 새로 잡음 */
   if(e>Math.max(0.006,TU.nf*3)&&e>(TU.lvl||0)*1.8){
     if(!manual&&now-(TU.atk||0)>200)TU.pre=tuSpec(tuDec(TU.buf.subarray(0,7168)));   /* 튕기기 직전 스펙트럼 */
-    TU.atk=now;TU.peak=e;TU.hist2=[];TU.cand=[];TU.shown=false;TU.wc=null;TU.fl=false;if(!manual)TU.pend=true}
+    TU.atk=now;TU.peak=e;TU.body=[];TU.tailDone=false;TU.rep=null;TU.lateN=0;TU.noFz=false;TU.hist2=[];TU.cand=[];TU.shown=false;TU.wc=null;TU.fl=false;if(!manual)TU.pend=true}
   TU.lvl=TU.lvl?TU.lvl*0.8+e*0.2:e;TU.peak=Math.max((TU.peak||0)*0.998,e);
   const loud=e>Math.max(0.003,TU.nf*1.8),atk=now-(TU.atk||0)<80,atkP=now-(TU.atk||0)<250;   /* 정밀 측정은 튕긴 뒤 0.25초부터 (줄은 처음에 조금 높게 울림) */
   /* 측정 창: 튕긴 뒤(또는 필터 바뀐 뒤) 신호만 씀 → 앞 음이 섞이지 않아 새 음을 바로 잡음 (최소 0.064초, 최대 0.17초) */
   const wlen=t=>Math.max(3072,Math.min(8192,Math.round((now-t)*sr/1000)))&~1;
   /* 소리 꼬리: 튕긴 최고 음량의 12% 아래면 새 값을 받지 않고 마지막 값 유지 (거의 사라진 소리는 잡음과 섞여 음이 틀어져 보임) */
-  const tail=e<TU.peak*0.12;   /* 튕긴 직후 0.1초는 어택 잡음이라 건너뜀 */
+  const tail=e<TU.peak*0.15,late=e<TU.peak*0.3;   /* 늦은 부분(30% 아래)은 음이 잘 흔들림 → 대표값 유지(한쪽으로 계속 움직이면 따라감) · 꼬리(15% 아래)는 새 값 안 받음 */   /* 튕긴 직후 0.1초는 어택 잡음이라 건너뜀 */
   /* 자동: 넓게(0.17초 창, 2:1로 줄여) 재서 가장 가까운 줄 → 같은 줄이 8번 이어져야 그 줄로 정함 */
   if(TU.pend&&now-(TU.atk||0)>500)TU.pend=false;   /* 0.5초 안에 못 정하면 아래 넓은 측정으로 */
   if(!manual&&loud&&!atk&&TU.pend&&TU.pre){
@@ -2236,7 +2236,7 @@ function tuTick0(){
   let got=false;
   if(si!=null&&loud&&!atkP&&!tail&&!(TU.pend&&!manual)&&now-TU.fcAt>60){   /* 필터가 자리 잡은 뒤 */
     TU.an2.getFloatTimeDomainData(TU.buf2);const tg=tuHz(tuMidi(si)),bw=manual?1.414:1.155,r2=tuPitchBand(TU.buf2.subarray(8192-wlen(Math.max((TU.atk||0)+250,TU.fcAt||0))),sr,tg/bw,tg*bw);   /* 자동은 ±250센트만 (옆 줄 음이 섞여도 안 잡힘) */
-    if(r2&&r2.clar>0.5){got=true;TU.gotAt=now;   /* 잡음이 섞이면 선명도가 낮아지므로 기준을 낮추고, 대신 아래 지속성 확인으로 거름 */TU.last=now;
+    if(r2&&r2.clar>0.5){got=true;TU.gotAt=now;if(!late)(TU.body=TU.body||[]).push(r2.f);   /* 잡음이 섞이면 선명도가 낮아지므로 기준을 낮추고, 대신 아래 지속성 확인으로 거름 */TU.last=now;
       if(TU.shown&&Math.abs(tuCt(r2.f,tuTM(TU.hist2)))>20){   /* 지금 음과 20센트 넘게 다른 값: 12번 이어질 때만 새 음 (줄감개를 많이 돌린 경우) */
         const cd=TU.cand;if(cd.length&&Math.abs(tuCt(r2.f,cd[cd.length-1]))>30)cd.length=0;cd.push(r2.f);
         if(cd.length>=12){TU.hist2=cd.slice(-12);TU.cand=[];TU.newNote=true}
@@ -2245,7 +2245,16 @@ function tuTick0(){
       if(!TU.shown&&TU.hist2.length>=8){const l=TU.hist2.slice(-8),m=tuTM(l);if(l.every(f=>Math.abs(tuCt(f,m))<30)){TU.hist2=l;TU.shown=true;TU.newNote=true}else TU.hist2.shift()}
     }
   }
-  if(TU.shown&&got)tuShow(tuTM(TU.hist2),now);
+  const repOf=()=>tuTM(TU.body.slice(TU.body.length>>1));   /* 이번 튕김 대표값: 몸통(0.25초 뒤 ~ 30%)의 뒤쪽 절반 */
+  const repLbl=()=>{const hz=document.getElementById('tuHz');if(hz&&!hz.textContent.includes('대표값'))hz.textContent+='  ·  이번 튕김 대표값'};
+  if(TU.shown&&got){const sl=tuTM(TU.hist2),fa=TU.hist2.length>=8?tuTM(TU.hist2.slice(-8)):sl;let v=Math.abs(tuCt(fa,sl))>3?fa:sl,fz=false;
+    if(late&&!TU.noFz&&TU.body&&TU.body.length>=10){
+      if(TU.rep==null){TU.rep=repOf();TU.newNote=true}
+      const d=tuCt(fa,TU.rep),sg=Math.sign(d);if(Math.abs(d)>4){TU.lateN=TU.lateS===sg?(TU.lateN||0)+1:1;TU.lateS=sg}else TU.lateN=0;
+      if(TU.lateN>=6){TU.noFz=true;TU.newNote=true}else{v=TU.rep;fz=true}}   /* 한쪽으로 계속(줄감개 돌림) → 따라감, 아니면 대표값 */
+    tuShow(v,now);if(fz)repLbl()}
+  else if(tail&&TU.shown&&!TU.tailDone&&!TU.noFz&&TU.body&&TU.body.length>=10){
+    TU.tailDone=true;if(TU.rep==null){TU.rep=repOf();TU.newNote=true}tuShow(TU.rep,now);repLbl();TU.last=now+1500}
   else if(!atk&&now-(TU.last||0)>1500&&(TU.cur||TU.shown||TU.lockSi!=null)){TU.hist2=[];TU.cand=[];TU.shown=false;TU.wc=null;TU.pend=false;TU.fl=false;if(!manual){TU.lockSi=null;tuSetBand(null,now)}tuShow(null,now)}   /* 1.5초 동안 소리 없으면 비움 */
   tuStrobe(now);tuTrail(now);
 }
@@ -2260,14 +2269,15 @@ function tuShow(f,now){
   const target=tuMidi(si),raw=1200*Math.log2(f/tuHz(target));
   /* 바늘 떨림 줄이기: 항상 시간 기준 지수 평활(τ 0.12초). 새 음으로 확정됐을 때만 바로 그 값으로 */
   const dt=TU.scAt?Math.min(0.2,(now-TU.scAt)/1000):0;TU.scAt=now;
-  if(TU.sc==null||!TU.cur||TU.cur.si!==si||TU.newNote){TU.sc=raw;TU.newNote=false}else TU.sc+=(1-Math.exp(-dt/0.4))*(raw-TU.sc);
+  if(TU.sc==null||!TU.cur||TU.cur.si!==si||TU.newNote){TU.sc=raw;TU.newNote=false}else{const dv=raw-TU.sc,sg=Math.sign(dv);if(Math.abs(dv)>3){if(TU.trS===sg)TU.trN++;else{TU.trS=sg;TU.trN=1}}else TU.trN=0;
+    TU.sc+=(1-Math.exp(-dt/(TU.trN>=6?0.08:0.4)))*(raw-TU.sc)}
   const c=TU.sc,near=Math.round(69+12*Math.log2(f/TU.a4)),far=Math.abs(c)>100,thIn=TU.prec==='fine'?3:5,ok=Math.abs(c)<=(TU.okSince||TU.locked?thIn+2:thIn);
   if(ok&&!far){if(!TU.okSince)TU.okSince=now}else{TU.okSince=0;TU.locked=false}
   const lock=ok&&!far&&now-TU.okSince>600;
   if(lock&&!TU.locked){TU.locked=true;try{if(navigator.vibrate&&(!navigator.userActivation||navigator.userActivation.hasBeenActive))navigator.vibrate(40)}catch(e){}}
   g('tuNote').textContent=nn(near);g('tuOct').textContent=String(Math.floor(near/12)-1);
   g('tuHz').textContent=f.toFixed(2)+' Hz  ·  목표 '+(6-si)+'번 줄 '+tuName(target)+' '+tuHz(target).toFixed(2)+' Hz';
-  g('tuCents').textContent=far?'':((Math.round(c)>=0?'+':'−')+Math.abs(Math.round(c))+' 센트');
+  g('tuCents').textContent=far?'':((Math.round(c)>0?'+':Math.round(c)<0?'−':'')+Math.abs(Math.round(c))+' 센트');
   g('tuMsg').textContent=far?(TU.mode==='manual'?`${6-si}번 줄 ${tuName(target)}과 많이 다릅니다 (지금 ${tuName(near)})`:'음이 많이 벗어났습니다')
     :lock?'맞았습니다 ✓ (고정)':ok?'거의 맞음 — 그대로 잠깐…':Math.abs(c)<10?(c<0?'아주 조금 낮음 — 살짝 조이세요 ↑':'조금 높음 — 목표보다 살짝 아래로 풀었다가 조여서 맞추세요 ↓↑'):(c<0?'낮음 — 줄을 조이세요 ↑':'높음 — 목표보다 아래로 풀었다가 조여서 맞추세요 ↓↑');
   g('tuMsg').className='tu-msg'+(lock?' ok':ok?' near':'');
