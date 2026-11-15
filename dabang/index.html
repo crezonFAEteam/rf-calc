@@ -2188,6 +2188,19 @@ function tuSetBand(si,now){
    3) 같은 음높이가 이어질 때만 표시 (잡음 · 말소리는 음높이가 계속 바뀌거나 금방 끊김) */
 function tuTick(){
   TU.raf=0;if(!TU.on)return;
+  try{tuTick0()}catch(err){try{console.warn('tuner',err)}catch(_){}}
+  if(!TU.on)return;
+  try{const now=performance.now();let mx=0;const b=TU.buf;if(b)for(let i=b.length-2048;i<b.length;i++){const v=b[i]<0?-b[i]:b[i];if(v>mx)mx=v}
+    if(mx===0){if(!TU.zero)TU.zero=now;else if(now-TU.zero>1500&&!TU.rst)tuRestart('마이크 입력이 끊겨 다시 켭니다…')}else TU.zero=0;
+    if(actx&&actx.state!=='running'&&now-(TU.rsm||0)>1000){TU.rsm=now;actx.resume().catch(()=>{})}}catch(e){}
+  if(TU.on&&!TU.raf)TU.raf=requestAnimationFrame(tuTick);
+}
+function tuRestart(msg){const now=performance.now(),m=document.getElementById('tuMsg');TU.rlog=(TU.rlog||[]).filter(t=>now-t<30000);
+  if(TU.rlog.length>=2){TU.zero=now+30000;if(m)m.textContent='마이크 소리가 들어오지 않습니다 — 마이크 음소거 · 다른 앱이 마이크를 쓰는지 확인하세요';return}
+  TU.rlog.push(now);TU.rst=true;TU.zero=0;if(m&&msg)m.textContent=msg;
+  tuStop();Promise.resolve(tuStart()).finally(()=>{TU.rst=false})}
+function tuTick0(){
+  if(!TU.on)return;
   TU.an.getFloatTimeDomainData(TU.buf);
   const sr=actx.sampleRate,now=performance.now(),manual=TU.mode==='manual';
   let e=0;for(let i=TU.buf.length-1024;i<TU.buf.length;i++)e+=TU.buf[i]*TU.buf[i];e=Math.sqrt(e/1024);
@@ -2233,7 +2246,6 @@ function tuTick(){
   if(TU.shown&&got)tuShow(tuTM(TU.hist2),now);
   else if(!atk&&now-(TU.last||0)>1500&&(TU.cur||TU.shown||TU.lockSi!=null)){TU.hist2=[];TU.cand=[];TU.shown=false;TU.wc=null;TU.pend=false;TU.fl=false;if(!manual){TU.lockSi=null;tuSetBand(null,now)}tuShow(null,now)}   /* 1.5초 동안 소리 없으면 비움 */
   tuStrobe(now);tuTrail(now);
-  TU.raf=requestAnimationFrame(tuTick);
 }
 /* 화면: 음 이름 · 센트 바늘 · ±10센트 확대 막대 · 스트로브 · 맞음 고정 */
 function tuShow(f,now){
@@ -2372,6 +2384,7 @@ async function tuStart(){
     actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();   /* 터치 안에서 먼저 깨움 (아이폰) */
     TU.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
     if(actx.state==='suspended')await actx.resume();
+    TU.stream.getAudioTracks().forEach(t=>{t.onended=()=>{if(TU.on&&!TU.rst&&TU.stream&&TU.stream.getAudioTracks().includes(t))tuRestart('마이크가 끊겨 다시 켭니다…')}});
     TU.src=actx.createMediaStreamSource(TU.stream);TU.an=actx.createAnalyser();TU.an.fftSize=8192;TU.buf=new Float32Array(TU.an.fftSize);
     /* 높은 배음(실제 줄은 배음이 조금씩 높게 울림)이 기본음 측정을 끌어올리지 않도록 저역 통과 */
     TU.lp=actx.createBiquadFilter();TU.lp.type='lowpass';TU.lp.frequency.value=900;TU.lp.Q.value=0.6;
@@ -2402,7 +2415,10 @@ function tuStop(){
 function tuRef(i){
   try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();
     const s=actx.createBufferSource(),gn=actx.createGain();gn.gain.value=0.4;s.buffer=makeBuf(tuMidi(i),4.8,0.996,0.9,true);   /* exact: 음정 흔들기 없음 · 2배 길게 울림 */
-    s.detune.value=1200*Math.log2(TU.a4/440);s.connect(gn);gn.connect(gOut());s.start(actx.currentTime+0.02)}catch(e){}
+    s.detune.value=1200*Math.log2(TU.a4/440);s.connect(gn);gn.connect(gOut());
+    try{if(TU.refSrc)TU.refSrc.stop()}catch(e){}TU.refSrc=s;
+    s.onended=()=>{if(TU.refSrc===s){TU.refSrc=null;TU.peak=0;TU.nf=null;TU.lvl=0}};
+    s.start(actx.currentTime+0.02)}catch(e){}
 }
 document.getElementById('p-tune').addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
