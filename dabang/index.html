@@ -2801,7 +2801,7 @@ function edState(msg){   /* 도우미가 없거나 예전 버전: 안내 + 뼈�
   const dis=!!msg;['edSong','edOpenSong','edOpenDir','edImpFile','edImpLink','edImpRec'].forEach(i=>sgEl(i).disabled=dis);
   sgEl('p-edit').classList.toggle('ed-dis',dis);
 }
-const SG_HELPER_BUILD=20261122;   /* 이 앱에 맞는 도우미 설치본 판 — 도우미가 더 낮으면 새 설치 안내 */
+const SG_HELPER_BUILD=20261123;   /* 이 앱에 맞는 도우미 설치본 판 — 도우미가 더 낮으면 새 설치 안내 */
 async function edShow(){
   let ping=null;if(!sgPhone())try{ping=await (await fetch(SG_HELPER+'/ping',{cache:'no-store',signal:AbortSignal.timeout(1500)})).json()}catch(e){}
   sgEl('edRestart').hidden=!(ping&&ping.restart);
