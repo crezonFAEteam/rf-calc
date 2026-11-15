@@ -15,7 +15,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;600&family=Nanum+Gothic+Coding:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#E3E8E0; --surface:#F2F5EF; --ink:#1C2821; --muted:#55655B; --line:#C2CCBF;
+  --bg:#E3E8E0; --surface:#F2F5EF; --ink:#1C2821; --muted:#55655B; --line:#C2CCBF; --tabnote:#1D5FB0;
   --accent:#8F5E0C; --accent-fill:#D49A2A; --on-accent:#24170A; --chip:#E8EDE4; --focus:#2F6B52;
   color-scheme:light;
   box-sizing:border-box;
@@ -23,13 +23,13 @@
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
-    --bg:#111915; --surface:#18231D; --ink:#E4EBE5; --muted:#93A399; --line:#2C3B33;
+    --bg:#111915; --surface:#18231D; --ink:#E4EBE5; --muted:#93A399; --line:#2C3B33; --tabnote:#8CC4FF;
     --accent:#E3AE45; --accent-fill:#D49A2A; --on-accent:#1E1406; --chip:#1F2C25; --focus:#7CC2A2;
     color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#111915; --surface:#18231D; --ink:#E4EBE5; --muted:#93A399; --line:#2C3B33;
+  --bg:#111915; --surface:#18231D; --ink:#E4EBE5; --muted:#93A399; --line:#2C3B33; --tabnote:#8CC4FF;
   --accent:#E3AE45; --accent-fill:#D49A2A; --on-accent:#1E1406; --chip:#1F2C25; --focus:#7CC2A2;
   color-scheme:dark;
 }
@@ -179,7 +179,7 @@ textarea{width:100%;background:var(--surface);border:1px solid var(--line);borde
 .tab pre{margin:0;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:var(--tabfs,13px);line-height:1.7;color:var(--muted)}
 #adTab{touch-action:pan-x pan-y}   /* 두 손가락 확대는 스크립트가 악보 글자만 키운다 */
 /* 프렛 숫자: 줄(-)은 흐리게, 숫자는 굵고 크게. 칸 폭은 그대로 두고 그림만 키워 줄 맞춤이 안 깨지게 */
-.tab pre span[data-n]{display:inline-block;color:var(--ink);font-weight:800;transform:scale(1.25,1.4);background:var(--surface);border-radius:2px}
+.tab pre span[data-n]{display:inline-block;color:var(--tabnote);font-weight:800;transform:scale(1.25,1.4);background:var(--surface);border-radius:2px}
 .tab pre span[data-n].now{background:var(--accent-fill);color:var(--on-accent)}
 .tab .ly{display:inline-block;overflow:hidden;white-space:nowrap;vertical-align:bottom;line-height:1.5}
 .tab .ly i{font-style:normal;font-family:"IBM Plex Sans KR",system-ui,sans-serif;font-size:1.35em;font-weight:600;color:var(--ink)}   /* 칸에 넘치면 스크립트가 그 조각만 줄임 */
