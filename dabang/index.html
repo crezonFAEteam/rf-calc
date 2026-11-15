@@ -2581,7 +2581,7 @@ function sgLoad(song,urls){lySnap(song);
   sgVol();sgRender();sgDgReset();if(SG.ps||sgPitchSemi())sgPitchApply();
   if((!song.quick||sgPhone())&&!SG.keepOff)sgKeep(song,urls);   /* 다음엔 '분석된 곡' 목록에서 바로 */
 }
-function sgMaster(){return SG.els[SG.ids[0]]}
+function sgMaster(){const m=SG.els[SG.ids[0]];if(SG.playing&&m&&m.paused){const o=SG.ids.map(i=>SG.els[i]).find(e=>e&&!e.paused);if(o)return o}return m}   /* 재생 중엔 실제로 움직이는 트랙을 기준으로 */
 /* 재생 점검: 끊김 원인을 이 기기에서 바로 셈 → 문제가 있을 때만 재생 막대 아래에 표시 */
 function sgDgReset(){SG.dg={wait:0,who:{},nudge:0,seek:0,eng:0,eng0:null};sgDgShow()}
 function sgDg(k,who){if(!SG.playing||!SG.dg)return;SG.dg[k]++;if(who)SG.dg.who[who]=(SG.dg.who[who]||0)+1;sgDgShow()}
@@ -2689,7 +2689,7 @@ function sgVol(){const anySolo=SG.ids.some(i=>SG.mix[i].solo);
     e.volume=Math.min(1,v);if(g)g.gain.value=v>1?v:1}}
 /* ---------- 재생 · 동기 ---------- */
 function sgPlay(){
-  const m=sgMaster();if(!m)return;if(BL.playing)blStop();if(ad.playing)adStop();
+  sgUnlock();const m=SG.els[SG.ids[0]];if(!m)return;if(BL.playing)blStop();if(ad.playing)adStop();
   if(SG.ac&&SG.ac.state!=='running')SG.ac.resume();if(sgPitchSemi()||SG.ps)sgPitchApply();
   const nb=SG.song.bars,a=SG.seg?SG.seg.a:SG.from*16,z=SG.seg?SG.seg.z:(SG.to<0?nb:SG.to+1)*16;
   if(SG.seg||SG.from>0||SG.to>=0){const t=m.currentTime,ta=Math.max(0,sgTime(a)),tz=sgTime(z);if(t<ta-0.05||t>=tz)sgSeek(ta)}
@@ -2720,6 +2720,8 @@ function sgPlayCheck(t0){
   const moved=Math.abs(m.currentTime-t0)>0.2&&!m.paused,errs=Object.entries(SG.perr||{});
   const d=sgEl('sgDiag');
   if(moved&&!errs.length)return;
+  const audible=SG.ids.some(i=>{const e=SG.els[i],x=SG.mix[i];return e&&!e.paused&&x&&!x.mute&&x.vol>0});   /* 실제로 소리 나는 트랙이 있나 (끔인 원곡만 돌면 무음) */
+  if(moved&&audible){if(d){d.hidden=false;d.textContent='일부 트랙이 재생되지 않습니다 — '+errs.map(([i,e])=>{const st=(SG.song.stems||[]).find(x=>x.id===i);return (st?st.name:i)+': '+e}).join(', ')}return}   /* 소리는 나는 중 → 원곡 하나로 바꾸지 않음 */
   const names=errs.map(([i,e])=>{const st=(SG.song.stems||[]).find(x=>x.id===i);return (st?st.name:i)+': '+e}).join(', ');
   if(!SG.solo1&&SG.ids.length>1){   /* 여러 트랙 중 막힌 것이 있으면 → 원곡(없으면 첫 트랙) 하나만 */
     SG.solo1=SG.ids.includes('mix')?'mix':SG.ids[0];
@@ -2728,7 +2730,15 @@ function sgPlayCheck(t0){
     sgPause();sgPlay();return}
   if(d){d.hidden=false;d.textContent='재생되지 않습니다'+(names?' — '+names:'')+(m.readyState<2?' · 음원을 아직 받는 중일 수 있습니다 (잠시 뒤 다시 [재생])':'')+' · 무음 스위치 · 볼륨도 확인해 주세요'}
 }
-function sgPlayStart(){   /* [재생] 버튼 · 스페이스 */
+function sgUnlock(){
+  try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+    if(!actx)actx=new AC();if(actx.state!=='running')actx.resume();
+    if(!SG.unlocked){const b=actx.createBuffer(1,1,22050),s=actx.createBufferSource();s.buffer=b;s.connect(actx.destination);s.start(0);SG.unlocked=true}
+    if(SG.ac&&SG.ac.state!=='running')SG.ac.resume();
+  }catch(e){}
+}
+function sgPlayStart(){
+  sgUnlock();   /* [재생] 버튼 · 스페이스 */
   SG.seg=null;
   if(!SG.cue)sgSeek(SG.from>0?Math.max(0,sgTime(SG.from*16)):0);
   SG.cue=false;sgPlay();
