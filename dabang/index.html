@@ -3070,8 +3070,15 @@ sgEl('p-edit').addEventListener('click',async e=>{
     try{ED.list=(await edApi('/song-del',{song,file:b.dataset.eddel,url:b.dataset.edurl},'')).list;edRender()}catch(er){alert(er.message||er)}return}
   if(b.dataset.edan){const again=(ED.list.analysis||[]).length>0;if(again&&!confirm('음원분석을 지우고 다시 분석할까요? (몇 분 걸립니다)'))return;
     try{const j=await edApi('/analyze-song',{song,fresh:again?'1':''},'');ED.busy[song]='곡 분석 시작 — '+(j.media||'');edRender();edPoll(j.id,song,'곡 분석')}catch(er){alert(er.message||er)}return}
-  if(b.dataset.edshare){b.disabled=true;b.textContent='묶어서 복사하는 중…';
-    try{const j=await edApi('/share',{song},'');ED.list=j.list;edRender();alert('공유폴더로 복사했습니다:\n'+j.file)}catch(er){alert('복사하지 못했습니다: '+(er.message||er));edRender()}return}
+  if(b.dataset.edshare){   /* 📤 공유폴더로 복사: 끝날 때까지 기다림 (진행 초 표시 · 1분 넘으면 그만 기다림) */
+    b.disabled=true;const t0=Date.now(),tick=setInterval(()=>{b.textContent=`묶어서 복사하는 중… ${Math.round((Date.now()-t0)/1000)}초`},250);b.textContent='묶어서 복사하는 중… 0초';
+    const ac=new AbortController(),to=setTimeout(()=>ac.abort(),60000);
+    try{const r=await fetch(SG_HELPER+'/share?'+new URLSearchParams({song}),{method:'POST',body:'',signal:ac.signal});const j=await r.json().catch(()=>({}));if(!r.ok||j.error)throw new Error(j.error||('도우미 응답 '+r.status));
+      clearInterval(tick);clearTimeout(to);ED.list=j.list;edRender();
+      const ph=(j.list&&j.list.phone)||{},mb=ph.size?(ph.size/1048576).toFixed(0)+'MB':'';
+      alert(`✔ 복사 완료 (${mb}${mb?', ':''}${Math.round((Date.now()-t0)/1000)}초)\n${j.file}\n\n클라우드(OneDrive · 구글 드라이브)가 올리는 데 1~2분 더 걸릴 수 있습니다.`)}
+    catch(er){clearInterval(tick);clearTimeout(to);edRender();
+      alert(er&&er.name==='AbortError'?'1분 안에 복사가 끝나지 않았습니다. 도우미는 계속 복사하고 있을 수 있으니 잠시 뒤 [새로고침]으로 "공유폴더: 복사됨" 시각을 확인하세요.':'복사하지 못했습니다: '+(er.message||er))}return}
   if(b.dataset.edce){if(!(ED.list.analysis||[]).length){alert('곡 분석을 먼저 하세요.');return}ceOpen(song);return}
 });
 /* ---------- 곡편집 › 기타반주보정 › ✏️ 단계별 편집 ----------
