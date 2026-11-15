@@ -4249,11 +4249,38 @@ function sgFFT(re,im){   /* 제자리 FFT (길이 2의 거듭제곱) */
   for(let len=2;len<=n;len<<=1){const a=-2*Math.PI/len,wr=Math.cos(a),wi=Math.sin(a);
     for(let i=0;i<n;i+=len){let cr=1,ci=0;for(let k=0;k<len/2;k++){const p=i+k,q=p+len/2,tr=re[q]*cr-im[q]*ci,ti=re[q]*ci+im[q]*cr;re[q]=re[p]-tr;im[q]=im[p]-ti;re[p]+=tr;im[p]+=ti;const nr=cr*wr-ci*wi;ci=cr*wi+ci*wr;cr=nr}}}
 }
+/* 영상 · 큰 파일: 소리 없이 4배속으로 재생하며 소리만 받음 (음높이 보존 끔 → 받은 소리를 1/4 빠르기 표본으로 보면 원래 소리) */
+async function sgCapture(file){
+  const RATE=4,url=URL.createObjectURL(file),a=new Audio();a.preload='auto';a.src=url;
+  a.preservesPitch=false;a.mozPreservesPitch=false;a.webkitPreservesPitch=false;
+  let ac=null;
+  try{
+    sgStat('영상 · 큰 파일 여는 중…',2);
+    await new Promise((ok,no)=>{a.onloadedmetadata=ok;a.onerror=()=>no(new Error('이 기기가 이 파일을 재생하지 못합니다'));setTimeout(()=>no(new Error('파일을 여는 데 너무 오래 걸립니다')),40000)});
+    const dur=a.duration;if(!isFinite(dur)||dur<=0)throw new Error('길이를 알 수 없는 파일입니다');
+    ac=new (window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')await ac.resume();
+    const src=ac.createMediaElementSource(a),sp=ac.createScriptProcessor(4096,2,1),mute=ac.createGain();mute.gain.value=0;
+    const chunks=[];let n=0;
+    sp.onaudioprocess=e=>{if(a.paused||a.ended)return;const b=e.inputBuffer,L=b.getChannelData(0),R=b.numberOfChannels>1?b.getChannelData(1):L,c=new Float32Array(L.length);
+      for(let i=0;i<L.length;i++)c[i]=(L[i]+R[i])*0.5;chunks.push(c);n+=c.length};
+    src.connect(sp);sp.connect(mute);mute.connect(ac.destination);
+    a.playbackRate=RATE;await a.play();
+    await new Promise((ok,no)=>{a.onended=ok;a.onerror=()=>no(new Error('재생 중 오류'));
+      const iv=setInterval(()=>{sgStat(`영상 소리 받는 중… ${Math.round(100*a.currentTime/dur)}% (화면을 켜 두세요)`,2+Math.min(38,38*a.currentTime/dur));if(a.ended){clearInterval(iv);ok()}},500)});
+    try{sp.disconnect();src.disconnect()}catch(e){}
+    if(n<4096)throw new Error('소리를 받지 못했습니다');
+    const sr=Math.max(3000,Math.round(n/dur)),buf=new AudioBuffer({length:n,numberOfChannels:1,sampleRate:sr}),ch=buf.getChannelData(0);
+    let o=0;for(const c of chunks){ch.set(c,o);o+=c.length}
+    return buf;
+  }finally{try{a.pause()}catch(e){}URL.revokeObjectURL(url);try{ac&&ac.close()}catch(e){}}
+}
 async function sgAnalyze(file){
   const SR=22050,N=2048,H=512,NOTE=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
   sgStat('음원 읽는 중…',2);
-  const ac=new (window.AudioContext||window.webkitAudioContext)();let au;
-  try{au=await ac.decodeAudioData(await file.arrayBuffer())}finally{try{ac.close()}catch(e){}}
+  let au=null;
+  if(!window.__sgForceCap&&file.size<150*1048576){const ac=new (window.AudioContext||window.webkitAudioContext)();
+    try{au=await ac.decodeAudioData(await file.arrayBuffer())}catch(e){au=null}finally{try{ac.close()}catch(e){}}}
+  if(!au)au=await sgCapture(file);   /* 큰 영상 · 한 번에 못 읽는 형식: 빠르게 재생하며 소리만 받음 */
   const off=new OfflineAudioContext(1,Math.ceil(au.duration*SR),SR),bs=off.createBufferSource();bs.buffer=au;bs.connect(off.destination);bs.start();
   const x=(await off.startRendering()).getChannelData(0),dur=au.duration;
   /* 1) 짧은 구간마다 주파수 → 소리 시작 세기(onset) · 화음 성분(chroma) · 저음 성분 */
@@ -4390,7 +4417,8 @@ const SG_KEEP=12;   /* 기기에 저장해 두는 곡 수 (오래된 것부터 �
 async function sgKeep(song,urls){   /* 연 곡을 기기에 저장 (곡 정보 + 트랙 파일) → 다음엔 목록에서 바로 */
   try{
     if(!song||(song.quick&&!sgPhone()))return;
-    let idx0=(await sgDB.get('songIndex'))||[];if(song.quick&&idx0.some(x=>x.key==='song:'+song.title&&!x.quick))return;   /* 정밀 분석본은 간이로 덮지 않음 */
+    let idx0=(await sgDB.get('songIndex'))||[];if(song.quick&&idx0.some(x=>x.key==='song:'+song.title&&!x.quick))return;
+    if(song.quick&&urls.mix){try{const b=await (await fetch(urls.mix)).blob();if(b.size>100*1048576)return}catch(e){}}   /* 100MB 넘는 영상은 기기에 저장하지 않음 (다시 열 때 파일을 고르면 분석은 바로 — 결과는 기억) */   /* 정밀 분석본은 간이로 덮지 않음 */
     const blobs={};for(const st of song.stems||[])if(urls[st.id])blobs[st.file]=await (await fetch(urls[st.id])).blob();
     const key='song:'+song.title;await sgDB.set(key,{song,blobs});
     let idx=(await sgDB.get('songIndex'))||[];idx=idx.filter(x=>x.key!==key);idx.unshift({key,title:song.title,at:Date.now(),quick:!!song.quick});
