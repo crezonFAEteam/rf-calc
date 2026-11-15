@@ -270,6 +270,8 @@ body[data-page="edit"] #boardScroll,body[data-page="edit"] .board-bar,body[data-
 .ed-pick canvas{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:6px;background:#fff}
 .ed-pick .pk-in{outline:3px solid #2e7d32;outline-offset:-3px}
 .ed-paste{width:100%;min-height:18em;font-family:'Nanum Gothic Coding','D2Coding',monospace;font-size:.92rem;line-height:1.5;white-space:pre;overflow:auto;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
+.ed-shc{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.ed-shc button{text-align:left;line-height:1.3}.ed-shc small{color:var(--muted)}
+.ed-shin{width:100%;padding:3px 6px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink)}
 .ed-pname{width:16em;padding:2px 6px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink)}
 .ed-old{margin:0 0 6px;padding:6px 10px;border:2px solid #c79100;border-radius:8px;background:color-mix(in srgb,#c79100 10%,var(--surface));line-height:1.7}
 .ed-pick .pk-sum{font-size:.85rem;color:var(--muted)}
@@ -2728,7 +2730,7 @@ function edState(msg){   /* 도우미가 없거나 예전 버전: 안내 + 뼈�
   const dis=!!msg;['edSong','edOpenSong','edOpenDir','edImpFile','edImpLink','edImpRec'].forEach(i=>sgEl(i).disabled=dis);
   sgEl('p-edit').classList.toggle('ed-dis',dis);
 }
-const SG_HELPER_BUILD=20261115;   /* 이 앱에 맞는 도우미 설치본 판 — 도우미가 더 낮으면 새 설치 안내 */
+const SG_HELPER_BUILD=20261116;   /* 이 앱에 맞는 도우미 설치본 판 — 도우미가 더 낮으면 새 설치 안내 */
 async function edShow(){
   let ping=null;if(!sgPhone())try{ping=await (await fetch(SG_HELPER+'/ping',{cache:'no-store',signal:AbortSignal.timeout(1500)})).json()}catch(e){}
   sgEl('edRestart').hidden=!(ping&&ping.restart);
@@ -2738,7 +2740,7 @@ async function edShow(){
   try{
     const f=await edApi('/folders');
     const old=(ping.build||0)<SG_HELPER_BUILD;   /* 예전 설치본: 쓰는 건 되지만 새 기능(악보 가사 읽기 · 리듬악보 저장 등)이 빠질 수 있음 */
-    sgEl('edPaths').innerHTML=(old?`<div class="ed-warn ed-old">⚠ 이 PC의 분석 도우미가 <b>예전 설치본</b>입니다 (판 ${ping.build||'없음'} → 필요 ${SG_HELPER_BUILD}). <button class="play" data-sghelper>⬇ 새 설치 파일 받기 (암호)</button> → 압축 풀기 → <b>설치하기.bat</b> 다시 실행 (켜져 있는 도우미는 설치가 알아서 끄고 바꿉니다 · 라이브러리 · 곡 폴더는 그대로) → 끝나면 [새로고침]</div>`:'')+`분석폴더: <b>${esc(f.root)}</b>\\[곡명 폴더 자동 생성]<br>공유폴더: <b>${esc(f.share)}</b>${f.shareOk?'':' <span class="ed-warn">(이 PC에 없음)</span>'}`;
+    sgEl('edPaths').innerHTML=(old?`<div class="ed-warn ed-old">⚠ 이 PC의 분석 도우미가 <b>예전 설치본</b>입니다 (판 ${ping.build||'없음'} → 필요 ${SG_HELPER_BUILD}). <button class="play" data-sghelper>⬇ 새 설치 파일 받기 (암호)</button> → 압축 풀기 → <b>설치하기.bat</b> 다시 실행 (켜져 있는 도우미는 설치가 알아서 끄고 바꿉니다 · 라이브러리 · 곡 폴더는 그대로) → 끝나면 [새로고침]</div>`:'')+`분석폴더: <b>${esc(f.root)}</b>\\[곡명 폴더 자동 생성]<br>공유폴더: <b>${esc(f.share||'(정하지 않음)')}</b>${f.shareOk?'':' <span class="ed-warn">(이 PC에 없음 — 휴대폰용 zip 복사 안 됨)</span>'} <button class="ghost sm" data-edshare="1" title="휴대폰용 zip 을 복사할 폴더 — OneDrive · 구글 드라이브 등">바꾸기</button>`;
     const fl=f.folders||[];if(!ED.song||!fl.some(x=>x.title===ED.song))ED.song=(fl[0]||{}).title||'';
     sgEl('edSong').innerHTML=fl.length?fl.map(x=>`<option value="${esc(x.title)}"${x.title===ED.song?' selected':''}>${esc(x.title)}${x.analyzed?'':'  (분석 전)'}</option>`).join(''):'<option value="">곡 폴더 없음 — [＋ 새 곡]</option>';
     if(ED.song)await edLoad(ED.song);else{sgEl('edIn').innerHTML='';sgEl('edOut').innerHTML=''}
@@ -2837,6 +2839,25 @@ async function edAddPdf(song,k,blob,fname){   /* 악보 PDF → (쪽 고르기) 
 }
 function edPick(accept){return new Promise(res=>{const el=sgEl('edFile');el.accept=accept;el.value='';el.onchange=()=>res(el.files&&el.files[0]||null);el.click()})}
 /* 리듬악보 붙여넣기: 창에 TXT 를 붙여넣고 저장 → 입력\리듬악보 - ….txt (다른 리듬악보는 '출력에 사용' 끔) */
+/* 공유폴더 바꾸기: 후보(OneDrive · 구글 드라이브) 고르거나 경로 직접 */
+async function edShareDir(){
+  const j=await (await fetch(SG_HELPER+'/share-dir',{cache:'no-store'})).json().catch(()=>null);
+  if(!j){alert('도우미에서 공유폴더 정보를 받지 못했습니다 (도우미를 새로 시작해 보세요).');return}
+  const box=sgEl('edPick');box.hidden=false;
+  box.innerHTML=`<div><b>공유폴더 — 휴대폰용 zip 을 복사할 곳</b>
+    <p class="pk-sum">곡편집 [공유폴더로 복사]가 &lt;곡명&gt;.zip 을 이 폴더에 넣습니다. OneDrive · 구글 드라이브 폴더로 하면 휴대폰에서 그 앱으로 받을 수 있습니다.
+    구글 드라이브는 PC에 <b>Google Drive for desktop</b>을 설치하면 <b>G:\\내 드라이브</b> 같은 보통 폴더로 보입니다.</p>
+    <div class="pk-sum">지금: <b>${esc(j.share||'(정하지 않음)')}</b>${j.share&&!j.ok?' <span class="ed-warn">(없음)</span>':''}</div>
+    <div class="ed-shc">${(j.candidates||[]).map(c=>`<button class="ghost sm" data-shp="${esc(c.path)}">${esc(c.label)}<br><small>${esc(c.path)}${c.exists?'':' (새로 만듦)'}</small></button>`).join('')||'<span class="pk-sum">찾은 후보 없음 — 아래에 직접 넣으세요</span>'}</div>
+    <div class="pk-bar">경로 <input type="text" class="ed-shin" value="${esc(j.share||'')}" placeholder="예: G:\\내 드라이브\\saysay"></div>
+    <div class="pk-bar" style="justify-content:flex-end"><button class="ghost sm" data-pk="cancel">취소</button><button class="play" data-pk="ok">저장</button></div></div>`;
+  const inp=box.querySelector('.ed-shin');
+  box.onchange=null;box.onclick=async e=>{const c=e.target.closest('[data-shp]');if(c){inp.value=c.dataset.shp;return}
+    const t=e.target.closest('[data-pk]');if(!t){if(e.target===box){box.hidden=true;box.innerHTML=''}return}
+    if(t.dataset.pk==='cancel'){box.hidden=true;box.innerHTML='';return}
+    t.disabled=true;try{const r=await (await fetch(SG_HELPER+'/share-dir?'+new URLSearchParams({path:inp.value}),{method:'POST'})).json();
+      if(!r.ok)throw new Error(r.error||'저장 실패');box.hidden=true;box.innerHTML='';edShow()}catch(er){alert('공유폴더를 바꾸지 못했습니다: '+(er.message||er));t.disabled=false}};
+}
 function edPasteRhy(song){
   return new Promise(res=>{
     const box=sgEl('edPick');box.hidden=false;
@@ -2918,6 +2939,7 @@ sgEl('p-edit').addEventListener('click',async e=>{
   if(b.dataset.edopen){if(song)edApi('/open',{song,sub:b.dataset.edopen},'').catch(er=>alert(er.message||er));return}
   if(sgEl('p-edit').classList.contains('ed-dis')&&!b.closest('.ed-top'))return;
   if(b.dataset.edadd)return edAdd(b.dataset.edadd,+b.dataset.edi);
+  if(b.dataset.edshare)return edShareDir();
   if(b.dataset.edcut){b.disabled=true;b.textContent='여는 중…';
     try{const blob=await (await fetch(SG_HELPER+'/song/'+[song,'입력',b.dataset.edcut].map(encodeURIComponent).join('/'))).blob();
       if(await edAddPdf(song,b.dataset.edk,new Blob([blob],{type:'application/pdf'}),b.dataset.edcut))return edLoad(song)}catch(er){alert(er.message||er)}
