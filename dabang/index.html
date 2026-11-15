@@ -1041,6 +1041,18 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 
 /* ---------- 소리 ---------- */
 let actx=null;
+/* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
+   → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
+let audioUnlocked=false;
+function audioUnlock(){
+  try{if(navigator.audioSession&&navigator.audioSession.type!=='playback'&&navigator.audioSession.type!=='play-and-record')navigator.audioSession.type='playback'}catch(e){}
+  try{if(actx&&actx.state!=='running')actx.resume()}catch(e){}
+  if(audioUnlocked)return;audioUnlocked=true;
+  try{const n=2205,b=new ArrayBuffer(44+n*2),v=new DataView(b),w=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
+    w(0,'RIFF');v.setUint32(4,36+n*2,true);w(8,'WAVEfmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,22050,true);v.setUint32(28,44100,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,'data');v.setUint32(40,n*2,true);
+    const a=new Audio(URL.createObjectURL(new Blob([b],{type:'audio/wav'})));a.setAttribute('playsinline','');a.volume=0.01;const pr=a.play();if(pr&&pr.catch)pr.catch(()=>{audioUnlocked=false})}catch(e){audioUnlocked=false}
+}
+['pointerdown','touchend','keydown'].forEach(ev=>document.addEventListener(ev,audioUnlock,{passive:true,capture:true}));
 function strum(v){
   try{
     actx=actx||new (window.AudioContext||window.webkitAudioContext)();
@@ -2740,6 +2752,7 @@ setInterval(()=>{try{const d=document.getElementById('sgDbg');if(!d||!d.open||!S
   document.getElementById('sgDbgOut').textContent=L.join('\n');
 }catch(e){}},500);
 function sgUnlock(){
+  audioUnlock();
   try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
     if(!actx)actx=new AC();if(actx.state!=='running')actx.resume();
     if(!SG.unlocked){const b=actx.createBuffer(1,1,22050),s=actx.createBufferSource();s.buffer=b;s.connect(actx.destination);s.start(0);SG.unlocked=true}
