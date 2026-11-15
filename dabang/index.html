@@ -234,7 +234,7 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .sg-barbox{position:relative;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:auto auto;border-right:1px solid var(--line);border-bottom:1px solid var(--line);margin:0 -1px -1px 0;min-height:calc(58px*var(--sgz,1))}   /* 마디선 · 줄 구분선 (바깥쪽 선은 상자 테두리와 겹침) */
 .sg-barbox .sg-c{grid-row:1/3}
 .sg-lyr{grid-row:2;grid-column:1/-1;display:grid;grid-template-columns:repeat(16,minmax(0,1fr));row-gap:2px;padding:0 0 4px;pointer-events:none;z-index:1;align-self:end}
-.sg-lyr i{font-style:normal;justify-self:start;white-space:nowrap;padding-left:4px;font-size:1em;line-height:1.35;color:var(--ink);grid-row:1}
+.sg-lyr i{font-style:normal;justify-self:start;white-space:nowrap;padding-left:4px;font-size:1.22em;font-weight:700;line-height:1.35;color:var(--ink);grid-row:1}   /* 가사: 진하고 크게 */
 .sg-lyr i.now{background:var(--ink);color:var(--bg);border-radius:4px;padding:0 3px}
 .sg-barbox:not(.inst) .sg-c{padding-bottom:calc(1.5em + 4px)}
 .sg-barbox.inst .sg-ch{font-size:.95em}
@@ -244,7 +244,7 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .sg-ch:not(:empty){cursor:pointer}.sg-ch:not(:empty):hover{text-decoration:underline}
 .sg-c.now{background:var(--accent-fill)}.sg-c.now .sg-ch,.sg-c.now .sg-ly{color:var(--on-accent)}
 .sg-ch{display:block;color:var(--accent);font-weight:800;font-size:1.1em;min-height:1.3em;white-space:nowrap}
-.sg-ly{display:block;font-size:1em;line-height:1.35;word-break:keep-all;overflow-wrap:anywhere;color:var(--ink)}.sg-ly i{display:inline-block}.sg-ly i{font-style:normal}
+.sg-ly{display:block;font-size:1.22em;font-weight:700;line-height:1.35;word-break:keep-all;overflow-wrap:anywhere;color:var(--ink)}.sg-ly i{display:inline-block}.sg-ly i{font-style:normal}
 .sg-ly i.now{background:var(--ink);color:var(--bg);border-radius:4px;padding:0 2px}
 #sgTab{touch-action:pan-x pan-y;cursor:pointer}
 #sgTab .ch:hover,#sgTab [data-n]:hover{text-decoration:underline}
