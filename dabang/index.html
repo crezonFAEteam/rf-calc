@@ -788,6 +788,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
   <section id="p-song" role="tabpanel" hidden>
     <div class="sg-top">
       <select id="sgList" class="sg-list" aria-label="곡 폴더 고르기"><option value="">곡 고르기 ▼</option></select>
+      <select id="sgQList" class="sg-list" aria-label="간이 분석한 곡" title="폰에서 간이 분석한 곡 (박자 · 코드만)" hidden></select>
       <button id="sgOpen" class="ghost" title="휴대폰: saysay 의 곡명.zip 열기">📂 곡 묶음(zip) 열기</button>
       <button id="sgFileBtn" class="ghost" hidden title="폰에 있는 음원(mp3 · m4a …) · 영상(mp4 · mov …)을 골라 이 기기에서 바로 박자 · 코드 분석 — 영상은 소리만 (트랙 분리 · 가사 · TAB 은 PC 분석)">🎵 음원 · 영상으로 간이 분석</button>
       <button id="sgRecent" class="ghost sm" hidden>최근 곡</button>
@@ -4433,10 +4434,10 @@ async function sgListFill(){
     let pc=[];try{pc=(await (await fetch(SG_HELPER+'/songs',{cache:'no-store'})).json()).songs||[]}catch(e){}
     pc.sort((a,b)=>a.title.localeCompare(b.title,'ko'));
     sel.innerHTML=`<option value="">곡 고르기 ▼ (${pc.length})</option>`+pc.map(x=>`<option value="p:${esc(x.key)}"${SG.song&&SG.song.title===x.title?' selected':''}>${esc(x.title)}</option>`).join('');
-    sel.hidden=false;sgEl('sgOpen').hidden=true;return;
+    sel.hidden=false;sgEl('sgOpen').hidden=true;sgEl('sgQList').hidden=true;return;
   }
   sgEl('sgOpen').hidden=false;
-  const dev=(await sgDB.get('songIndex'))||[];let pc=[];
+  const dev0=(await sgDB.get('songIndex'))||[],dev=dev0.filter(x=>!x.quick),qk=dev0.filter(x=>x.quick);let pc=[];
   if(!sgPhone()&&await sgHelperOn()){try{pc=(await (await fetch(SG_HELPER+'/songs',{cache:'no-store'})).json()).songs||[]}catch(e){}}
   const d2=t=>{const x=new Date(t),p=n=>String(n).padStart(2,'0');return `${p(x.getMonth()+1)}-${p(x.getDate())}`};
   const devT=new Set(dev.map(x=>x.title));
@@ -4448,6 +4449,9 @@ async function sgListFill(){
   const pcDev=!sgPhone();
   if(!dev.length&&!pcOnly.length&&pcDev)h=`<option value="">분석된 곡 ▼ (0) — ${SG.helperOn?'아직 없음':'PC 분석 도우미가 꺼져 있음'}</option>`;
   sel.innerHTML=h;sel.hidden=!dev.length&&!pcOnly.length&&!pcDev;
+  const q=sgEl('sgQList');   /* 간이 분석 곡: 따로 */
+  q.innerHTML=`<option value="">간이 분석 곡 ▼ (${qk.length})</option>`+qk.map(x=>`<option value="d:${esc(x.key)}">${esc(x.title)} · ${d2(x.at)}</option>`).join('');
+  q.hidden=!qk.length;
 }
 async function sgFindKnown(title){   /* 같은 이름의 분석 결과 → 열 값('d:…' 기기 저장본 / 'p:…' PC 도우미, 더 새로운 쪽) 또는 null */
   try{
@@ -4459,7 +4463,7 @@ async function sgFindKnown(title){   /* 같은 이름의 분석 결과 → 열 �
   }catch(e){}
   return null;
 }
-sgEl('sgList').addEventListener('change',e=>{const v=e.target.value;e.target.value='';if(v)sgOpenKey(v)});
+['sgList','sgQList'].forEach(id=>sgEl(id).addEventListener('change',e=>{const v=e.target.value;e.target.value='';if(v)sgOpenKey(v)}));
 async function sgOpenKey(v,quiet){
   try{store.set('chordcalc-sglast',v);
     if(v.startsWith('d:')){const x=await sgDB.get(v.slice(2));if(!x){if(!quiet)alert('저장된 곡을 찾지 못했습니다.');return sgListFill()}
