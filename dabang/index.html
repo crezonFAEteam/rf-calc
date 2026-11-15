@@ -258,6 +258,10 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .hp-ly{line-height:1.9}.hp-ly i.now .hp{color:var(--bg)}
 .sg-c.now .hp{color:var(--on-accent)}
 @media (max-width:900px){.sg-grid{grid-template-columns:minmax(0,1fr)}}
+/* ⛶ 악보 크게: 믹서 · 반복 마디(왼쪽)를 숨기고 악보가 화면 폭 전체 */
+body.sg-big .wrap:has(#p-song:not([hidden])){max-width:none}
+body.sg-big #p-song .sg-side{display:none}
+body.sg-big #p-song .sg-grid{grid-template-columns:minmax(0,1fr)}
 /* 조율기: 위에 고정된 지판 · 지판 안내를 숨겨 한 화면에 (줄 버튼이 따로 있음) */
 body[data-page="edit"] #boardScroll,body[data-page="edit"] .board-bar,body[data-page="edit"] .legend,body[data-page="edit"] .lbl-tg,body[data-page="edit"] #cap{display:none}
 .ed-top{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
@@ -800,6 +804,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
         <button id="sgZo" class="ghost sm pc-only" title="악보 작게 (Ctrl+휠, 휴대폰은 두 손가락)">가−</button><button id="sgZi" class="ghost sm pc-only" title="악보 크게 (Ctrl+휠)">가+</button>
         <button id="sgLoop" class="ghost" aria-pressed="false" title="끝까지(또는 고른 마디 끝까지) 가면 처음부터 반복">⟳ 반복</button>
         <button class="ghost follow" data-follow aria-pressed="true" title="재생 중 지금 위치가 보이도록 자동 스크롤">⇣ 따라가기</button>
+        <button id="sgBig" class="ghost sm" aria-pressed="false" title="악보를 화면 폭 전체로 — 트랙 믹서 · 반복할 마디는 숨김 (다시 누르면 보임)">⛶ 악보 크게</button>
         <span class="sg-time"><output id="sgCur">0:00</output> / <output id="sgDur">0:00</output></span>
         <label class="sg-rate">속도 <select id="sgRate"><option value="0.5">50%</option><option value="0.6">60%</option><option value="0.7">70%</option><option value="0.75">75%</option><option value="0.8">80%</option><option value="0.9">90%</option><option value="1">100%</option></select></label>
       </div>
@@ -1783,6 +1788,13 @@ function tabPer(bar,id){
   const cw=tabCw*tabFsNow()/13;                        /* 악보 글자 크기에 맞춰 한 줄 마디 수 */
   return Math.max(1,Math.min(16,Math.floor((w-2*cw)/(((bar||8)*3+1)*cw))));
 }
+/* ⛶ 악보 크게 (기억) — 폭이 바뀌면 한 줄 마디 수도 다시 */
+function sgBigSet(on){
+  document.body.classList.toggle('sg-big',on);try{localStorage.setItem('sg-big',on?'1':'')}catch(e){}
+  const b=document.getElementById('sgBig');if(b){b.setAttribute('aria-pressed',on);b.textContent=on?'⛶ 믹서 보기':'⛶ 악보 크게'}
+  requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));
+}
+try{if(localStorage.getItem('sg-big'))document.addEventListener('DOMContentLoaded',()=>sgBigSet(true))}catch(e){}
 /* ---------- 악보(TAB) 글자 크기: 휴대폰 두 손가락 · PC [가−][가+] · Ctrl+휠 ---------- */
 let tabFs=+store.get('chordcalc-tabfs')||0;             /* 0 = 기본 (PC 13px, 휴대폰 12px) */
 const tabFsDef=()=>matchMedia('(max-width:640px)').matches?12:13;
@@ -4122,6 +4134,7 @@ document.getElementById('p-song').addEventListener('click',e=>{
   if(b.id==='sgFileBtn')return sgPickAudio();
   if(b.id==='sgRecent'){sgDB.get('lastDir').then(h=>h?sgOpen(h):sgOpen());return}
   if(b.id==='sgRec')return sgRecord();
+  if(b.id==='sgBig'){sgBigSet(!document.body.classList.contains('sg-big'));return}
   if(!SG.song)return;
   if(b.id==='sgPlay'){if(SG.playing)return sgPause();return sgPlayStart()}
   if(b.id==='sgLoop'){SG.loop=!SG.loop;b.setAttribute('aria-pressed',SG.loop);sgSave();return}
