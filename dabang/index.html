@@ -258,7 +258,8 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .hp-ly{line-height:1.9}.hp-ly i.now .hp{color:var(--bg)}
 .sg-c.now .hp{color:var(--on-accent)}
 @media (max-width:900px){.sg-grid{grid-template-columns:minmax(0,1fr)}}
-.sg-sheet:has(> .rz){display:block;padding:8px 10px}   /* 코드 · 가사 흐름 보기: 마디 칸 격자 끔 */
+.sg-sheet:has(> .rz){display:block;padding:8px 10px}
+#sgSheet{overflow-x:clip}   /* 칸 밖으로 삐져나온 가사 · 하모니카 숫자 때문에 옆으로 밀리지 않게 */   /* 코드 · 가사 흐름 보기: 마디 칸 격자 끔 */
 /* 📜 리듬악보 흐름 보기 (잔잔식): 길이 숫자 · 초록 코드 · 박 점 · 큰 가사 */
 .rz{font-size:calc(16px*var(--sgz,1));--bw:calc(16px*var(--sgz,1));line-height:1.25}
 .rz-row{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 3px;margin:0 0 12px}
@@ -581,7 +582,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
   <header class="top">
     <h1>쎄이기타</h1>
     <div class="tops">
-    <div class="lbl-tg" role="group" aria-label="화면 폭"><button id="sgBig" data-sgbig="1" aria-pressed="false" title="화면 폭 전체 사용 — 지판 · 악보 모두 넓게 · 곡연습은 트랙 믹서를 숨김 · 애드립 · 블루스는 악보를 위로 (다시 누르면 원래대로)">⛶ 넓게</button></div>
+    <div class="lbl-tg pc-only" role="group" aria-label="화면 폭"><button id="sgBig" data-sgbig="1" aria-pressed="false" title="화면 폭 전체 사용 — 지판 · 악보 모두 넓게 · 곡연습은 트랙 믹서를 숨김 · 애드립 · 블루스는 악보를 위로 (다시 누르면 원래대로)">⛶ 넓게</button></div>
     <div class="lbl-tg" role="group" aria-label="지판 보기 방식">
       <button data-view="1" aria-pressed="true" title="한 줄로 보기 (옆으로 밀어서)">1줄</button>
       <button data-view="2" aria-pressed="false" title="두 줄로 나눠 15프렛 전체 보기">2줄</button>
@@ -4971,7 +4972,8 @@ function followNow(id){
   const r=s.getBoundingClientRect(),lh=r.height||16;
   /* 가로: 악보 칸 안에서 옆으로 넘친 경우 */
   const br=box.getBoundingClientRect();
-  if(box.scrollWidth>box.clientWidth+4)folX(box,r);
+  if(s.closest('pre')&&box.scrollWidth>box.clientWidth+4)folX(box,r);   /* 옆으로 따라가기는 TAB(한 줄로 긴 악보)만 — 코드 · 가사 · 흐름 보기는 줄 바꿈이라 옆으로 움직이지 않음 */
+  else if(box.scrollLeft)box.scrollLeft=0;
   /* 세로: 위에 고정된 영역(지판 · 탭 줄) 아래부터 보이는 범위 */
   let top=0;const pin=document.getElementById('pin'),tabs=document.querySelector('.tabs');
   if(pin&&!pin.classList.contains('off')){const pr=pin.getBoundingClientRect();if(pr.top<=1)top=Math.max(top,pr.bottom)}
