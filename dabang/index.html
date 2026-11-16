@@ -1049,7 +1049,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-16 12:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-16 12:30';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -3078,28 +3078,33 @@ function edPasteRhy(song,pre,pnm){
   });
 }
 /* 잔잔(zanzan.kr) '내가 만든 노래들' 받기 — 북마크(즐겨찾기)로 잔잔 화면에서 실행: 그 브라우저에 저장된 내 악보를 json 파일로 저장 (어디로도 보내지 않음) */
-function zzGrab(){try{
+function zzGrab(all){try{   /* all: 이 브라우저의 모든 플레이리스트 곡 · 아니면 '내가 만든 노래들'만 */
   var G=window.localSongsGroup;if(!G){var d=JSON.parse(localStorage.getItem('data')||'{}');G=d.localSongsGroup}
   if(!G||!G.length){alert('잔잔 악보 화면(zanzan.kr)에서 눌러 주세요');return}
-  var S=[],seen={},take=function(g){(g&&g.song||[]).forEach(function(s){if(!s||typeof s.music!=='string')return;var k=(s.title||'')+'|'+s.music.length;if(seen[k])return;seen[k]=1;
-    S.push({title:s.title||'',singer:s.singer||'',bpm:s.bpm,key:s.standardCode,now:s.nowCode,made:s.madeTime,music:s.music})})};
-  G.forEach(function(g){if(g&&/내가\s*만든/.test(g.name||''))take(g)});if(!S.length)take(G[1]);
-  if(!S.length){alert('내가 만든 노래를 찾지 못했습니다');return}
-  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({kind:'zanzan-mine',at:new Date().toISOString(),songs:S})],{type:'application/json'}));
-  a.download='잔잔 내 악보.json';document.body.appendChild(a);a.click();setTimeout(function(){a.remove()},1000);
-  alert('내가 만든 노래 '+S.length+'곡 → 「잔잔 내 악보.json」 저장\n쎄이기타 곡편집 › 입력 › 리듬악보 [잔잔] › [파일 고르기]')}catch(e){alert('받지 못했습니다: '+e.message)}}
-const ZZ_BM='javascript:'+encodeURIComponent('('+zzGrab+')()');
+  var SV=window.serverSongs||[],S=[],seen={},take=function(g,mine){(g&&g.song||[]).forEach(function(s){if(!s)return;var m=s.music;
+      if(typeof m!=='string'&&s.index!=null&&SV[s.index])m=SV[s.index].music;if(typeof m!=='string')return;
+      var k=(s.title||'')+'|'+m.length;if(seen[k])return;seen[k]=1;
+      S.push({title:s.title||'',singer:s.singer||'',bpm:s.bpm,key:s.standardCode,now:s.nowCode,made:s.madeTime,group:g.name||'',mine:mine?1:0,music:m})})};
+  G.forEach(function(g){if(g&&/내가\s*만든/.test(g.name||''))take(g,1)});if(!S.length&&G[1])take(G[1],1);
+  if(all)G.forEach(function(g){take(g,0)});
+  if(!S.length){alert(all?'플레이리스트에서 악보를 찾지 못했습니다':'내가 만든 노래를 찾지 못했습니다');return}
+  var nm=all?'잔잔 전체 악보.json':'잔잔 내 악보.json',a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify({kind:all?'zanzan-all':'zanzan-mine',at:new Date().toISOString(),songs:S})],{type:'application/json'}));
+  a.download=nm;document.body.appendChild(a);a.click();setTimeout(function(){a.remove()},1000);
+  alert((all?'플레이리스트 전체 ':'내가 만든 노래 ')+S.length+'곡 → 「'+nm+'」 저장\n쎄이기타 곡편집 › 입력 › 리듬악보 [잔잔] › [파일 고르기]')}catch(e){alert('받지 못했습니다: '+e.message)}}
+const ZZ_BM='javascript:'+encodeURIComponent('('+zzGrab+')()'),ZZ_BM_ALL='javascript:'+encodeURIComponent('('+zzGrab+')(1)');
 function edZanzan(song){
   let D=null;try{D=JSON.parse(localStorage.getItem('sg-zz')||'null')}catch(e){}
   const nz=s=>String(s||'').toLowerCase().replace(/[^0-9a-z가-힣]/g,'');
   return new Promise(res=>{
     const box=sgEl('edPick');box.hidden=false;
     const draw=()=>{const q=nz(song);
-      const L=((D&&D.songs)||[]).map((s,i)=>{const t=nz(s.title);return {s,i,sc:q&&t?(t===q?3:(t.includes(q)||q.includes(t))?2:0):0}}).sort((a,b)=>b.sc-a.sc);
+      const L=((D&&D.songs)||[]).map((s,i)=>{const t=nz(s.title);return {s,i,sc:(q&&t?(t===q?3:(t.includes(q)||q.includes(t))?2:0):0)*2+(s.mine!==0?1:0)}}).sort((a,b)=>b.sc-a.sc);
       box.innerHTML=`<div><b>${esc(song)} — 잔잔 내 악보에서 가져오기</b>
-        <p class="pk-sum">처음 한 번: <b>Ctrl+Shift+B</b> 로 북마크바(주소창 아래 줄)를 켜고 → <b>⭐ 잔잔 내 악보 받기</b>를 그 <b>북마크바 위로</b> 끌어 놓기 (주소창 말고)<br>또는 [📋 북마크 주소 복사] → 북마크바 오른쪽 클릭 › 페이지 추가 › 이름 「잔잔 받기」 · URL 칸에 붙여넣기<br>그다음: zanzan.kr 에서 그 북마크 누르기 → 받은 <b>잔잔 내 악보.json</b> 을 [📂 파일 고르기]</p>
-        <div class="pk-bar"><a class="ghost sm zz-bm" href="${ZZ_BM}" title="북마크바로 끌어 놓으세요 (여기서 누르면 안 됨)">⭐ 잔잔 내 악보 받기</a><button class="ghost sm" data-pk="copy">📋 북마크 주소 복사</button><button class="ghost sm" data-pk="file">📂 파일 고르기</button><span class="pk-sum">${D?D.songs.length+'곡 · '+esc(String(D.at||'').slice(0,10))+' 받음':''}</span></div>
-        ${D?`<input type="search" class="zz-q" placeholder="곡 찾기"><div class="zz-list">${L.map(x=>`<button class="ghost sm zz-it${x.sc?' on':''}" data-zz="${x.i}">${esc(x.s.title||'(제목 없음)')}${x.s.singer?' <span class="mt">'+esc(x.s.singer)+'</span>':''}</button>`).join('')}</div>`:''}
+        <p class="pk-sum">처음 한 번: <b>Ctrl+Shift+B</b> 로 북마크바(주소창 아래 줄)를 켜고 → <b>⭐ 잔잔 내 악보</b> · <b>⭐ 잔잔 전체 악보</b>를 그 <b>북마크바 위로</b> 끌어 놓기 (주소창 말고)<br>또는 [📋 복사] → 북마크바 오른쪽 클릭 › 페이지 추가 › URL 칸에 붙여넣기<br>그다음: zanzan.kr 에서 그 북마크 누르기 → 받은 <b>.json</b> 을 [📂 파일 고르기] (내 악보 · 전체 악보 둘 다 넣으면 합쳐짐)<br><span class="mt">내 악보 = 「내가 만든 노래들」 · 전체 악보 = 이 브라우저의 모든 플레이리스트 곡 (최근 본 노래 등)</span></p>
+        <div class="pk-bar"><a class="ghost sm zz-bm" href="${ZZ_BM}" title="북마크바로 끌어 놓으세요 (여기서 누르면 안 됨)">⭐ 잔잔 내 악보</a><button class="ghost sm" data-pk="copy" data-bm="mine">📋 복사</button>
+          <a class="ghost sm zz-bm" href="${ZZ_BM_ALL}" title="북마크바로 끌어 놓으세요 (여기서 누르면 안 됨)">⭐ 잔잔 전체 악보</a><button class="ghost sm" data-pk="copy" data-bm="all">📋 복사</button></div><div class="pk-bar"><button class="ghost sm" data-pk="file">📂 파일 고르기</button><span class="pk-sum">${D?D.songs.length+'곡 · '+esc(String(D.at||'').slice(0,10))+' 받음':''}</span></div>
+        ${D?`<input type="search" class="zz-q" placeholder="곡 찾기"><div class="zz-list">${L.map(x=>`<button class="ghost sm zz-it${x.sc?' on':''}" data-zz="${x.i}">${x.s.mine!==0?'★ ':''}${esc(x.s.title||'(제목 없음)')}${x.s.singer?' <span class="mt">'+esc(x.s.singer)+'</span>':''}</button>`).join('')}</div>`:''}
         <div class="pk-bar" style="justify-content:flex-end"><button class="ghost sm" data-pk="cancel">취소</button></div></div>`;
       const qi=box.querySelector('.zz-q');if(qi)qi.oninput=()=>{const v=nz(qi.value);box.querySelectorAll('[data-zz]').forEach(b=>b.hidden=!!v&&!nz(b.textContent).includes(v))}};
     draw();
@@ -3108,9 +3113,12 @@ function edZanzan(song){
       if(e.target.closest('.zz-bm')){e.preventDefault();alert('이 버튼은 크롬 북마크바로 끌어 놓은 뒤, zanzan.kr 화면에서 그 북마크를 누르세요.');return}
       const t=e.target.closest('[data-pk],[data-zz]');if(!t){if(e.target===box)done(false);return}
       if(t.dataset.pk==='cancel')return done(false);
-      if(t.dataset.pk==='copy'){try{await navigator.clipboard.writeText(ZZ_BM);t.textContent='✔ 복사됨 — 북마크 URL 칸에 붙여넣기'}catch(er){prompt('이 주소를 복사해 북마크 URL 칸에 붙여넣으세요',ZZ_BM)}return}
+      if(t.dataset.pk==='copy'){const u=t.dataset.bm==='all'?ZZ_BM_ALL:ZZ_BM;try{await navigator.clipboard.writeText(u);t.textContent='✔ 복사됨'}catch(er){prompt('이 주소를 복사해 북마크 URL 칸에 붙여넣으세요',u)}return}
       if(t.dataset.pk==='file'){const f=await edPick('.json,application/json');if(!f)return;
-        try{const j=JSON.parse(await f.text());if(!j||!Array.isArray(j.songs))throw 0;D=j;try{localStorage.setItem('sg-zz',JSON.stringify(j))}catch(er){}draw()}catch(er){alert('잔잔 내 악보 파일(잔잔 내 악보.json)이 아닙니다')}return}
+        try{const j=JSON.parse(await f.text());if(!j||!Array.isArray(j.songs))throw 0;
+          if(j.kind==='zanzan-mine')j.songs.forEach(x=>{if(x.mine==null)x.mine=1});
+          if(D&&Array.isArray(D.songs)){const key=x=>x.title+'|'+String(x.music||'').length,M=new Map(D.songs.map(x=>[key(x),x]));j.songs.forEach(x=>{const o=M.get(key(x));M.set(key(x),o?Object.assign({},o,x,{mine:(o.mine!==0||x.mine!==0)?1:0}):x)});j={kind:'zanzan',at:j.at,songs:[...M.values()]}}
+          D=j;try{localStorage.setItem('sg-zz',JSON.stringify(j))}catch(er){}draw()}catch(er){alert('잔잔 내 악보 파일(잔잔 내 악보.json)이 아닙니다')}return}
       if(t.dataset.zz!=null){const s=D.songs[+t.dataset.zz];box.innerHTML='';res(await edPasteRhy(song,String(s.music||''),'잔잔 - '+String(s.title||song).replace(/[\\/:*?"<>|]/g,' ')))}
     };
   });
