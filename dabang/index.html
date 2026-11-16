@@ -1049,7 +1049,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-16 11:30';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-16 12:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -3097,8 +3097,8 @@ function edZanzan(song){
     const draw=()=>{const q=nz(song);
       const L=((D&&D.songs)||[]).map((s,i)=>{const t=nz(s.title);return {s,i,sc:q&&t?(t===q?3:(t.includes(q)||q.includes(t))?2:0):0}}).sort((a,b)=>b.sc-a.sc);
       box.innerHTML=`<div><b>${esc(song)} — 잔잔 내 악보에서 가져오기</b>
-        <p class="pk-sum">처음 한 번: <b>⭐ 잔잔 내 악보 받기</b>를 크롬 북마크바로 끌어 놓기 → zanzan.kr 에서 그 북마크 누르기 → 받은 <b>잔잔 내 악보.json</b> 을 [📂 파일 고르기]</p>
-        <div class="pk-bar"><a class="ghost sm zz-bm" href="${ZZ_BM}" title="북마크바로 끌어 놓으세요 (여기서 누르면 안 됨)">⭐ 잔잔 내 악보 받기</a><button class="ghost sm" data-pk="file">📂 파일 고르기</button><span class="pk-sum">${D?D.songs.length+'곡 · '+esc(String(D.at||'').slice(0,10))+' 받음':''}</span></div>
+        <p class="pk-sum">처음 한 번: <b>Ctrl+Shift+B</b> 로 북마크바(주소창 아래 줄)를 켜고 → <b>⭐ 잔잔 내 악보 받기</b>를 그 <b>북마크바 위로</b> 끌어 놓기 (주소창 말고)<br>또는 [📋 북마크 주소 복사] → 북마크바 오른쪽 클릭 › 페이지 추가 › 이름 「잔잔 받기」 · URL 칸에 붙여넣기<br>그다음: zanzan.kr 에서 그 북마크 누르기 → 받은 <b>잔잔 내 악보.json</b> 을 [📂 파일 고르기]</p>
+        <div class="pk-bar"><a class="ghost sm zz-bm" href="${ZZ_BM}" title="북마크바로 끌어 놓으세요 (여기서 누르면 안 됨)">⭐ 잔잔 내 악보 받기</a><button class="ghost sm" data-pk="copy">📋 북마크 주소 복사</button><button class="ghost sm" data-pk="file">📂 파일 고르기</button><span class="pk-sum">${D?D.songs.length+'곡 · '+esc(String(D.at||'').slice(0,10))+' 받음':''}</span></div>
         ${D?`<input type="search" class="zz-q" placeholder="곡 찾기"><div class="zz-list">${L.map(x=>`<button class="ghost sm zz-it${x.sc?' on':''}" data-zz="${x.i}">${esc(x.s.title||'(제목 없음)')}${x.s.singer?' <span class="mt">'+esc(x.s.singer)+'</span>':''}</button>`).join('')}</div>`:''}
         <div class="pk-bar" style="justify-content:flex-end"><button class="ghost sm" data-pk="cancel">취소</button></div></div>`;
       const qi=box.querySelector('.zz-q');if(qi)qi.oninput=()=>{const v=nz(qi.value);box.querySelectorAll('[data-zz]').forEach(b=>b.hidden=!!v&&!nz(b.textContent).includes(v))}};
@@ -3108,6 +3108,7 @@ function edZanzan(song){
       if(e.target.closest('.zz-bm')){e.preventDefault();alert('이 버튼은 크롬 북마크바로 끌어 놓은 뒤, zanzan.kr 화면에서 그 북마크를 누르세요.');return}
       const t=e.target.closest('[data-pk],[data-zz]');if(!t){if(e.target===box)done(false);return}
       if(t.dataset.pk==='cancel')return done(false);
+      if(t.dataset.pk==='copy'){try{await navigator.clipboard.writeText(ZZ_BM);t.textContent='✔ 복사됨 — 북마크 URL 칸에 붙여넣기'}catch(er){prompt('이 주소를 복사해 북마크 URL 칸에 붙여넣으세요',ZZ_BM)}return}
       if(t.dataset.pk==='file'){const f=await edPick('.json,application/json');if(!f)return;
         try{const j=JSON.parse(await f.text());if(!j||!Array.isArray(j.songs))throw 0;D=j;try{localStorage.setItem('sg-zz',JSON.stringify(j))}catch(er){}draw()}catch(er){alert('잔잔 내 악보 파일(잔잔 내 악보.json)이 아닙니다')}return}
       if(t.dataset.zz!=null){const s=D.songs[+t.dataset.zz];box.innerHTML='';res(await edPasteRhy(song,String(s.music||''),'잔잔 - '+String(s.title||song).replace(/[\\/:*?"<>|]/g,' ')))}
