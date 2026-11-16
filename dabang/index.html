@@ -676,7 +676,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
           <button id="scLoop" class="ghost sm" aria-pressed="false" title="끝나면 처음부터 계속">⟳ 반복</button>
           <button id="scClick" class="ghost sm" aria-pressed="true" title="한 박마다 똑딱 (8분음표 두 개 = 한 박)">🥁 박자</button>
           <div class="chips sc-pat" id="scPath"></div><div class="chips sc-pat" id="scStr"></div><div class="chips sc-pat" id="scPat"></div><div class="chips sc-pat" id="scRhy"></div>
-          <label class="sc-bpm">빠르기 <input type="range" id="scBpm" min="40" max="200" step="5" value="80"> <output id="scBpmOut">80</output> BPM</label></div>
+          <label class="sc-bpm">빠르기 <input type="range" id="scBpm" min="10" max="200" step="5" value="80"> <output id="scBpmOut">80</output> BPM</label></div>
         <p class="sdesc" id="scPlayCap"></p><p class="sc-now" id="scNow"></p>
       </div>
       <div>
@@ -1056,7 +1056,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-16 22:45';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-16 23:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -1592,7 +1592,7 @@ const VA_PAT=[['13531','1 3 5 3 1',s=>s?[1,3,5,7,5,3,1]:[1,3,5,3,1]],['1353','1 
 function vaBar(){const e=document.getElementById('vaBar');if(!e)return;
   e.innerHTML=`<div class="chips va-pats"><span class="sc-lb">도수</span>${VA_PAT.map(([k,l])=>`<button class="chip" data-vpat="${k}" aria-pressed="${SCP.vpat===k}">${l}</button>`).join('')}</div>
     <div class="va-row"><button class="ghost sm" data-valoop="1" aria-pressed="${SCP.loop}" title="끝나면 처음부터 계속">⟳ 반복</button><button class="ghost sm" data-vaclick="1" aria-pressed="${SCP.click}">🥁 박자</button>
-    <label class="sc-bpm">빠르기 <input type="range" id="vaBpm" min="40" max="200" step="5" value="${SCP.bpm}"> <output id="vaBpmOut">${SCP.bpm}</output> BPM</label>
+    <label class="sc-bpm">빠르기 <input type="range" id="vaBpm" min="10" max="200" step="5" value="${SCP.bpm}"> <output id="vaBpmOut">${SCP.bpm}</output> BPM</label>
     <span class="chips">${SC_RHY.map(([k,l])=>`<button class="chip" data-vrhy="${k}" aria-pressed="${SCP.rhy===k}">${l}</button>`).join('')}</span></div>`}
 function vaArp(r,qi){   /* 이 코드의 운지마다 그 운지 안(없으면 그 자리 ±1프렛)의 근음 → 3도 → 5도 (→ 7도) → 거꾸로 */
   const L=findVoicings(r,qi,null),iv=Q[qi].iv.filter(x=>x<12),out=[],lab=cname(r,qi,null);
