@@ -265,6 +265,7 @@ table#wf-list tbody tr.sel td{background:var(--accent-soft)}
 .lp-sc{font-size:11.5px;padding:1px 7px;border-radius:6px;border:1px solid transparent}.lp-sc.s-L{background:#e3f1e7;color:#14613a;border-color:#b9dcc4}.lp-sc.s-B{background:#e6eef9;color:#1f4f8a;border-color:#c3d4ee}
 .lp-sc[data-supk]{cursor:pointer;user-select:none}.lp-sc[data-supk]:hover{filter:brightness(.95);text-decoration:underline}
 .lp-sc.on{outline:2px solid var(--accent);outline-offset:1px;font-weight:700}
+.lp-supc-cn{display:flex;flex-direction:column;gap:2px;margin:6px 0 0;font-size:12.5px;color:var(--ink-mid,#555)}.lp-supc-cn b{color:#9a5a12;margin-right:4px}
 .lp-sc.s-inc{background:#eceef1;color:#5b6773;border-color:#d3d8de}
 tr.lp-incl td,tr.lp-incl td a,tr.lp-incl.lp-hit td{color:#8a929c}tr.lp-incl,tr.lp-incl.lp-hit{background:#f4f5f7}
 .lp-inc-tag{font-size:11px;background:#e4e7eb;color:#5b6773;border-radius:5px;padding:0 6px;margin-left:4px;white-space:nowrap}
@@ -2820,8 +2821,10 @@ var LP_DET = {models:[]};
 try{ LP_DET = JSON.parse($('lp-det').textContent); }catch(e){}
 var LP_DET_KEY = {};   /* 표에 있는 규격 키 */
 LP_STD.forEach(function(g){ g[1].forEach(function(x){ if(!/^★/.test(x[1])) LP_DET_KEY[x[0]] = 1; }); });
-var LP_SUP = {L:['라이선스', '기술 라이선스로 활성화'], B:['기본 탑재', '하드웨어 기본 — 라이선스 아님, IQfact+ 등 SW 지원이 따로 필요할 수 있음'], C:['C/N만', 'C/N(감도) 측정만'],
-              S:['Stacked', '여러 대를 묶어서(Stacked)'], H:['868/915 MHz', 'Sub-1 GHz 고대역(868 · 915 MHz)만'], Sig:['시그널링', '시그널링 방식']};
+var LP_SUP = {L:['라이선스', '기술 라이선스로 활성화 (Enabled via Technology License)'], B:['기본 탑재', '하드웨어 기본 — 라이선스 아님, IQfact+ 등 SW 지원이 따로 필요할 수 있음'],
+              C:['C/N 시험만', 'C/N testing only — C/N 시험만 지원'],
+              S:['Stacked', 'Stacked — 테스터를 묶은(Stacked) 구성에서 지원'], H:['868/915 MHz만', 'High sub-1GHz band (868 MHz & 915 MHz) — Sub-1GHz 고대역 868 · 915 MHz만'],
+              Sig:['시그널링', 'Signaling — 시그널링 방식으로 지원']};
 function lpDetLine(id){ return LP_DET.models.filter(function(m){ return m.line === id; }); }
 function lpDetNorm(s){ return String(s || '').replace(/\([^)]*\)/g, '').toLowerCase().replace(/[^a-z0-9+]/g, ''); }
 function lpDetModel(id, body){   /* 본체 이름 → 표의 모델 (같은 라인에서 이름이 가장 길게 맞는 것) */
@@ -3483,7 +3486,11 @@ function lpDetail(id){
       LP_STD.map(function(g){ var xs = g[1].filter(function(x){ return dmc.sup[x[0]]; });
         return xs.length ? '<div class="lp-supg"><span class="lp-supg-n">' + lpEsc(g[0]) + '</span>' + xs.map(function(x){ var inc = binc[x[0]]; return '<span class="lp-sc ' + (inc ? 's-inc' : 's-' + dmc.sup[x[0]]) + (LP_SUPSEL[x[0]] ? ' on' : '') + '" data-supk="' + x[0] + '" role="button" tabindex="0" title="' + (inc ? '본체 설명에 포함으로 적혀 있음 — 따로 살 필요 없음' : lpEsc(LP_SUP[dmc.sup[x[0]]][1])) + ' — 누르면 이 규격의 옵션 보기">' + lpEsc(x[1]) + (inc ? ' · 본체 포함' : dmc.sup[x[0]] === 'L' || dmc.sup[x[0]] === 'B' ? '' : ' · ' + LP_SUP[dmc.sup[x[0]]][0]) + '</span>'; }).join('') + '</div>' : ''; }).join('') +
       '<div class="note" style="margin:8px 0 0">규격을 누르면 그 규격의 옵션(Part No)이 아래에 나온다 — 여러 개 고를 수 있다.</div>' +
-      '<div class="lp-supc-lg"><span class="lp-sc s-inc">본체 포함 (본체 설명 기준)</span><span class="lp-sc s-L">라이선스로 활성화</span><span class="lp-sc s-B">하드웨어 기본 (SW 지원 별도일 수 있음)</span><span class="lp-sc s-C">C/N · Stacked · 868/915 · 시그널링 등 제한</span></div></details>' : '';
+      '<div class="lp-supc-lg"><span class="lp-sc s-inc">본체 포함 (본체 설명 기준)</span><span class="lp-sc s-L">라이선스로 활성화</span><span class="lp-sc s-B">하드웨어 기본 (SW 지원 별도일 수 있음)</span>' + (function(){   /* 조건부 지원: 이 본체에 나오는 꼬리표만 풀어서 */
+        var cs = ['C', 'S', 'H', 'Sig'].filter(function(c){ return Object.keys(dmc.sup).some(function(k){ return dmc.sup[k] === c; }); });
+        return cs.length ? '<span class="lp-sc s-C">조건부 지원 (Determinator 범례)</span></div><div class="lp-supc-cn">' +
+          cs.map(function(c){ return '<span><b>' + lpEsc(LP_SUP[c][0]) + '</b> ' + lpEsc(LP_SUP[c][1]) + '</span>'; }).join('') : '';
+      })() + '</div></details>' : '';
   r.list = lpByKind(r.list);
   if(LP_SUPSEL_AT !== id + '|' + LP_BODY){ LP_SUPSEL = {}; LP_SUPSEL_AT = id + '|' + LP_BODY; }
   var selKeys = dmc ? Object.keys(LP_SUPSEL).filter(function(k){ return dmc.sup[k]; }) : [];
