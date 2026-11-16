@@ -273,7 +273,7 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 #p-song .rz .rz-t.now{background:color-mix(in srgb,var(--accent-fill) 14%,transparent);color:inherit;border-left-color:var(--accent-fill);box-shadow:inset 0 -3px 0 var(--accent-fill);border-radius:7px}
 .ed-tabs{margin:8px 0 8px;gap:4px;padding:4px;background:color-mix(in srgb,var(--line) 70%,transparent);border-radius:12px;display:flex;flex-wrap:nowrap}.ed-tabs .chip{font-weight:700;padding:7px 18px;font-size:.95rem;border-color:transparent;background:transparent;flex:1 1 0;text-align:center;border-radius:9px}.ed-tabs .chip[aria-pressed=true]{background:var(--ink);color:var(--bg);box-shadow:0 1px 3px rgba(0,0,0,.25)}.ed-tabs .chip[aria-pressed=false]:hover{background:var(--surface)}.ed-tabs .chip[data-st]::before{content:'';display:inline-block;width:.55em;height:.55em;border-radius:50%;margin-right:.4em;vertical-align:.12em}.ed-tabs .chip[data-st=ok]::before{background:#2e9d5b}.ed-tabs .chip[data-st=ok][aria-pressed=false]{color:#2e9d5b}.ed-tabs .chip[data-st=warn]::before{background:#e08a1e}.ed-tabs .chip[data-st=warn][aria-pressed=false]{color:#c9741a}.ed-hs2{font-size:.9rem;margin-right:2px}.ed-bt{margin-top:8px}
 @media (max-width:640px){.ed-tabs .chip{padding:9px 0}.ed-row{padding:9px 8px}.ed-k{font-size:.95rem}.ed-sub{padding-left:8px}}
-.zz-list{max-height:50vh;overflow:auto;margin:6px 0}.zz-grp{display:flex;flex-wrap:wrap;gap:4px;padding:6px;border-radius:10px;margin-bottom:6px}.zz-h{flex-basis:100%;font-weight:700;font-size:.88rem;margin:0 2px 2px}.zz-mine{background:color-mix(in srgb,#e0a21e 16%,transparent)}.zz-mine .zz-h{color:#a86d00}.zz-rec{background:color-mix(in srgb,#3b7dd8 12%,transparent)}.zz-rec .zz-h{color:#2b63b0}.zz-grp .zz-it{background:var(--surface)}.zz-it.on{border-color:var(--accent);font-weight:700}.zz-q{width:100%;margin-top:6px;padding:6px 8px;font-size:.95rem}.zz-bm{text-decoration:none;cursor:grab}
+.zz-list{max-height:50vh;overflow:auto;margin:6px 0}.zz-grp{display:flex;flex-wrap:wrap;gap:4px;padding:6px;border-radius:10px;margin-bottom:6px}.zz-k{color:#2b63b0;font-weight:600}.zz-h{flex-basis:100%;font-weight:700;font-size:.88rem;margin:0 2px 2px}.zz-mine{background:color-mix(in srgb,#e0a21e 16%,transparent)}.zz-mine .zz-h{color:#a86d00}.zz-rec{background:color-mix(in srgb,#3b7dd8 12%,transparent)}.zz-rec .zz-h{color:#2b63b0}.zz-grp .zz-it{background:var(--surface)}.zz-it.on{border-color:var(--accent);font-weight:700}.zz-q{width:100%;margin-top:6px;padding:6px 8px;font-size:.95rem}.zz-bm{text-decoration:none;cursor:grab}
 .phone-only{display:none}@media (pointer:coarse){.phone-only{display:inline}}
 /* 곡연습: 악보는 늘 전체 폭 — 믹서 · 반복 마디는 악보 위에 (넓으면 여러 칸) */
 #p-song .sg-grid{grid-template-columns:minmax(0,1fr)}
@@ -1049,7 +1049,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-16 14:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-16 15:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -3084,7 +3084,7 @@ function zzGrab(all){try{   /* all: '최근 본 노래들' · 아니면 '내가 
   var SV=window.serverSongs||[],S=[],seen={},take=function(g,mine){(g&&g.song||[]).forEach(function(s){if(!s)return;var m=s.music;
       if(typeof m!=='string'&&s.index!=null&&SV[s.index])m=SV[s.index].music;if(typeof m!=='string')return;
       var k=(s.title||'')+'|'+m.length;if(seen[k])return;seen[k]=1;
-      S.push({title:s.title||'',singer:s.singer||'',bpm:s.bpm,key:s.standardCode,now:s.nowCode,made:s.madeTime,group:g.name||'',mine:mine?1:0,music:m})})};
+      S.push({title:s.title||'',singer:s.singer||'',sub:s.subTitle||'',kw:s.keyword||'',bpm:s.bpm,key:s.standardCode,easy:s.easyCode,now:s.nowCode,made:s.madeTime,group:g.name||'',mine:mine?1:0,music:m})})};
   if(all){G.forEach(function(g){if(g&&/최근/.test(g.name||''))take(g,0)});if(!S.length&&G[0])take(G[0],0)}
   else{G.forEach(function(g){if(g&&/내가\s*만든/.test(g.name||''))take(g,1)});if(!S.length&&G[1])take(G[1],1)}
   if(!S.length){alert(all?'최근 본 노래를 찾지 못했습니다':'내가 만든 노래를 찾지 못했습니다');return}
@@ -3092,6 +3092,16 @@ function zzGrab(all){try{   /* all: '최근 본 노래들' · 아니면 '내가 
   a.href=URL.createObjectURL(new Blob([JSON.stringify({kind:all?'zanzan-recent':'zanzan-mine',at:new Date().toISOString(),songs:S})],{type:'application/json'}));
   a.download=nm;document.body.appendChild(a);a.click();setTimeout(function(){a.remove()},1000);
   alert((all?'최근 본 노래 ':'내가 만든 노래 ')+S.length+'곡 → 「'+nm+'」 저장\n쎄이기타 곡편집 › 입력 › 리듬악보 [잔잔] › [파일 고르기]')}catch(e){alert('받지 못했습니다: '+e.message)}}
+const ZZ_KEYS=['C','C#','D','Eb','E','F','F#','G','G#','A','Bb','B'];
+function zzHead(s){   /* 잔잔 곡 정보 → 리듬악보 맨 위 '#' 줄 (악보 읽기에서는 건너뜀) */
+  const k=v=>(v>=0&&v<12)?ZZ_KEYS[v]:'',d=String(s.made||'').replace(/^(\d{4})(\d{2})(\d{2})$/,'$1-$2-$3'),a=[];
+  if(k(s.key))a.push('원래 키: '+k(s.key));if(k(s.easy))a.push('권장 키: '+k(s.easy));if(+s.bpm>0)a.push('BPM: '+(+s.bpm));if(d&&!/^0+$/.test(String(s.made)))a.push('발매: '+d);if(s.kw)a.push('키워드: '+s.kw);
+  return '# 잔잔: '+(s.title||'')+(s.sub?' ('+s.sub+')':'')+(s.singer?' — '+s.singer:'')+'\n'+(a.length?'# '+a.join(' · ')+'\n':'')+'\n'}
+function rhyMeta(t){   /* 리듬악보 '#' 줄의 곡 정보 */
+  const m={},h=String(t).split(/\r?\n/).filter(x=>/^\s*#/.test(x)).join(' · ');if(!h)return null;
+  const g=re=>{const x=h.match(re);return x?x[1].trim():''};
+  m.key=g(/원래 키:\s*([A-G][#b]?)/);m.easy=g(/권장 키:\s*([A-G][#b]?)/);m.bpm=+g(/BPM:\s*(\d+)/)||0;m.made=g(/발매:\s*([\d-]+)/);m.src=g(/#\s*(잔잔):/);
+  return m.key||m.bpm?m:null}
 const ZZ_BM='javascript:'+encodeURIComponent('('+zzGrab+')()'),ZZ_BM_ALL='javascript:'+encodeURIComponent('('+zzGrab+')(1)');
 function edZanzan(song){
   let D=null;try{D=JSON.parse(localStorage.getItem('sg-zz')||'null')}catch(e){}
@@ -3105,7 +3115,7 @@ function edZanzan(song){
         <p class="pk-sum">처음 한 번: <b>Ctrl+Shift+B</b> 로 북마크바(주소창 아래 줄)를 켜고 → <b>⭐ 잔잔 내 악보</b> · <b>⭐ 잔잔 최근 본 노래</b>를 그 <b>북마크바 위로</b> 끌어 놓기 (주소창 말고)<br>또는 [📋 복사] → 북마크바 오른쪽 클릭 › 페이지 추가 › URL 칸에 붙여넣기<br>그다음: zanzan.kr 에서 그 북마크 누르기 → 받은 <b>.json</b> 을 [📂 파일 고르기] (둘 다 넣으면 합쳐짐)<br><span class="mt">내 악보 = 「내가 만든 노래들」 · 최근 본 노래 = 「최근 본 노래들」</span></p>
         <div class="pk-bar"><a class="ghost sm zz-bm" href="${ZZ_BM}" title="북마크바로 끌어 놓으세요 (여기서 누르면 안 됨)">⭐ 잔잔 내 악보</a><button class="ghost sm" data-pk="copy" data-bm="mine">📋 복사</button>
           <a class="ghost sm zz-bm" href="${ZZ_BM_ALL}" title="북마크바로 끌어 놓으세요 (여기서 누르면 안 됨)">⭐ 잔잔 최근 본 노래</a><button class="ghost sm" data-pk="copy" data-bm="all">📋 복사</button></div><div class="pk-bar"><button class="ghost sm" data-pk="file">📂 파일 고르기</button><span class="pk-sum">${D?D.songs.length+'곡 · '+esc(String(D.at||'').slice(0,10))+' 받음':''}</span></div>
-        ${D?`<input type="search" class="zz-q" placeholder="곡 찾기"><div class="zz-list">${[[1,'★ 내 악보','zz-mine'],[0,'🕘 최근 본 노래','zz-rec']].map(([mn,hd,cl])=>{const G=L.filter(x=>(x.s.mine===1?1:0)===mn);return G.length?`<div class="zz-grp ${cl}"><div class="zz-h">${hd} <span class="mt">${G.length}곡</span></div>${G.map(x=>`<button class="ghost sm zz-it${x.hit?' on':''}" data-zz="${x.i}">${esc(x.s.title||'(제목 없음)')}${x.s.singer?' <span class="mt">'+esc(x.s.singer)+'</span>':''}</button>`).join('')}</div>`:''}).join('')}</div>`:''}
+        ${D?`<input type="search" class="zz-q" placeholder="곡 찾기"><div class="zz-list">${[[1,'★ 내 악보','zz-mine'],[0,'🕘 최근 본 노래','zz-rec']].map(([mn,hd,cl])=>{const G=L.filter(x=>(x.s.mine===1?1:0)===mn);return G.length?`<div class="zz-grp ${cl}"><div class="zz-h">${hd} <span class="mt">${G.length}곡</span></div>${G.map(x=>`<button class="ghost sm zz-it${x.hit?' on':''}" data-zz="${x.i}">${esc(x.s.title||'(제목 없음)')}${x.s.singer?' <span class="mt">'+esc(x.s.singer)+'</span>':''}${ZZ_KEYS[x.s.key]||x.s.bpm?' <span class="mt zz-k">'+[ZZ_KEYS[x.s.key]||'',x.s.bpm?'♩'+x.s.bpm:''].filter(Boolean).join(' ')+'</span>':''}</button>`).join('')}</div>`:''}).join('')}</div>`:''}
         <div class="pk-bar" style="justify-content:flex-end"><button class="ghost sm" data-pk="cancel">취소</button></div></div>`;
       const qi=box.querySelector('.zz-q');if(qi)qi.oninput=()=>{const v=nz(qi.value);box.querySelectorAll('[data-zz]').forEach(b=>b.hidden=!!v&&!nz(b.textContent).includes(v));box.querySelectorAll('.zz-grp').forEach(g=>g.hidden=![...g.querySelectorAll('[data-zz]')].some(b=>!b.hidden))}};
     draw();
@@ -3121,7 +3131,7 @@ function edZanzan(song){
           j.songs=j.songs.filter(x=>x&&typeof x.music==='string');fixMine(j);
           if(D&&Array.isArray(D.songs)){const key=x=>x.title+'|'+String(x.music||'').length,M=new Map(D.songs.map(x=>[key(x),x]));j.songs.forEach(x=>{const o=M.get(key(x));M.set(key(x),o?Object.assign({},o,x,{mine:(o.mine===1||x.mine===1)?1:0}):x)});j={kind:'zanzan',at:j.at,songs:[...M.values()]}}
           D=j;try{localStorage.setItem('sg-zz',JSON.stringify(j))}catch(er){}draw()}catch(er){console.error(er);alert('「'+f.name+'」 을 읽지 못했습니다: '+(er&&er.message||er))}return}
-      if(t.dataset.zz!=null){const s=D.songs[+t.dataset.zz];box.innerHTML='';res(await edPasteRhy(song,String(s.music||''),'잔잔 - '+String(s.title||song).replace(/[\\/:*?"<>|]/g,' ')))}
+      if(t.dataset.zz!=null){const s=D.songs[+t.dataset.zz];box.innerHTML='';res(await edPasteRhy(song,zzHead(s)+String(s.music||''),'잔잔 - '+String(s.title||song).replace(/[\\/:*?"<>|]/g,' ')))}
     };
   });
 }
@@ -3364,7 +3374,7 @@ async function ceGetRhythm(title){
   const dec=rhyDecode(await (await fetch(ceUrl('입력',x.file),{cache:'no-store'})).arrayBuffer()),nm=rhyNorm(dec.text,{alias:chAlias,isChord:x=>CH.test(x)});   /* 우리 규칙으로 정리한 뒤 (원본 파일은 그대로) */
   if(dec.enc!=='utf-8')nm.changes.unshift('파일 형식: '+dec.enc+' → UTF-8');
   const lines=ceRhyParse(nm.text);
-  return lines.length?{file:x.file,lines,norm:{changes:nm.changes,issues:nm.issues}}:null;
+  return lines.length?{file:x.file,lines,norm:{changes:nm.changes,issues:nm.issues},meta:rhyMeta(dec.text)}:null;
 }
 /* 자리 맞추기: 숫자 1 = 8분음표(2칸) 또는 두 배로 적힌 것(1칸 → 절반) 중, 첫 가사 줄을 노래 시작 근처(±4마디)에 놓아 음원 코드와 가장 잘 맞는 것 */
 function ceRhyScore(){
@@ -3597,7 +3607,7 @@ function ceRhyHtml(sheet){
     return `<br><span class="mt">리듬악보 정리(우리 규칙): ${Object.entries(c).map(([k,v])=>esc(k)+' '+v+'곳').join(' · ')||'바꿀 곳 없음'}${R.norm.issues.length?' · <b>⚠ '+R.norm.issues.map(esc).join(' / ')+'</b>':''} — 리듬악보는 참고용 (코드 이름 · 가사 · 순서만, 자리와 길이는 원음)</span>`})():'';
   return `<div class="ce-sum">④ 리듬악보 확인 — <b>${esc(R.file)}</b> · ${R.lines.length}줄 · ${fmt(R.units*R.k)}. 박자 읽기: ${why}.
     ${R.shift?`리듬악보는 음원보다 <b>반음 ${Math.abs(R.shift)}개 ${R.shift>0?'높은':'낮은'} 키</b> — 키를 맞춰 비교합니다(코드 결정에는 음원 키로). `:''}첫 가사 줄을 <b>${Math.floor(fl.s/16)+1}마디</b>에 맞췄을 때 음원 코드와 <b>${Math.round(R.r*100)}%</b> 일치${R.r<0.5?' <span class="ed-warn">— 많이 다릅니다. 이 곡의 리듬악보가 맞는지, 노래 시작 위치가 맞는지 확인하세요.</span>':''}.
-    아래 <b>📜 리듬악보</b> 탭에서 묶음마다 ▶로 원곡을 들으며 확인하세요.${nmI}${R.struct&&R.struct.length>1?`<br><span class="mt">곡 구조(노래 트랙): ${R.struct.map(x=>x.name+' '+(x.s+1)+'~'+x.e+'마디').join(' · ')}</span>`:''}${R.skipped&&R.skipped.length?`<br><span class="mt">리듬악보에 있지만 이 녹음에서는 부르지 않은 줄 <b>${R.skipped.length}개</b> — 빼고 맞춤: ${R.skipped.map(esc).join(' · ')}</span>`:''}${ratioLine} 코드 색: 초록 = 음원과 같음 · 노랑 = 종류만 다름 · 빨강 = 다름 (코드에 마우스를 올리면 음원 코드).</div>`;
+    아래 <b>📜 리듬악보</b> 탭에서 묶음마다 ▶로 원곡을 들으며 확인하세요.${R.meta?`<br><span class="mt">${R.meta.src?'잔잔 ':''}곡 정보: ${[R.meta.key?'원래 키 <b>'+esc(R.meta.key)+'</b>'+(R.meta.easy&&R.meta.easy!==R.meta.key?' (권장 '+esc(R.meta.easy)+')':''):'',R.meta.bpm?'BPM <b>'+R.meta.bpm+'</b>'+(CE.song&&CE.song.tempo?' (음원 분석 '+Math.round(CE.song.tempo)+')':''):'',R.meta.made?'발매 '+esc(R.meta.made):''].filter(Boolean).join(' · ')}</span>`:''}${nmI}${R.struct&&R.struct.length>1?`<br><span class="mt">곡 구조(노래 트랙): ${R.struct.map(x=>x.name+' '+(x.s+1)+'~'+x.e+'마디').join(' · ')}</span>`:''}${R.skipped&&R.skipped.length?`<br><span class="mt">리듬악보에 있지만 이 녹음에서는 부르지 않은 줄 <b>${R.skipped.length}개</b> — 빼고 맞춤: ${R.skipped.map(esc).join(' · ')}</span>`:''}${ratioLine} 코드 색: 초록 = 음원과 같음 · 노랑 = 종류만 다름 · 빨강 = 다름 (코드에 마우스를 올리면 음원 코드).</div>`;
 }
 /* 악보 가사(글자 인식) 고치기: 줄마다 참고 가사(원음 받아 적기 · 리듬악보)에서 가장 닮은 곳을 찾아 그 글자로.
    닮음: 같은 글자 2 · 초성 · 중성 · 종성 중 2개 같음(잎/있, 년/닌) 1 · 다름 -1 · 빠짐/더함 -1 */
