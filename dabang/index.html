@@ -848,7 +848,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
         <button id="sgLoop" class="ghost" aria-pressed="false" title="끝까지(또는 고른 마디 끝까지) 가면 처음부터 반복">⟳ 반복</button>
         <button class="ghost follow" data-follow aria-pressed="true" title="재생 중 지금 위치가 보이도록 자동 스크롤">⇣ 따라가기</button>
         <span class="sg-time"><output id="sgCur">0:00</output> / <output id="sgDur">0:00</output></span>
-        <label class="sg-rate">속도 <select id="sgRate"><option value="0.5">50%</option><option value="0.6">60%</option><option value="0.7">70%</option><option value="0.75">75%</option><option value="0.8">80%</option><option value="0.9">90%</option><option value="1">100%</option></select></label>
+        <label class="sg-rate">속도 <select id="sgRate"><option value="0.3">30%</option><option value="0.4">40%</option><option value="0.5">50%</option><option value="0.6">60%</option><option value="0.7">70%</option><option value="0.75">75%</option><option value="0.8">80%</option><option value="0.9">90%</option><option value="1">100%</option></select></label>
       </div>
       <input type="range" id="sgSeek" class="sg-seek" min="0" max="1000" value="0" aria-label="재생 위치">
 
@@ -1066,7 +1066,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-17 01:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-17 01:45';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -1669,7 +1669,7 @@ function ctUi(){const e=document.getElementById('ctCtl');if(!e)return;
 document.addEventListener('DOMContentLoaded',ctUi);
 /* ---------- 애드립: 곡연습에서 연 곡을 따라가며 — 키 · 지금 코드 → 다음 코드 · 노래 빈 곳(애드립 타이밍) · 지판에 코드톤과 착지 목표 ----------
    (다음 단계: 같은 화면에 마이크로 듣기) */
-var AL={show:null,box:0,tg:3,key:'',cap:'',raf:0,gaps:[],gk:''};
+var AL={rep:false,show:null,box:0,tg:3,key:'',cap:'',raf:0,gaps:[],gk:''};
 try{const o=JSON.parse(localStorage.getItem('sg-al')||'{}');if(o.box!=null)AL.box=+o.box;if(o.tg)AL.tg=+o.tg}catch(e){}
 function alSave(){try{localStorage.setItem('sg-al',JSON.stringify({box:AL.box,tg:AL.tg}))}catch(e){}}
 function alSlot(t){const b=SG.song.beats;if(!b||b.length<2)return 0;let lo=0,hi=b.length-1;if(t<=b[0])return 0;if(t>=b[hi])return hi*4;
@@ -1696,13 +1696,14 @@ function alDots(){const S=AL.show;if(!S)return '';let s='';const [lo,hi]=S.win,p
 function alRender(){const e=document.getElementById('alPanel');if(!e)return;
   if(!SG.song){e.innerHTML=`<div class="al-gap">곡연습 탭에서 곡을 먼저 여세요 — 그 곡을 따라가며 노래 빈 곳 · 지금 코드 · 착지할 음을 보여 줍니다. <button class="ghost sm" data-algo="song">곡연습으로</button></div>`;AL.show=null;return}
   const G=AL.gaps;
-  e.innerHTML=`<div class="sc-play"><button class="play" data-alplay="1">${SG.playing?'■ 정지':'▶ 재생'}</button><button class="ghost sm" data-alstep="-1">◀ 이전 빈 곳</button><button class="ghost sm" data-alstep="1">다음 빈 곳 ▶</button>
-      <span class="mt">${esc(SG.song.title||'')} · 속도 ${Math.round(SG.rate*100)}% · 트랙 · 속도 · 조옮김은 곡연습과 같음</span></div>
+  e.innerHTML=`<div class="sc-play"><button class="play" data-alplay="1">${SG.playing?'■ 정지':'▶ 재생'}</button><button class="ghost sm" data-alstep="-1">◀ 이전 빈 곳</button><button class="ghost sm" data-alstep="1">다음 빈 곳 ▶</button><button class="ghost sm" data-alrep="1" aria-pressed="${AL.rep}" title="고른 빈 곳(한 마디 앞 ~ 다음 가사 첫 마디)만 계속 반복 — 천천히 한 곳씩 연습">⟳ 이 빈 곳만 반복</button>
+      <label class="sg-rate">속도 <select id="alRate">${(document.getElementById('sgRate')||{innerHTML:''}).innerHTML}</select></label><span class="mt">${esc(SG.song.title||'')} · 트랙 · 조옮김은 곡연습과 같음</span></div>
     <div class="al-key" id="alKey"></div><div class="al-now" id="alNow"></div><div class="al-gap" id="alGap"></div>
     <div class="chips sc-pat"><span class="sc-lb">박스</span>${[0,1,2,3,4,5].map(k=>`<button class="chip" data-albox="${k}" aria-pressed="${AL.box===k}">${k?k:'전체'}</button>`).join('')}
       <span class="sc-lb" style="margin-left:10px">착지</span>${[[3,'3도'],[1,'근음'],[5,'5도']].map(([k,l])=>`<button class="chip" data-altg="${k}" aria-pressed="${AL.tg===k}">${l}</button>`).join('')}</div>
     <div class="al-gaps" id="alGaps">${G.map((g,i)=>`<button class="chip" data-algap="${i}" title="${esc(g.next?'다음 가사: '+g.next.text:'')}">${g.kind} ${Math.floor(g.a/16)+1}마디 · ${((g.z-g.a)/4).toFixed(g.z-g.a<16?1:0)}박</button>`).join('')||'<span class="mt">가사 줄 정보가 없어 빈 곳을 찾지 못했습니다</span>'}</div>
     <div class="ct-lg"><span><i style="border-color:#ff8a00"></i>지금 코드 근음</span><span><i style="border-color:#2e9d5b"></i>3도</span><span><i style="border-color:#3b7dd8"></i>5도</span><span><i style="border-color:#c0392b"></i>7도</span><span><i style="border-color:#ffd400;border-style:dashed"></i>다음 코드 착지음</span><span><i style="border-color:#ffd400;background:rgba(255,215,0,.3)"></i>애드립 중 착지음</span></div>`;
+  {const r=document.getElementById('alRate');if(r)r.value=String(SG.rate)}
   AL.key='';alTick(true)}
 function alTick(force){
   AL.raf=0;if(st.tab!=='adlib'||!SG.song)return;
@@ -1730,12 +1731,14 @@ function alOpen(){if(!SG.song){alRender();return}const gk=SG.song.title+'|'+(SG.
 document.addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b&&b.dataset.tab==='adlib')setTimeout(alOpen,0);
   const x=e.target.closest('#alPanel button');if(!x)return;const ds=x.dataset;
   if(ds.algo){document.querySelector('[data-tab="song"]')?.click();return}
-  if(ds.alplay){if(SG.playing)sgPause();else sgPlay();setTimeout(()=>alTick(true),50);return}
+  if(ds.alplay){if(SG.playing)sgPause();else{if(AL.rep&&AL.sel)SG.seg={a:Math.max(0,AL.sel.a-16),z:AL.sel.z+16};sgPlay()}setTimeout(()=>alTick(true),50);return}
   if(ds.albox!=null){AL.box=+ds.albox;alSave();alRender();return}
   if(ds.altg){AL.tg=+ds.altg;alSave();alRender();return}
-  const go=g=>{if(!g)return;sgSeek(Math.max(0,sgTime(Math.max(0,g.a-16))));setTimeout(()=>alTick(true),30)};   /* 빈 곳 한 마디 앞부터 */
+  const go=g=>{if(!g)return;AL.sel=g;if(AL.rep){SG.seg={a:Math.max(0,g.a-16),z:g.z+16};SG.loop=true;const lb=document.getElementById('sgLoop');if(lb)lb.setAttribute('aria-pressed',true)}else SG.seg=null;sgSeek(Math.max(0,sgTime(Math.max(0,g.a-16))));setTimeout(()=>alTick(true),30)};
+  if(ds.alrep){AL.rep=!AL.rep;x.setAttribute('aria-pressed',AL.rep);if(!AL.rep)SG.seg=null;else{const m=sgMaster(),sl=alSlot(m?m.currentTime:0);go(AL.sel||AL.gaps.find(g=>g.z>sl)||AL.gaps[0])}return}   /* 빈 곳 한 마디 앞부터 */
   if(ds.algap!=null){go(AL.gaps[+ds.algap]);return}
   if(ds.alstep){const m=sgMaster(),s0=alSlot(m?m.currentTime:0)+16,G=AL.gaps;go(+ds.alstep>0?G.find(g=>g.a-16>s0+1):[...G].reverse().find(g=>g.a-16<s0-20)||G[0]);return}});
+document.addEventListener('change',e=>{if(e.target&&e.target.id==='alRate'){const r=document.getElementById('sgRate');if(r){r.value=e.target.value;r.dispatchEvent(new Event('change',{bubbles:true}))}}});   /* 애드립 속도 = 곡연습 속도 */
 document.addEventListener('toggle',e=>{if(e.target&&e.target.id==='alOld'){AL.key='';drawBoard()}},true);
 function vaPlay(r,qi){
   const key=r+'|'+qi;if(VA.on&&VA.key===key){vaStop();return}
