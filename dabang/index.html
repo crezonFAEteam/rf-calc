@@ -675,7 +675,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
         <div class="sc-play"><button id="playScale" class="play">▶ 스케일 들어보기</button>
           <button id="scLoop" class="ghost sm" aria-pressed="false" title="끝나면 처음부터 계속">⟳ 반복</button>
           <button id="scClick" class="ghost sm" aria-pressed="true" title="한 박마다 똑딱 (8분음표 두 개 = 한 박)">🥁 박자</button>
-          <div class="chips sc-pat" id="scPat"></div><div class="chips sc-pat" id="scRhy"></div>
+          <div class="chips sc-pat" id="scPath"></div><div class="chips sc-pat" id="scStr"></div><div class="chips sc-pat" id="scPat"></div><div class="chips sc-pat" id="scRhy"></div>
           <label class="sc-bpm">빠르기 <input type="range" id="scBpm" min="40" max="200" step="5" value="80"> <output id="scBpmOut">80</output> BPM</label></div>
         <p class="sdesc" id="scPlayCap"></p>
       </div>
@@ -1055,7 +1055,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-16 18:30';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-16 19:30';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -1508,7 +1508,8 @@ function seq(ps){
 }
 /* ---------- 스케일 연습 재생: 자리(줄 · 프렛) 순서대로 · 빠르기(8분음표) · 반복 · 지판에 지금 음 ----------
    박스: 그 박스 위→아래 · 전체(펜타): 낮은 박스부터 지그재그로 지판 전체 · 다이아토닉: 한 줄에 세 음씩 지판을 올라감 */
-var SCP={on:false,hot:null,list:[],t0:0,dt:0.375,src:[],raf:0,loop:false,click:true,bpm:80,pat:'seq',rhy:2};
+var SCP={on:false,hot:null,list:[],t0:0,dt:0.375,src:[],raf:0,loop:false,click:true,bpm:80,pat:'seq',rhy:2,path:'box',str:0,str2:0,g3:3};
+const SC_PATH=[['box','세로 (포지션)','한 자리(박스)에서 줄을 건너며'],['diag','대각선 저음→고음','6번 줄 낮은 음에서 줄을 건널 때마다 지판 위로 · 1번 줄 높은 음까지'],['one','한 줄 옆으로','한 줄에서 개방현부터 15프렛까지'],['two','두 줄 옆으로','두 줄을 번갈아 지판 위로'],['blk3','3줄 블록 이동','세 줄 안에서 블록을 지판 낮은 쪽부터 옮겨 가며 (기본: 고음 3줄)']];
 /* 연습 방법: 올라가는 음 목록 u 에 패턴을 적용 → 올라가기 + (거꾸로 목록에 같은 패턴) 내려오기 */
 const SC_PAT=[['seq','순차','1 2 3 4 …'],['g3','3음 묶음','1 2 3 · 2 3 4 · 3 4 5 …'],['g4','4음 묶음','1 2 3 4 · 2 3 4 5 …'],['t3','3도','1 3 · 2 4 · 3 5 …'],['t3z','3도 엇갈림','1 3 · 4 2 · 3 5 · 6 4 …'],['t4','4도 도약','1 4 · 2 5 · 3 6 …'],['b3','3음 왕복','1 2 3 2 · 2 3 4 3 …'],['str','줄 왕복','한 줄씩 올라갔다 내려옴 (줄 안에서)']];
 const SC_RHY=[[2,'8분'],[3,'셋잇단'],[4,'16분']];
@@ -1524,8 +1525,8 @@ function scPattern(u,pat){const n=u.length,o=[];
   if(pat!=='str'&&pat!=='seq')o.push(u[n-1]);return o}
 function scSeqList(u){const P=SCP.pat;if(P==='str')return scPattern(u,'str').concat(scPattern([...u].reverse(),'str').slice(1));
   const a=scPattern(u,P),d=scPattern([...u].reverse(),P);return a.concat(d.slice(1))}
-try{const o=JSON.parse(localStorage.getItem('sg-scplay')||'{}');if(o.bpm)SCP.bpm=o.bpm;if(o.loop!=null)SCP.loop=!!o.loop;if(o.click!=null)SCP.click=!!o.click;if(o.pat)SCP.pat=o.pat;if(o.rhy)SCP.rhy=+o.rhy}catch(e){}
-function scpSave(){try{localStorage.setItem('sg-scplay',JSON.stringify({bpm:SCP.bpm,loop:SCP.loop,click:SCP.click,pat:SCP.pat,rhy:SCP.rhy}))}catch(e){}}
+try{const o=JSON.parse(localStorage.getItem('sg-scplay')||'{}');if(o.bpm)SCP.bpm=o.bpm;if(o.loop!=null)SCP.loop=!!o.loop;if(o.click!=null)SCP.click=!!o.click;if(o.pat)SCP.pat=o.pat;if(o.path)SCP.path=o.path;if(o.str!=null)SCP.str=+o.str;if(o.str2!=null)SCP.str2=+o.str2;if(o.g3!=null)SCP.g3=+o.g3;if(o.rhy)SCP.rhy=+o.rhy}catch(e){}
+function scpSave(){try{localStorage.setItem('sg-scplay',JSON.stringify({bpm:SCP.bpm,loop:SCP.loop,click:SCP.click,pat:SCP.pat,rhy:SCP.rhy,path:SCP.path,str:SCP.str,str2:SCP.str2,g3:SCP.g3}))}catch(e){}}
 function boxNotes(k){   /* 박스 k(0~4) 의 완전한 한 벌 (낮은 쪽 우선) → [{i,f,p}] 음 높이 순 */
   const m=minorTonic(),set=new Set(PIV.map(x=>mod(m+x))),s0=mod(m+PIV[k]-4);
   for(const s of [s0,s0+12,s0+24]){const sq=[];for(let p=40+s;sq.length<12;p++)if(set.has(mod(p)))sq.push(p);
@@ -1533,14 +1534,35 @@ function boxNotes(k){   /* 박스 k(0~4) 의 완전한 한 벌 (낮은 쪽 우�
     if(L.length===12)return L}
   return []}
 function scaleRun(){
-  if(st.stype==='penta'&&st.box>0)return boxNotes(st.box-1);
-  if(st.stype==='penta'){   /* 전체: 박스를 지판 낮은 쪽부터 · 올라가고 내려가고를 번갈아 (지그재그) */
+  const pcs=scalePcs(),P=st.stype==='penta';
+  const pitches=(lo,hi)=>{const a=[];for(let p=lo;p<=hi;p++)if(pcs.has(mod(p)))a.push(p);return a};
+  const W=SCP.path||'box';
+  if(W==='diag'){   /* 대각선: 6번 줄 가장 낮은 음 → 1번 줄 가장 높은 음 · 줄을 건널 때마다 지판 위로 (줄마다 고르게 나눔) */
+    const A=pitches(TUNE[0],TUNE[5]+FR),n=A.length,out=[];let k=0;
+    for(let i=0;i<6;i++){const c=Math.round(n*(i+1)/6)-Math.round(n*i/6);for(let t=0;t<c;t++,k++){const p=A[k];let f=p-TUNE[i];if(f<0||f>FR){const j=[i-1,i+1].find(j=>j>=0&&j<6&&p-TUNE[j]>=0&&p-TUNE[j]<=FR);if(j==null)continue;out.push({i:j,f:p-TUNE[j],p});continue}out.push({i,f,p})}}
+    return out}
+  if(W==='blk3'){   /* 3줄 블록: 고른 세 줄 안에서 블록(포지션)을 지판 낮은 쪽부터 옮겨 가며 · 올라가고 내려가고를 번갈아 */
+    const g0=SCP.g3??3,S3=[g0,g0+1,g0+2],B=[];
+    if(P){const m=minorTonic(),set=new Set(PIV.map(x=>mod(m+x)));
+      for(let k=0;k<5;k++){const s0=mod(m+PIV[k]-4);for(const s of [s0,s0+12]){const sq=[];for(let p=40+s;sq.length<12;p++)if(set.has(mod(p)))sq.push(p);
+        const L=[];S3.forEach(i=>[sq[2*i],sq[2*i+1]].forEach(p=>{const f=p-TUNE[i];if(f>=0&&f<=FR)L.push({i,f,p})}));if(L.length===6)B.push(L)}}}
+    else{const lo=S3[0];for(let f0=0;f0<=FR-4;f0++){if(!pcs.has(mod(TUNE[lo]+f0)))continue;const A=pitches(TUNE[lo]+f0,TUNE[lo]+f0+30).slice(0,9),L=A.map((p,k)=>{const i=S3[Math.floor(k/3)];return {i,f:p-TUNE[i],p}});
+        if(L.every(x=>x.f>=0&&x.f<=FR)&&(!B.length||Math.min(...L.map(x=>x.f))>=Math.min(...B[B.length-1].map(x=>x.f))+2))B.push(L)}}
+    B.sort((a,b)=>Math.min(...a.map(x=>x.f))-Math.min(...b.map(x=>x.f)));
+    const out=[];B.forEach((b,j)=>{const x=j%2?[...b].reverse():b;x.forEach(n=>{const l=out[out.length-1];if(!l||l.i!==n.i||l.f!==n.f)out.push(n)})});return out}
+  if(W==='one'){const i=SCP.str??0;return pitches(TUNE[i],TUNE[i]+FR).map(p=>({i,f:p-TUNE[i],p}))}   /* 한 줄: 개방현부터 15프렛까지 옆으로 */
+  if(W==='two'){   /* 두 줄: 아랫줄 · 윗줄을 번갈아 (펜타 2음 · 다이아토닉 3음씩) 지판 위로 */
+    const a=SCP.str2??0,b=a+1,g=P?2:3,A=pitches(TUNE[a],TUNE[b]+FR),out=[];let k=0,side=0;
+    while(k<A.length){for(let t=0;t<g&&k<A.length;t++,k++){const i=side?b:a,f=A[k]-TUNE[i];if(f>=0&&f<=FR&&(!out.length||f>=out[out.length-1].f-5))out.push({i,f,p:A[k]});else if(!side){const f2=A[k]-TUNE[b];if(f2>=0&&f2<=FR)out.push({i:b,f:f2,p:A[k]})}}side=1-side}
+    return out}
+  if(P&&st.box>0)return boxNotes(st.box-1);
+  if(P){   /* 전체: 박스를 지판 낮은 쪽부터 · 올라가고 내려가고를 번갈아 (지그재그) */
     const B=[0,1,2,3,4].map(boxNotes).filter(x=>x.length).sort((a,b)=>Math.min(...a.map(x=>x.f))-Math.min(...b.map(x=>x.f)));
     const out=[];B.forEach((b,j)=>{const x=j%2?[...b].reverse():b;x.forEach(n=>{const l=out[out.length-1];if(!l||l.i!==n.i||l.f!==n.f)out.push(n)})});return out}
-  /* 다이아토닉: 6번 줄 가장 낮은 스케일 음부터 한 줄에 세 음 */
-  const pcs=scalePcs(),out=[];let p=40;while(!pcs.has(mod(p)))p++;
-  for(let i=0;i<6;i++)for(let n=0;n<3;n++){const f=p-TUNE[i];if(f>=0&&f<=FR)out.push({i,f,p});p++;while(!pcs.has(mod(p)))p++}
-  return out}
+  /* 다이아토닉 한 포지션: 6번 줄 으뜸음 프렛 기준 -1 ~ +3 프렛 */
+  let r0=mod(st.sk-TUNE[0]);if(r0<1)r0+=12;const out=[],seen=new Set();
+  for(let i=0;i<6;i++)for(let f=Math.max(0,r0-1);f<=r0+3;f++){const p=TUNE[i]+f;if(pcs.has(mod(p))&&!seen.has(p)){seen.add(p);out.push({i,f,p})}}
+  return out.sort((x,y)=>x.p-y.p)}
 function scpStop(){SCP.on=false;SCP.src.forEach(s=>{try{s.stop()}catch(e){}});SCP.src=[];cancelAnimationFrame(SCP.raf);SCP.hot=null;
   const b=document.getElementById('playScale');if(b)b.textContent='▶ 스케일 들어보기';drawBoard()}
 function scpQueue(t0){   /* 한 바퀴 예약 */
@@ -1563,9 +1585,12 @@ function playScale(){
   SCP.raf=requestAnimationFrame(tick);
 }
 function scpUi(){const b=id=>document.getElementById(id);if(!b('scBpm'))return;b('scBpm').value=SCP.bpm;b('scBpmOut').textContent=SCP.bpm;
-  b('scLoop').setAttribute('aria-pressed',SCP.loop);b('scPat').innerHTML='<span class="sc-lb">방법</span>'+SC_PAT.map(([k,l,t])=>`<button class="chip" data-scpat="${k}" aria-pressed="${SCP.pat===k}" title="${t}">${l}</button>`).join('');b('scRhy').innerHTML='<span class="sc-lb">리듬</span>'+SC_RHY.map(([k,l])=>`<button class="chip" data-scrhy="${k}" aria-pressed="${SCP.rhy===k}">${l}</button>`).join('');b('scClick').setAttribute('aria-pressed',SCP.click);
+  b('scLoop').setAttribute('aria-pressed',SCP.loop);b('scPath').innerHTML='<span class="sc-lb">경로</span>'+SC_PATH.map(([k,l,t])=>`<button class="chip" data-scpath="${k}" aria-pressed="${SCP.path===k}" title="${t}">${l}</button>`).join('');
+  const SN=['6번(E)','5번(A)','4번(D)','3번(G)','2번(B)','1번(E)'];b('scStr').hidden=!(SCP.path==='one'||SCP.path==='two'||SCP.path==='blk3');
+  b('scStr').innerHTML='<span class="sc-lb">줄</span>'+(SCP.path==='blk3'?[3,2,1,0].map(i=>`<button class="chip" data-scg3="${i}" aria-pressed="${SCP.g3===i}">${6-i}·${5-i}·${4-i}번${i===3?' (고음)':i===0?' (저음)':''}</button>`).join(''):SCP.path==='one'?SN.map((n,i)=>`<button class="chip" data-scstr="${i}" aria-pressed="${SCP.str===i}">${n}</button>`).join(''):[0,1,2,3,4].map(i=>`<button class="chip" data-scstr2="${i}" aria-pressed="${SCP.str2===i}">${6-i}·${5-i}번</button>`).join(''));
+  b('scPat').innerHTML='<span class="sc-lb">방법</span>'+SC_PAT.map(([k,l,t])=>`<button class="chip" data-scpat="${k}" aria-pressed="${SCP.pat===k}" title="${t}">${l}</button>`).join('');b('scRhy').innerHTML='<span class="sc-lb">리듬</span>'+SC_RHY.map(([k,l])=>`<button class="chip" data-scrhy="${k}" aria-pressed="${SCP.rhy===k}">${l}</button>`).join('');b('scClick').setAttribute('aria-pressed',SCP.click);
   const L=scaleRun(),fr=L.length?[Math.min(...L.map(x=>x.f)),Math.max(...L.map(x=>x.f))]:[0,0];
-  b('scPlayCap').textContent=L.length?`${st.stype==='penta'?(st.box>0?'박스 '+st.box:'전체 박스 (지그재그)'):'한 줄에 세 음'} · ${L.length}음 · ${(SC_PAT.find(x=>x[0]===SCP.pat)||SC_PAT[0])[1]} (${(SC_PAT.find(x=>x[0]===SCP.pat)||SC_PAT[0])[2]}) · 한 바퀴 ${scSeqList(L).length}음 · ${fr[0]}~${fr[1]}프렛`:''}
+  b('scPlayCap').textContent=L.length?`${SCP.path==='box'?(st.stype==='penta'?(st.box>0?'박스 '+st.box:'전체 박스 (지그재그)'):'한 포지션'):(SC_PATH.find(x=>x[0]===SCP.path)||[])[1]} · ${L.length}음 · ${(SC_PAT.find(x=>x[0]===SCP.pat)||SC_PAT[0])[1]} (${(SC_PAT.find(x=>x[0]===SCP.pat)||SC_PAT[0])[2]}) · 한 바퀴 ${scSeqList(L).length}음 · ${fr[0]}~${fr[1]}프렛`:''}
 document.addEventListener('DOMContentLoaded',scpUi);
 document.addEventListener('input',e=>{if(e.target.id==='scBpm'){SCP.bpm=+e.target.value;document.getElementById('scBpmOut').textContent=SCP.bpm;scpSave()}});
 document.getElementById('p-scale').addEventListener('click',e=>{
@@ -1573,7 +1598,7 @@ document.getElementById('p-scale').addEventListener('click',e=>{
   if(b.id==='playScale'){playScale();return}
   if(b.id==='scLoop'){SCP.loop=!SCP.loop;scpSave();scpUi();return}
   if(b.id==='scClick'){SCP.click=!SCP.click;scpSave();scpUi();return}
-  if(ds.scpat||ds.scrhy){if(ds.scpat)SCP.pat=ds.scpat;else SCP.rhy=+ds.scrhy;scpSave();const was=SCP.on;if(was)scpStop();scpUi();if(was)playScale();return}
+  if(ds.scpat||ds.scrhy||ds.scpath||ds.scstr!=null||ds.scstr2!=null||ds.scg3!=null){if(ds.scg3!=null)SCP.g3=+ds.scg3;else if(ds.scpat)SCP.pat=ds.scpat;else if(ds.scrhy)SCP.rhy=+ds.scrhy;else if(ds.scpath)SCP.path=ds.scpath;else if(ds.scstr!=null)SCP.str=+ds.scstr;else SCP.str2=+ds.scstr2;scpSave();const was=SCP.on;if(was)scpStop();scpUi();if(was)playScale();return}
   if(SCP.on&&(ds.sk!=null||ds.smode||ds.stype||ds.box!=null))scpStop();
   if(b.classList.contains('go')){   /* 탭 이동 없이 지판에 운지. 같은 코드면 다음 운지 */
     const r=+ds.r,qi=+ds.qi,sh=st.schShape;
