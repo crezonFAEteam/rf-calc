@@ -273,7 +273,8 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 #p-song .rz .rz-t.now{background:color-mix(in srgb,var(--accent-fill) 14%,transparent);color:inherit;border-left-color:var(--accent-fill);box-shadow:inset 0 -3px 0 var(--accent-fill);border-radius:7px}
 .ed-tabs{margin:8px 0 8px;gap:4px;padding:4px;background:color-mix(in srgb,var(--line) 70%,transparent);border-radius:12px;display:flex;flex-wrap:nowrap}.ed-tabs .chip{font-weight:700;padding:7px 18px;font-size:.95rem;border-color:transparent;background:transparent;flex:1 1 0;text-align:center;border-radius:9px}.ed-tabs .chip[aria-pressed=true]{background:var(--ink);color:var(--bg);box-shadow:0 1px 3px rgba(0,0,0,.25)}.ed-tabs .chip[aria-pressed=false]:hover{background:var(--surface)}.ed-tabs .chip[data-st]::before{content:'';display:inline-block;width:.55em;height:.55em;border-radius:50%;margin-right:.4em;vertical-align:.12em}.ed-tabs .chip[data-st=ok]::before{background:#2e9d5b}.ed-tabs .chip[data-st=ok][aria-pressed=false]{color:#2e9d5b}.ed-tabs .chip[data-st=warn]::before{background:#e08a1e}.ed-tabs .chip[data-st=warn][aria-pressed=false]{color:#c9741a}.ed-hs2{font-size:.9rem;margin-right:2px}.ed-bt{margin-top:8px}
 @media (max-width:640px){.ed-tabs .chip{padding:9px 0}.ed-row{padding:9px 8px}.ed-k{font-size:.95rem}.ed-sub{padding-left:8px}}
-.zz-list{max-height:50vh;overflow:auto;margin:6px 0}.zz-grp{display:flex;flex-wrap:wrap;gap:4px;padding:6px;border-radius:10px;margin-bottom:6px}.zz-info{margin:6px 0 2px;padding:6px 10px;border-radius:8px;background:color-mix(in srgb,#3b7dd8 12%,transparent);font-size:.9rem}#sgViews{padding:4px;gap:4px;background:color-mix(in srgb,var(--line) 70%,transparent);border-radius:12px;margin-bottom:6px}#sgViews .chip{border-color:transparent;background:transparent;font-weight:600}#sgViews .chip[aria-pressed=true]{background:var(--ink);color:var(--bg);box-shadow:0 1px 3px rgba(0,0,0,.25)}#sgViews .chip[aria-pressed=false]:hover{background:var(--surface)}.zz-k{color:#2b63b0;font-weight:600}.zz-h{flex-basis:100%;font-weight:700;font-size:.88rem;margin:0 2px 2px}.zz-mine{background:color-mix(in srgb,#e0a21e 16%,transparent)}.zz-mine .zz-h{color:#a86d00}.zz-rec{background:color-mix(in srgb,#3b7dd8 12%,transparent)}.zz-rec .zz-h{color:#2b63b0}.zz-grp .zz-it{background:var(--surface)}.zz-it.on{border-color:var(--accent);font-weight:700}.zz-q{width:100%;margin-top:6px;padding:6px 8px;font-size:.95rem}.zz-bm{text-decoration:none;cursor:grab}
+.zz-list{max-height:50vh;overflow:auto;margin:6px 0}.zz-grp{display:flex;flex-wrap:wrap;gap:4px;padding:6px;border-radius:10px;margin-bottom:6px}.zz-info{margin:6px 0 2px;padding:6px 10px;border-radius:8px;background:color-mix(in srgb,#3b7dd8 12%,transparent);font-size:.9rem}#sgViews{padding:4px;gap:4px;background:color-mix(in srgb,var(--line) 70%,transparent);border-radius:12px;margin-bottom:6px}#sgViews .chip{border-color:transparent;background:transparent;font-weight:600}#sgViews .chip[aria-pressed=true]{background:var(--ink);color:var(--bg);box-shadow:0 1px 3px rgba(0,0,0,.25)}#sgViews .chip[aria-pressed=false]:hover{background:var(--surface)}.sc-play{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.sc-bpm{display:flex;align-items:center;gap:6px;font-size:.9rem}.sc-bpm input{width:140px}#scPlayCap{margin:6px 0 0;font-size:.85rem}
+.board .hot-ring{fill:none;stroke:#ff8a00;stroke-width:5;pointer-events:none}.zz-k{color:#2b63b0;font-weight:600}.zz-h{flex-basis:100%;font-weight:700;font-size:.88rem;margin:0 2px 2px}.zz-mine{background:color-mix(in srgb,#e0a21e 16%,transparent)}.zz-mine .zz-h{color:#a86d00}.zz-rec{background:color-mix(in srgb,#3b7dd8 12%,transparent)}.zz-rec .zz-h{color:#2b63b0}.zz-grp .zz-it{background:var(--surface)}.zz-it.on{border-color:var(--accent);font-weight:700}.zz-q{width:100%;margin-top:6px;padding:6px 8px;font-size:.95rem}.zz-bm{text-decoration:none;cursor:grab}
 .phone-only{display:none}@media (pointer:coarse){.phone-only{display:inline}}
 /* 곡연습: 악보는 늘 전체 폭 — 믹서 · 반복 마디는 악보 위에 (넓으면 여러 칸) */
 #p-song .sg-grid{grid-template-columns:minmax(0,1fr)}#p-song .sg-view{order:-1}#p-song .sg-side{margin-top:6px}
@@ -671,7 +672,11 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
         <div class="field"><span class="flabel">장조·단조</span><div id="sMode" class="chips"></div></div>
         <div class="field"><span class="flabel">스케일</span><div id="sType" class="chips"></div></div>
         <div class="field" id="sBoxField"><span class="flabel">펜타토닉 포지션 (박스)</span><div id="sBox" class="chips"></div></div>
-        <button id="playScale" class="play">스케일 들어보기</button>
+        <div class="sc-play"><button id="playScale" class="play">▶ 스케일 들어보기</button>
+          <button id="scLoop" class="ghost sm" aria-pressed="false" title="끝나면 처음부터 계속">⟳ 반복</button>
+          <button id="scClick" class="ghost sm" aria-pressed="true" title="한 박마다 똑딱 (8분음표 두 개 = 한 박)">🥁 박자</button>
+          <label class="sc-bpm">빠르기 <input type="range" id="scBpm" min="40" max="200" step="5" value="80"> <output id="scBpmOut">80</output> BPM</label></div>
+        <p class="sdesc" id="scPlayCap"></p>
       </div>
       <div>
         <div id="sName" class="cname sname"></div>
@@ -1049,7 +1054,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-16 17:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-16 18:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -1118,6 +1123,7 @@ function drawBoard(){
     cap.textContent=blCap();
   }else if(st.tab==='scale'){
     s+=scaleDots();
+    if(SCP&&SCP.hot)s+=`<circle cx="${cx(SCP.hot.f).toFixed(1)}" cy="${sy(SCP.hot.i)}" r="18" class="hot-ring"/>`;
     cap.textContent=scaleCap();
   }else{
     const q=Q[st.qi],bass=st.bass==null?st.root:st.bass;
@@ -1499,18 +1505,59 @@ function seq(ps){
     });
   }catch(e){}
 }
+/* ---------- 스케일 연습 재생: 자리(줄 · 프렛) 순서대로 · 빠르기(8분음표) · 반복 · 지판에 지금 음 ----------
+   박스: 그 박스 위→아래 · 전체(펜타): 낮은 박스부터 지그재그로 지판 전체 · 다이아토닉: 한 줄에 세 음씩 지판을 올라감 */
+var SCP={on:false,hot:null,list:[],t0:0,dt:0.375,src:[],raf:0,loop:false,click:true,bpm:80};
+try{const o=JSON.parse(localStorage.getItem('sg-scplay')||'{}');if(o.bpm)SCP.bpm=o.bpm;if(o.loop!=null)SCP.loop=!!o.loop;if(o.click!=null)SCP.click=!!o.click}catch(e){}
+function scpSave(){try{localStorage.setItem('sg-scplay',JSON.stringify({bpm:SCP.bpm,loop:SCP.loop,click:SCP.click}))}catch(e){}}
+function boxNotes(k){   /* 박스 k(0~4) 의 완전한 한 벌 (낮은 쪽 우선) → [{i,f,p}] 음 높이 순 */
+  const m=minorTonic(),set=new Set(PIV.map(x=>mod(m+x))),s0=mod(m+PIV[k]-4);
+  for(const s of [s0,s0+12,s0+24]){const sq=[];for(let p=40+s;sq.length<12;p++)if(set.has(mod(p)))sq.push(p);
+    const L=[];for(let i=0;i<6;i++)[sq[2*i],sq[2*i+1]].forEach(p=>{const f=p-TUNE[i];if(f>=0&&f<=FR)L.push({i,f,p})});
+    if(L.length===12)return L}
+  return []}
+function scaleRun(){
+  if(st.stype==='penta'&&st.box>0)return boxNotes(st.box-1);
+  if(st.stype==='penta'){   /* 전체: 박스를 지판 낮은 쪽부터 · 올라가고 내려가고를 번갈아 (지그재그) */
+    const B=[0,1,2,3,4].map(boxNotes).filter(x=>x.length).sort((a,b)=>Math.min(...a.map(x=>x.f))-Math.min(...b.map(x=>x.f)));
+    const out=[];B.forEach((b,j)=>{const x=j%2?[...b].reverse():b;x.forEach(n=>{const l=out[out.length-1];if(!l||l.i!==n.i||l.f!==n.f)out.push(n)})});return out}
+  /* 다이아토닉: 6번 줄 가장 낮은 스케일 음부터 한 줄에 세 음 */
+  const pcs=scalePcs(),out=[];let p=40;while(!pcs.has(mod(p)))p++;
+  for(let i=0;i<6;i++)for(let n=0;n<3;n++){const f=p-TUNE[i];if(f>=0&&f<=FR)out.push({i,f,p});p++;while(!pcs.has(mod(p)))p++}
+  return out}
+function scpStop(){SCP.on=false;SCP.src.forEach(s=>{try{s.stop()}catch(e){}});SCP.src=[];cancelAnimationFrame(SCP.raf);SCP.hot=null;
+  const b=document.getElementById('playScale');if(b)b.textContent='▶ 스케일 들어보기';drawBoard()}
+function scpQueue(t0){   /* 한 바퀴 예약 */
+  const L=SCP.list,dt=SCP.dt,g=actx.createGain();g.gain.value=0.32;g.connect(gOut());
+  L.forEach((n,k)=>{const s=actx.createBufferSource();s.buffer=makeBuf(n.p,1.0,0.996,0.9);s.connect(g);s.start(t0+k*dt);SCP.src.push(s)});
+  if(SCP.click)for(let k=0;k<L.length;k+=2){const o=actx.createOscillator(),e=actx.createGain(),t=t0+k*dt;o.frequency.value=k%8?1200:1800;
+    e.gain.setValueAtTime(0.0001,t);e.gain.exponentialRampToValueAtTime(k%8?0.12:0.2,t+0.002);e.gain.exponentialRampToValueAtTime(0.0001,t+0.05);o.connect(e);e.connect(gOut());o.start(t);o.stop(t+0.06);SCP.src.push(o)}
+  if(SCP.src.length>600)SCP.src=SCP.src.slice(-300)}
 function playScale(){
-  let ps;
-  if(st.stype==='penta'&&st.box>0){
-    ps=[...new Set([...boxFrets(st.box-1)].map(k=>{const [i,f]=k.split('-').map(Number);return TUNE[i]+f}))].sort((a,b)=>a-b).slice(0,12);
-  }else{
-    const t=40+mod(st.sk-4);ps=SC[st.stype][st.smode].map(x=>t+x).concat([t+12]);
-  }
-  seq(ps.concat(ps.slice(0,-1).reverse()));
+  if(SCP.on){scpStop();return}
+  try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume()}catch(e){return}
+  const up=scaleRun();if(!up.length)return;
+  SCP.list=up.concat(up.slice(0,-1).reverse());SCP.dt=30/SCP.bpm;SCP.on=true;SCP.t0=actx.currentTime+0.12;SCP.next=SCP.t0+SCP.list.length*SCP.dt;
+  scpQueue(SCP.t0);document.getElementById('playScale').textContent='■ 멈춤';
+  const tick=()=>{if(!SCP.on)return;const now=actx.currentTime;
+    if(now>=SCP.next-0.25){if(SCP.loop){SCP.t0=SCP.next;SCP.dt=30/SCP.bpm;SCP.next=SCP.t0+SCP.list.length*SCP.dt;scpQueue(SCP.t0)}else if(now>=SCP.next){scpStop();return}}
+    const k=Math.floor((now-SCP.t0)/SCP.dt),n=k>=0&&k<SCP.list.length?SCP.list[k]:null;
+    if((n&&(!SCP.hot||SCP.hot.i!==n.i||SCP.hot.f!==n.f))||(!n&&SCP.hot)){SCP.hot=n?{i:n.i,f:n.f}:null;drawBoard()}
+    SCP.raf=requestAnimationFrame(tick)};
+  SCP.raf=requestAnimationFrame(tick);
 }
+function scpUi(){const b=id=>document.getElementById(id);if(!b('scBpm'))return;b('scBpm').value=SCP.bpm;b('scBpmOut').textContent=SCP.bpm;
+  b('scLoop').setAttribute('aria-pressed',SCP.loop);b('scClick').setAttribute('aria-pressed',SCP.click);
+  const L=scaleRun(),fr=L.length?[Math.min(...L.map(x=>x.f)),Math.max(...L.map(x=>x.f))]:[0,0];
+  b('scPlayCap').textContent=L.length?`${st.stype==='penta'?(st.box>0?'박스 '+st.box:'전체 박스 (지그재그)'):'한 줄에 세 음'} · ${L.length}음 올라갔다 내려옴 · ${fr[0]}~${fr[1]}프렛 · 8분음표`:''}
+document.addEventListener('DOMContentLoaded',scpUi);
+document.addEventListener('input',e=>{if(e.target.id==='scBpm'){SCP.bpm=+e.target.value;document.getElementById('scBpmOut').textContent=SCP.bpm;scpSave()}});
 document.getElementById('p-scale').addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;const ds=b.dataset;
   if(b.id==='playScale'){playScale();return}
+  if(b.id==='scLoop'){SCP.loop=!SCP.loop;scpSave();scpUi();return}
+  if(b.id==='scClick'){SCP.click=!SCP.click;scpSave();scpUi();return}
+  if(SCP.on&&(ds.sk!=null||ds.smode||ds.stype||ds.box!=null))scpStop();
   if(b.classList.contains('go')){   /* 탭 이동 없이 지판에 운지. 같은 코드면 다음 운지 */
     const r=+ds.r,qi=+ds.qi,sh=st.schShape;
     if(sh&&sh.r===r&&sh.qi===qi){const n=shapeList(sh).length;sh.vi=n?(sh.vi+1)%n:0}
@@ -1527,7 +1574,7 @@ document.getElementById('p-scale').addEventListener('click',e=>{
   else if(ds.blue){st.blue=!st.blue}
   else if(ds.s7!=null){st.s7=ds.s7==='1';st.schSel=null;st.schShape=null}
   else return;
-  renderScale();drawBoard();
+  renderScale();drawBoard();scpUi();
 });
 
 /* ---------- 애드리브 ---------- */
