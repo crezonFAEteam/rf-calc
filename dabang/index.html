@@ -278,7 +278,9 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .al-panel{display:flex;flex-direction:column;gap:8px;margin:4px 0 12px}.al-key{font-size:1.05rem}.al-now{font-size:1.35rem;font-weight:700;line-height:1.5}.al-now .nx{font-size:1.05rem;font-weight:600;color:var(--muted)}
 .al-gap{padding:10px 14px;border-radius:12px;font-size:1.15rem;font-weight:700;background:color-mix(in srgb,var(--line) 60%,transparent)}.al-gap.go{background:#ffd400;color:#222;animation:alp 1s ease-in-out infinite alternate}.al-gap.soon{background:color-mix(in srgb,#ffd400 35%,transparent)}
 @keyframes alp{from{filter:brightness(1)}to{filter:brightness(1.12)}}.al-gaps{display:flex;flex-wrap:wrap;gap:4px}.al-gaps .chip{font-size:.82rem;padding:4px 10px}.al-gaps .chip.cur{outline:3px solid #ffd400}
-#board g.dot.dim,#board2 g.dot.dim{opacity:.5}.al-old>summary{cursor:pointer;color:var(--muted);font-size:.9rem;margin:6px 0}
+#board g.dot.dim,#board2 g.dot.dim{opacity:.5}.al-ref{padding:8px 10px;border-radius:10px;background:color-mix(in srgb,#a24bd6 8%,transparent)}.al-ref pre{font:13px/1.35 ui-monospace,Consolas,monospace;overflow-x:auto;margin:6px 0 0;white-space:pre}.al-ref .hl{background:#ffd400;color:#222;border-radius:2px}
+#board .alref,#board2 .alref{fill:rgba(162,75,214,.35);stroke:#a24bd6;stroke-width:4;pointer-events:none}
+.al-old>summary{cursor:pointer;color:var(--muted);font-size:.9rem;margin:6px 0}
 .sc-play{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.sc-bpm{display:flex;align-items:center;gap:6px;font-size:.9rem}.sc-bpm input{width:140px}#scPlayCap{margin:6px 0 0;font-size:.85rem}
 #board .vo-ring,#board2 .vo-ring{fill:none;stroke:#ff8a00;stroke-width:2;stroke-dasharray:4 3;pointer-events:none}#board .hot-ring,#board2 .hot-ring{fill:rgba(255,138,0,.18);stroke:#ff8a00;stroke-width:5;pointer-events:none}.zz-k{color:#2b63b0;font-weight:600}.zz-h{flex-basis:100%;font-weight:700;font-size:.88rem;margin:0 2px 2px}.zz-mine{background:color-mix(in srgb,#e0a21e 16%,transparent)}.zz-mine .zz-h{color:#a86d00}.zz-rec{background:color-mix(in srgb,#3b7dd8 12%,transparent)}.zz-rec .zz-h{color:#2b63b0}.zz-grp .zz-it{background:var(--surface)}.zz-it.on{border-color:var(--accent);font-weight:700}.zz-q{width:100%;margin-top:6px;padding:6px 8px;font-size:.95rem}.zz-bm{text-decoration:none;cursor:grab}
 .phone-only{display:none}@media (pointer:coarse){.phone-only{display:inline}}
@@ -1066,7 +1068,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-17 02:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-17 02:30';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -1689,10 +1691,32 @@ function alInfo(name,key){const T=sgPitchSemi(),c=blChord(sgTrName(name,T));if(!
 function alWin(key){if(AL.box>0){const L=boxNotes(AL.box-1,mod(key+9));if(L.length)return [Math.max(0,Math.min(...L.map(x=>x.f))-1),Math.min(FR,Math.max(...L.map(x=>x.f))+1)]}return [0,FR]}
 function alDots(){const S=AL.show;if(!S)return '';let s='';const [lo,hi]=S.win,pen=new Set([0,2,4,7,9].map(x=>mod(S.key+x)));
   const deg=(c,p)=>{if(!c)return 0;const k=c.iv.findIndex(y=>mod(c.r+y)===mod(p));return k<0?0:[1,3,5,7][k]||0};
+  if(AL.ref&&S.slot!=null)AL.ref.notes.forEach(n=>{if(S.slot>=n.s&&S.slot<n.s+Math.max(1,n.d)){s+=dot(n.i,n.f,'tone on',nn(n.p));s+=`<circle cx="${cx(n.f).toFixed(1)}" cy="${sy(n.i)}" r="17" class="alref"/>`}});
   for(let i=0;i<6;i++)for(let f=lo;f<=hi;f++){const p=TUNE[i]+f,pc=mod(p),d=deg(S.cur,p);if(!pen.has(pc)&&!d)continue;
     s+=dot(i,f,(pc===S.key?'root':'tone')+(d?'':' dim'),nn(pc));if(d)s+=`<circle cx="${cx(f).toFixed(1)}" cy="${sy(i)}" r="16" class="ct${d}"/>`;
     if(S.nx&&deg(S.nx,p)===AL.tg)s+=`<circle cx="${cx(f).toFixed(1)}" cy="${sy(i)}" r="21" class="${S.gap?'cttg':'ctnx'}"/>`}
   return s}
+/* 원곡 연주 참고: 그 빈 곳에서 원곡 기타 · 하모니카 · 베이스가 실제로 친 음 (분석 TAB) */
+function alParts(){const P=SG.song.parts||{};return Object.keys(P).filter(k=>(P[k].notes||[]).length)}
+function alRefNotes(pid,a,z){const P=(SG.song.parts||{})[pid];if(!P)return [];const T=sgPitchSemi(),key=mod(sgKey0()+T),[lo,hi]=alWin(key);
+  let N=(P.notes||[]).filter(n=>n.s>=a&&n.s<z);
+  if(P.kind==='harmonica'){const top={};N.forEach(n=>{if(!top[n.s]||n.p>top[n.s].p)top[n.s]=n});   /* 하모니카: 같은 때 여러 음이면 가장 높은 음(멜로디) → 기타 자리(고른 박스 근처) */
+    return Object.values(top).sort((x,y)=>x.s-y.s).map(n=>{const pp=n.p+T;let b=null;for(let i=0;i<6;i++){const f=pp-TUNE[i];if(f<0||f>FR)continue;const d=(f<lo?lo-f:f>hi?f-hi:0)*3+Math.abs(f-(lo+hi)/2)*0.2+i*0.01;if(!b||d<b.d)b={i,f,d}}return b&&{s:n.s,d:n.d||1,i:b.i,f:b.f,p:pp}}).filter(Boolean)}
+  return N.map(n=>{const q=T?sgFitNote(n,T,0):{i:n.i,f:n.f};return q&&{s:n.s,d:n.d||1,i:q.i,f:q.f,p:TUNE[q.i]+q.f}}).filter(Boolean).sort((x,y)=>x.s-y.s)}
+function alRefRender(g){const e=document.getElementById('alRef');if(!e)return;
+  const ps=alParts();if(!g||!ps.length){e.innerHTML=g?'':'<span class="mt">빈 곳을 고르면 그 구간에서 원곡 악기가 실제로 친 음(분석 TAB)을 보여 줍니다</span>';AL.ref=null;return}
+  if(!AL.part||!ps.includes(AL.part)){let best=ps[0],bn=-1;ps.forEach(k=>{const n=alRefNotes(k,g.a,g.z).length+(SG.song.parts[k].kind==='harmonica'?2:0);if(n>bn){bn=n;best=k}});AL.part=best}
+  const a0=Math.floor(g.a/16)*16,z0=Math.min(Math.ceil(g.z/16)*16,a0+16*8),N=alRefNotes(AL.part,a0,z0);AL.ref={notes:N,a:g.a,z:g.z};
+  const L=['e','B','G','D','A','E'],rows=[];
+  for(let r0=a0;r0<z0;r0+=32){const r1=Math.min(z0,r0+32),ln=L.map(x=>x+'|');
+    for(let sl=r0;sl<r1;sl++){if(sl>r0&&sl%16===0)for(let k=0;k<6;k++)ln[k]+='|';
+      const at=N.filter(n=>n.s===sl);for(let k=0;k<6;k++){const n=at.find(x=>x.i===5-k);const c=n?String(n.f):'';const cell=(c+'---').slice(0,3);ln[k]+=(sl>=g.a&&sl<g.z&&n)?'<span class="hl">'+cell+'</span>':cell}}
+    rows.push('   '+Array.from({length:Math.ceil((r1-r0)/16)},(_,j)=>String(Math.floor(r0/16)+1+j)+'마디').map(x=>x.padEnd(48+1)).join('')+'\n'+ln.map(x=>x+'|').join('\n'))}
+  const P=SG.song.parts[AL.part],nIn=N.filter(n=>n.s>=g.a&&n.s<g.z).length;
+  e.innerHTML=`<b>원곡 연주 참고</b> — ${esc(g.kind)} ${Math.floor(g.a/16)+1}~${Math.ceil(g.z/16)}마디
+    ${ps.map(k=>`<button class="chip" data-alpart="${k}" aria-pressed="${AL.part===k}">${esc(String(SG.song.parts[k].name||k).replace(/ —.*/,''))}</button>`).join(' ')}
+    <span class="mt">${nIn?'빈 곳 안 '+nIn+'음 (노란 칸)':'이 빈 곳에서는 이 악기 연주가 거의 없음'}${P.kind==='harmonica'?' · 하모니카 멜로디(가장 높은 음)를 고른 박스 근처 기타 자리로':''}${sgPitchSemi()?' · 조옮김 반영':''}</span>
+    <pre>${rows.join('\n\n')}</pre>`}
 function alRender(){const e=document.getElementById('alPanel');if(!e)return;
   if(!SG.song){e.innerHTML=`<div class="al-gap">곡연습 탭에서 곡을 먼저 여세요 — 그 곡을 따라가며 노래 빈 곳 · 지금 코드 · 착지할 음을 보여 줍니다. <button class="ghost sm" data-algo="song">곡연습으로</button></div>`;AL.show=null;return}
   const G=AL.gaps;
@@ -1702,9 +1726,10 @@ function alRender(){const e=document.getElementById('alPanel');if(!e)return;
     <div class="chips sc-pat"><span class="sc-lb">박스</span>${[0,1,2,3,4,5].map(k=>`<button class="chip" data-albox="${k}" aria-pressed="${AL.box===k}">${k?k:'전체'}</button>`).join('')}
       <span class="sc-lb" style="margin-left:10px">착지</span>${[[3,'3도'],[1,'근음'],[5,'5도']].map(([k,l])=>`<button class="chip" data-altg="${k}" aria-pressed="${AL.tg===k}">${l}</button>`).join('')}</div>
     <div class="al-gaps" id="alGaps">${G.map((g,i)=>`<button class="chip" data-algap="${i}" title="${esc(g.next?'다음 가사: '+g.next.text:'')}">${g.kind} ${Math.floor(g.a/16)+1}마디 · ${((g.z-g.a)/4).toFixed(g.z-g.a<16?1:0)}박</button>`).join('')||'<span class="mt">가사 줄 정보가 없어 빈 곳을 찾지 못했습니다</span>'}</div>
-    <div class="ct-lg"><span><i style="border-color:#ff8a00"></i>지금 코드 근음</span><span><i style="border-color:#2e9d5b"></i>3도</span><span><i style="border-color:#3b7dd8"></i>5도</span><span><i style="border-color:#c0392b"></i>7도</span><span><i style="border-color:#ffd400;border-style:dashed"></i>다음 코드 착지음</span><span><i style="border-color:#ffd400;background:rgba(255,215,0,.3)"></i>애드립 중 착지음</span></div>`;
+    <div class="al-ref" id="alRef"></div>
+    <div class="ct-lg"><span><i style="border-color:#ff8a00"></i>지금 코드 근음</span><span><i style="border-color:#2e9d5b"></i>3도</span><span><i style="border-color:#3b7dd8"></i>5도</span><span><i style="border-color:#c0392b"></i>7도</span><span><i style="border-color:#ffd400;border-style:dashed"></i>다음 코드 착지음</span><span><i style="border-color:#ffd400;background:rgba(255,215,0,.3)"></i>애드립 중 착지음</span><span><i style="border-color:#a24bd6;background:rgba(162,75,214,.35)"></i>원곡 연주 (지금 소리)</span></div>`;
   {const r=document.getElementById('alRate');if(r)r.value=String(SG.rate)}
-  AL.key='';alTick(true)}
+  AL.refG=null;AL.key='';alTick(true);if(!AL.refG)alRefRender(AL.sel||null)}
 function alTick(force){
   AL.raf=0;if(st.tab!=='adlib'||!SG.song)return;
   const m=sgMaster(),t=m?m.currentTime:0,slot=alSlot(t),T=sgPitchSemi(),key=mod(sgKey0()+T),mi=SG._k0&&SG._k0.minor;
@@ -1712,9 +1737,10 @@ function alTick(force){
   let ni=ci+1;while(ni<C.length&&cur&&alInfo(C[ni].name,key)&&alInfo(C[ni].name,key).name===cur.name)ni++;const nx=ni<C.length?alInfo(C[ni].name,key):null,nxS=ni<C.length?C[ni].s:null;
   const gi=AL.gaps.findIndex(g=>slot>=g.a&&slot<g.z),gap=gi>=0?AL.gaps[gi]:null,ng=AL.gaps.find(g=>g.a>slot);
   const sec=s2=>Math.max(0,(sgTime(s2)-t)/(SG.rate||1));
-  const win=alWin(key),k=[Math.floor(slot/4),ci,ni,gi,AL.box,AL.tg,key].join('|');
+  const win=alWin(key),k=[gap&&AL.ref?Math.floor(slot):Math.floor(slot/4),ci,ni,gi,AL.box,AL.tg,key].join('|');
+  const rg=AL.sel&&(!gap||AL.rep)?AL.sel:gap;if(rg&&rg!==AL.refG){AL.refG=rg;alRefRender(rg)}
   if(force||k!==AL.key){AL.key=k;
-    AL.show={key,cur,nx:gap&&gap.next?alInfo(C[alChordAt(gap.z)]?.name||'',key):nx,win,gap:!!gap};
+    AL.show={slot,key,cur,nx:gap&&gap.next?alInfo(C[alChordAt(gap.z)]?.name||'',key):nx,win,gap:!!gap};
     AL.cap=`${nn(key)} 장조${mi?' ('+nn(mod(key+9))+'m 중심)':''} 펜타토닉 · 테두리 = 지금 코드 음 · 노란 원 = 착지할 음`;
     const kk=document.getElementById('alKey');if(kk)kk.innerHTML=`키 <b>${nn(key)} 장조</b>${mi?' · <b>'+nn(mod(key+9))+'m</b> 중심':''} — 펜타토닉 ${nn(key)} 메이저 = ${nn(mod(key+9))} 마이너`;
     const nw=document.getElementById('alNow');if(nw)nw.innerHTML=cur?`지금 <b>${esc(cur.name)}</b> (${cur.rom})${nx?` <span class="nx">→ 다음 ${esc(nx.name)} (${nx.rom}) · ${(((nxS-slot)/4)).toFixed(0)}박 뒤 · 착지 ${nn(mod(nx.r+(nx.iv[[1,3,5].indexOf(AL.tg)]??0)))}</span>`:''}`:'';
@@ -1732,7 +1758,8 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(
   const x=e.target.closest('#alPanel button');if(!x)return;const ds=x.dataset;
   if(ds.algo){document.querySelector('[data-tab="song"]')?.click();return}
   if(ds.alplay){if(SG.playing)sgPause();else{if(AL.rep&&AL.sel)SG.seg={a:Math.max(0,AL.sel.a-16),z:AL.sel.z+16};sgPlay()}setTimeout(()=>alTick(true),50);return}
-  if(ds.albox!=null){AL.box=+ds.albox;alSave();alRender();return}
+  if(ds.albox!=null){AL.box=+ds.albox;alSave();AL.refG=null;alRender();return}
+  if(ds.alpart){AL.part=ds.alpart;alRefRender(AL.refG);AL.key='';alTick(true);return}
   if(ds.altg){AL.tg=+ds.altg;alSave();alRender();return}
   const go=g=>{if(!g)return;AL.sel=g;if(AL.rep){SG.seg={a:Math.max(0,g.a-16),z:g.z+16};SG.loop=true;const lb=document.getElementById('sgLoop');if(lb)lb.setAttribute('aria-pressed',true)}else SG.seg=null;sgSeek(Math.max(0,sgTime(Math.max(0,g.a-16))));setTimeout(()=>alTick(true),30)};
   if(ds.alrep){AL.rep=!AL.rep;x.setAttribute('aria-pressed',AL.rep);if(!AL.rep)SG.seg=null;else{const m=sgMaster(),sl=alSlot(m?m.currentTime:0);go(AL.sel||AL.gaps.find(g=>g.z>sl)||AL.gaps[0])}return}   /* 빈 곳 한 마디 앞부터 */
