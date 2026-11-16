@@ -273,6 +273,7 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 #p-song .rz .rz-t.now{background:color-mix(in srgb,var(--accent-fill) 14%,transparent);color:inherit;border-left-color:var(--accent-fill);box-shadow:inset 0 -3px 0 var(--accent-fill);border-radius:7px}
 .ed-tabs{margin:8px 0 8px;gap:4px;padding:4px;background:color-mix(in srgb,var(--line) 70%,transparent);border-radius:12px;display:flex;flex-wrap:nowrap}.ed-tabs .chip{font-weight:700;padding:7px 18px;font-size:.95rem;border-color:transparent;background:transparent;flex:1 1 0;text-align:center;border-radius:9px}.ed-tabs .chip[aria-pressed=true]{background:var(--ink);color:var(--bg);box-shadow:0 1px 3px rgba(0,0,0,.25)}.ed-tabs .chip[aria-pressed=false]:hover{background:var(--surface)}.ed-tabs .chip[data-st]::before{content:'';display:inline-block;width:.55em;height:.55em;border-radius:50%;margin-right:.4em;vertical-align:.12em}.ed-tabs .chip[data-st=ok]::before{background:#2e9d5b}.ed-tabs .chip[data-st=ok][aria-pressed=false]{color:#2e9d5b}.ed-tabs .chip[data-st=warn]::before{background:#e08a1e}.ed-tabs .chip[data-st=warn][aria-pressed=false]{color:#c9741a}.ed-hs2{font-size:.9rem;margin-right:2px}.ed-bt{margin-top:8px}
 @media (max-width:640px){.ed-tabs .chip{padding:9px 0}.ed-row{padding:9px 8px}.ed-k{font-size:.95rem}.ed-sub{padding-left:8px}}
+.zz-list{display:flex;flex-wrap:wrap;gap:4px;max-height:50vh;overflow:auto;margin:6px 0}.zz-it.on{border-color:var(--accent);font-weight:700}.zz-q{width:100%;margin-top:6px;padding:6px 8px;font-size:.95rem}.zz-bm{text-decoration:none;cursor:grab}
 .phone-only{display:none}@media (pointer:coarse){.phone-only{display:inline}}
 /* 곡연습: 악보는 늘 전체 폭 — 믹서 · 반복 마디는 악보 위에 (넓으면 여러 칸) */
 #p-song .sg-grid{grid-template-columns:minmax(0,1fr)}
@@ -1048,7 +1049,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-16 10:30';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-16 11:30';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -2858,7 +2859,7 @@ const ED_KINDS=[
   {k:'video',n:'매체영상',d:'영상 (mp4 …) — 소리를 뽑아 분석',add:[['파일 추가','video/*,.mp4,.mkv,.mov,.avi,.m4v,.wmv']]},
   {k:'link',n:'매체링크',d:'유튜브 등 주소 + 받은 원음',add:[['링크 추가','@link']]},
   {k:'rec',n:'매체녹음',d:'탭 소리 녹음 — 재생되는 소리를 원음 그대로',add:[['🔴 녹음','@rec']]},
-  {k:'jj',n:'리듬악보',d:'리듬악보 TXT — 코드 · 가사 · 박자',add:[['TXT 추가','.txt,text/plain'],['붙여넣기','@paste']]},
+  {k:'jj',n:'리듬악보',d:'리듬악보 TXT — 코드 · 가사 · 박자',add:[['TXT 추가','.txt,text/plain'],['붙여넣기','@paste'],['잔잔','@zz']]},
   {k:'gt',n:'기타악보',d:'기타 악보 PDF — 코드 · 가사 (스캔도 읽음)',add:[['PDF 추가','application/pdf,.pdf']]},
   {k:'tab',n:'기타타브',d:'기타 TAB 악보 PDF — 주법 · 전주 · 간주 · 후주',add:[['PDF 추가','application/pdf,.pdf']]}];
 const ED_RULES=`전주 · 간주 · 후주 결정 — 우선순위 (음원 · 영상 · 링크 &gt; 기타타브 &gt; 기타악보)<br>
@@ -3048,16 +3049,17 @@ async function edShareDir(){
     t.disabled=true;try{const r=await (await fetch(SG_HELPER+'/share-dir?'+new URLSearchParams({path:inp.value}),{method:'POST'})).json();
       if(!r.ok)throw new Error(r.error||'저장 실패');box.hidden=true;box.innerHTML='';edShow()}catch(er){alert('공유폴더를 바꾸지 못했습니다: '+(er.message||er));t.disabled=false}};
 }
-function edPasteRhy(song){
+function edPasteRhy(song,pre,pnm){
   return new Promise(res=>{
     const box=sgEl('edPick');box.hidden=false;
     box.innerHTML=`<div><b>${esc(song)} — 리듬악보 붙여넣기</b>
       <p class="pk-sum">코드 줄 / 가사 줄(또는 [전주] 같은 구간 이름) / 길이 숫자 줄(4 = 반 마디, 8 = 한 마디)을 묶음마다 빈 줄로 나눠 붙여넣으세요. Ema9 = Em add9.</p>
       <textarea class="ed-paste" spellcheck="false" placeholder="G     D        Ema9 G      D          Ema9&#10; 그대 보내고 멀리    가을 새와 작별하듯&#10;4 4 8 4 4 8"></textarea>
-      <div class="pk-bar">파일 이름 <input type="text" class="ed-pname" value="${esc(song)} 붙여넣기"> .txt <span class="pk-sum ed-pinfo"></span></div>
+      <div class="pk-bar">파일 이름 <input type="text" class="ed-pname" value="${esc(pnm||song+' 붙여넣기')}"> .txt <span class="pk-sum ed-pinfo"></span></div>
       <div class="pk-bar" style="justify-content:flex-end"><button class="ghost sm" data-pk="cancel">취소</button><button class="play" data-pk="ok">저장</button></div></div>`;
     const ta=box.querySelector('textarea'),info=box.querySelector('.ed-pinfo');
     const chk=()=>{const L=ceRhyParse(ta.value).filter(x=>x.chords.length);info.textContent=ta.value.trim()?(L.length?`읽힌 묶음 ${L.length}개 · 가사 줄 ${L.filter(x=>x.ly).length}개`:'코드 줄을 찾지 못했습니다'):'';return L.length};
+    if(pre){ta.value=pre;chk()}
     ta.addEventListener('input',chk);setTimeout(()=>ta.focus(),50);
     const done=v=>{box.hidden=true;box.innerHTML='';res(v)};
     box.onchange=null;box.onclick=async e=>{const t=e.target.closest('[data-pk]');if(!t){if(e.target===box&&!ta.value.trim())done(false);return}
@@ -3075,6 +3077,43 @@ function edPasteRhy(song){
         done(true)}catch(er){alert('저장하지 못했습니다: '+(er.message||er));t.disabled=false;t.textContent='저장'}};
   });
 }
+/* 잔잔(zanzan.kr) '내가 만든 노래들' 받기 — 북마크(즐겨찾기)로 잔잔 화면에서 실행: 그 브라우저에 저장된 내 악보를 json 파일로 저장 (어디로도 보내지 않음) */
+function zzGrab(){try{
+  var G=window.localSongsGroup;if(!G){var d=JSON.parse(localStorage.getItem('data')||'{}');G=d.localSongsGroup}
+  if(!G||!G.length){alert('잔잔 악보 화면(zanzan.kr)에서 눌러 주세요');return}
+  var S=[],seen={},take=function(g){(g&&g.song||[]).forEach(function(s){if(!s||typeof s.music!=='string')return;var k=(s.title||'')+'|'+s.music.length;if(seen[k])return;seen[k]=1;
+    S.push({title:s.title||'',singer:s.singer||'',bpm:s.bpm,key:s.standardCode,now:s.nowCode,made:s.madeTime,music:s.music})})};
+  G.forEach(function(g){if(g&&/내가\s*만든/.test(g.name||''))take(g)});if(!S.length)take(G[1]);
+  if(!S.length){alert('내가 만든 노래를 찾지 못했습니다');return}
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({kind:'zanzan-mine',at:new Date().toISOString(),songs:S})],{type:'application/json'}));
+  a.download='잔잔 내 악보.json';document.body.appendChild(a);a.click();setTimeout(function(){a.remove()},1000);
+  alert('내가 만든 노래 '+S.length+'곡 → 「잔잔 내 악보.json」 저장\n쎄이기타 곡편집 › 입력 › 리듬악보 [잔잔] › [파일 고르기]')}catch(e){alert('받지 못했습니다: '+e.message)}}
+const ZZ_BM='javascript:'+encodeURIComponent('('+zzGrab+')()');
+function edZanzan(song){
+  let D=null;try{D=JSON.parse(localStorage.getItem('sg-zz')||'null')}catch(e){}
+  const nz=s=>String(s||'').toLowerCase().replace(/[^0-9a-z가-힣]/g,'');
+  return new Promise(res=>{
+    const box=sgEl('edPick');box.hidden=false;
+    const draw=()=>{const q=nz(song);
+      const L=((D&&D.songs)||[]).map((s,i)=>{const t=nz(s.title);return {s,i,sc:q&&t?(t===q?3:(t.includes(q)||q.includes(t))?2:0):0}}).sort((a,b)=>b.sc-a.sc);
+      box.innerHTML=`<div><b>${esc(song)} — 잔잔 내 악보에서 가져오기</b>
+        <p class="pk-sum">처음 한 번: <b>⭐ 잔잔 내 악보 받기</b>를 크롬 북마크바로 끌어 놓기 → zanzan.kr 에서 그 북마크 누르기 → 받은 <b>잔잔 내 악보.json</b> 을 [📂 파일 고르기]</p>
+        <div class="pk-bar"><a class="ghost sm zz-bm" href="${ZZ_BM}" title="북마크바로 끌어 놓으세요 (여기서 누르면 안 됨)">⭐ 잔잔 내 악보 받기</a><button class="ghost sm" data-pk="file">📂 파일 고르기</button><span class="pk-sum">${D?D.songs.length+'곡 · '+esc(String(D.at||'').slice(0,10))+' 받음':''}</span></div>
+        ${D?`<input type="search" class="zz-q" placeholder="곡 찾기"><div class="zz-list">${L.map(x=>`<button class="ghost sm zz-it${x.sc?' on':''}" data-zz="${x.i}">${esc(x.s.title||'(제목 없음)')}${x.s.singer?' <span class="mt">'+esc(x.s.singer)+'</span>':''}</button>`).join('')}</div>`:''}
+        <div class="pk-bar" style="justify-content:flex-end"><button class="ghost sm" data-pk="cancel">취소</button></div></div>`;
+      const qi=box.querySelector('.zz-q');if(qi)qi.oninput=()=>{const v=nz(qi.value);box.querySelectorAll('[data-zz]').forEach(b=>b.hidden=!!v&&!nz(b.textContent).includes(v))}};
+    draw();
+    const done=v=>{box.hidden=true;box.innerHTML='';res(v)};
+    box.onchange=null;box.onclick=async e=>{
+      if(e.target.closest('.zz-bm')){e.preventDefault();alert('이 버튼은 크롬 북마크바로 끌어 놓은 뒤, zanzan.kr 화면에서 그 북마크를 누르세요.');return}
+      const t=e.target.closest('[data-pk],[data-zz]');if(!t){if(e.target===box)done(false);return}
+      if(t.dataset.pk==='cancel')return done(false);
+      if(t.dataset.pk==='file'){const f=await edPick('.json,application/json');if(!f)return;
+        try{const j=JSON.parse(await f.text());if(!j||!Array.isArray(j.songs))throw 0;D=j;try{localStorage.setItem('sg-zz',JSON.stringify(j))}catch(er){}draw()}catch(er){alert('잔잔 내 악보 파일(잔잔 내 악보.json)이 아닙니다')}return}
+      if(t.dataset.zz!=null){const s=D.songs[+t.dataset.zz];box.innerHTML='';res(await edPasteRhy(song,String(s.music||''),'잔잔 - '+String(s.title||song).replace(/[\\/:*?"<>|]/g,' ')))}
+    };
+  });
+}
 async function edAdd(k,i){
   const song=ED.song;if(!song)return;const a=ED_KINDS.find(x=>x.k===k).add[i][1];
   try{
@@ -3082,6 +3121,7 @@ async function edAdd(k,i){
       const j=await edApi('/song-link',{song,url},'');ED.busy[song]='링크에서 원음 받는 중…';edRender();edPoll(j.id,song,'링크 받기');return}
     if(a==='@rec'){SG.recTarget=song;sgRecord();return}
     if(a==='@paste'){if(await edPasteRhy(song))return edLoad(song);return}
+    if(a==='@zz'){if(await edZanzan(song))return edLoad(song);return}
     if(a==='@adlib'){const t=document.getElementById('adSrc').value;if(!t.trim()){alert('애드립 탭의 코드 진행이 비어 있습니다.');return}
       await edApi('/song-file',{song,kind:'chords'},t);return edLoad(song)}
     const f=await edPick(a);if(!f)return;
