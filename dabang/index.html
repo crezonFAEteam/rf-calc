@@ -273,7 +273,7 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 #p-song .rz .rz-t.now{background:color-mix(in srgb,var(--accent-fill) 14%,transparent);color:inherit;border-left-color:var(--accent-fill);box-shadow:inset 0 -3px 0 var(--accent-fill);border-radius:7px}
 .ed-tabs{margin:8px 0 8px;gap:4px;padding:4px;background:color-mix(in srgb,var(--line) 70%,transparent);border-radius:12px;display:flex;flex-wrap:nowrap}.ed-tabs .chip{font-weight:700;padding:7px 18px;font-size:.95rem;border-color:transparent;background:transparent;flex:1 1 0;text-align:center;border-radius:9px}.ed-tabs .chip[aria-pressed=true]{background:var(--ink);color:var(--bg);box-shadow:0 1px 3px rgba(0,0,0,.25)}.ed-tabs .chip[aria-pressed=false]:hover{background:var(--surface)}.ed-tabs .chip[data-st]::before{content:'';display:inline-block;width:.55em;height:.55em;border-radius:50%;margin-right:.4em;vertical-align:.12em}.ed-tabs .chip[data-st=ok]::before{background:#2e9d5b}.ed-tabs .chip[data-st=ok][aria-pressed=false]{color:#2e9d5b}.ed-tabs .chip[data-st=warn]::before{background:#e08a1e}.ed-tabs .chip[data-st=warn][aria-pressed=false]{color:#c9741a}.ed-hs2{font-size:.9rem;margin-right:2px}.ed-bt{margin-top:8px}
 @media (max-width:640px){.ed-tabs .chip{padding:9px 0}.ed-row{padding:9px 8px}.ed-k{font-size:.95rem}.ed-sub{padding-left:8px}}
-.zz-list{display:flex;flex-wrap:wrap;gap:4px;max-height:50vh;overflow:auto;margin:6px 0}.zz-it.on{border-color:var(--accent);font-weight:700}.zz-q{width:100%;margin-top:6px;padding:6px 8px;font-size:.95rem}.zz-bm{text-decoration:none;cursor:grab}
+.zz-list{max-height:50vh;overflow:auto;margin:6px 0}.zz-grp{display:flex;flex-wrap:wrap;gap:4px;padding:6px;border-radius:10px;margin-bottom:6px}.zz-h{flex-basis:100%;font-weight:700;font-size:.88rem;margin:0 2px 2px}.zz-mine{background:color-mix(in srgb,#e0a21e 16%,transparent)}.zz-mine .zz-h{color:#a86d00}.zz-rec{background:color-mix(in srgb,#3b7dd8 12%,transparent)}.zz-rec .zz-h{color:#2b63b0}.zz-grp .zz-it{background:var(--surface)}.zz-it.on{border-color:var(--accent);font-weight:700}.zz-q{width:100%;margin-top:6px;padding:6px 8px;font-size:.95rem}.zz-bm{text-decoration:none;cursor:grab}
 .phone-only{display:none}@media (pointer:coarse){.phone-only{display:inline}}
 /* 곡연습: 악보는 늘 전체 폭 — 믹서 · 반복 마디는 악보 위에 (넓으면 여러 칸) */
 #p-song .sg-grid{grid-template-columns:minmax(0,1fr)}
@@ -1049,7 +1049,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-16 13:30';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-16 14:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -3101,13 +3101,13 @@ function edZanzan(song){
     const box=sgEl('edPick');box.hidden=false;
     const draw=()=>{const q=nz(song);
       const L=((D&&D.songs)||[]).map((s,i)=>{const t=nz(s.title);const hit=q&&t?(t===q?3:(t.includes(q)||q.includes(t))?2:0):0;return {s,i,hit,sc:hit*2+(s.mine===1?1:0)}}).sort((a,b)=>b.sc-a.sc);
-      box.innerHTML=`<div><b>${esc(song)} — 잔잔 내 악보에서 가져오기</b>
+      box.innerHTML=`<div><b>${esc(song)} — 잔잔에서 가져오기</b>
         <p class="pk-sum">처음 한 번: <b>Ctrl+Shift+B</b> 로 북마크바(주소창 아래 줄)를 켜고 → <b>⭐ 잔잔 내 악보</b> · <b>⭐ 잔잔 최근 본 노래</b>를 그 <b>북마크바 위로</b> 끌어 놓기 (주소창 말고)<br>또는 [📋 복사] → 북마크바 오른쪽 클릭 › 페이지 추가 › URL 칸에 붙여넣기<br>그다음: zanzan.kr 에서 그 북마크 누르기 → 받은 <b>.json</b> 을 [📂 파일 고르기] (둘 다 넣으면 합쳐짐)<br><span class="mt">내 악보 = 「내가 만든 노래들」 · 최근 본 노래 = 「최근 본 노래들」</span></p>
         <div class="pk-bar"><a class="ghost sm zz-bm" href="${ZZ_BM}" title="북마크바로 끌어 놓으세요 (여기서 누르면 안 됨)">⭐ 잔잔 내 악보</a><button class="ghost sm" data-pk="copy" data-bm="mine">📋 복사</button>
           <a class="ghost sm zz-bm" href="${ZZ_BM_ALL}" title="북마크바로 끌어 놓으세요 (여기서 누르면 안 됨)">⭐ 잔잔 최근 본 노래</a><button class="ghost sm" data-pk="copy" data-bm="all">📋 복사</button></div><div class="pk-bar"><button class="ghost sm" data-pk="file">📂 파일 고르기</button><span class="pk-sum">${D?D.songs.length+'곡 · '+esc(String(D.at||'').slice(0,10))+' 받음':''}</span></div>
-        ${D?`<input type="search" class="zz-q" placeholder="곡 찾기"><div class="zz-list">${L.map(x=>`<button class="ghost sm zz-it${x.hit?' on':''}" data-zz="${x.i}">${x.s.mine===1?'★ ':''}${esc(x.s.title||'(제목 없음)')}${x.s.singer?' <span class="mt">'+esc(x.s.singer)+'</span>':''}</button>`).join('')}</div>`:''}
+        ${D?`<input type="search" class="zz-q" placeholder="곡 찾기"><div class="zz-list">${[[1,'★ 내 악보','zz-mine'],[0,'🕘 최근 본 노래','zz-rec']].map(([mn,hd,cl])=>{const G=L.filter(x=>(x.s.mine===1?1:0)===mn);return G.length?`<div class="zz-grp ${cl}"><div class="zz-h">${hd} <span class="mt">${G.length}곡</span></div>${G.map(x=>`<button class="ghost sm zz-it${x.hit?' on':''}" data-zz="${x.i}">${esc(x.s.title||'(제목 없음)')}${x.s.singer?' <span class="mt">'+esc(x.s.singer)+'</span>':''}</button>`).join('')}</div>`:''}).join('')}</div>`:''}
         <div class="pk-bar" style="justify-content:flex-end"><button class="ghost sm" data-pk="cancel">취소</button></div></div>`;
-      const qi=box.querySelector('.zz-q');if(qi)qi.oninput=()=>{const v=nz(qi.value);box.querySelectorAll('[data-zz]').forEach(b=>b.hidden=!!v&&!nz(b.textContent).includes(v))}};
+      const qi=box.querySelector('.zz-q');if(qi)qi.oninput=()=>{const v=nz(qi.value);box.querySelectorAll('[data-zz]').forEach(b=>b.hidden=!!v&&!nz(b.textContent).includes(v));box.querySelectorAll('.zz-grp').forEach(g=>g.hidden=![...g.querySelectorAll('[data-zz]')].some(b=>!b.hidden))}};
     draw();
     const done=v=>{box.hidden=true;box.innerHTML='';res(v)};
     box.onchange=null;box.onclick=async e=>{
