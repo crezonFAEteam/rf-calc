@@ -273,10 +273,10 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 #p-song .rz .rz-t.now{background:color-mix(in srgb,var(--accent-fill) 14%,transparent);color:inherit;border-left-color:var(--accent-fill);box-shadow:inset 0 -3px 0 var(--accent-fill);border-radius:7px}
 .ed-tabs{margin:8px 0 8px;gap:4px;padding:4px;background:color-mix(in srgb,var(--line) 70%,transparent);border-radius:12px;display:flex;flex-wrap:nowrap}.ed-tabs .chip{font-weight:700;padding:7px 18px;font-size:.95rem;border-color:transparent;background:transparent;flex:1 1 0;text-align:center;border-radius:9px}.ed-tabs .chip[aria-pressed=true]{background:var(--ink);color:var(--bg);box-shadow:0 1px 3px rgba(0,0,0,.25)}.ed-tabs .chip[aria-pressed=false]:hover{background:var(--surface)}.ed-tabs .chip[data-st]::before{content:'';display:inline-block;width:.55em;height:.55em;border-radius:50%;margin-right:.4em;vertical-align:.12em}.ed-tabs .chip[data-st=ok]::before{background:#2e9d5b}.ed-tabs .chip[data-st=ok][aria-pressed=false]{color:#2e9d5b}.ed-tabs .chip[data-st=warn]::before{background:#e08a1e}.ed-tabs .chip[data-st=warn][aria-pressed=false]{color:#c9741a}.ed-hs2{font-size:.9rem;margin-right:2px}.ed-bt{margin-top:8px}
 @media (max-width:640px){.ed-tabs .chip{padding:9px 0}.ed-row{padding:9px 8px}.ed-k{font-size:.95rem}.ed-sub{padding-left:8px}}
-.zz-list{max-height:50vh;overflow:auto;margin:6px 0}.zz-grp{display:flex;flex-wrap:wrap;gap:4px;padding:6px;border-radius:10px;margin-bottom:6px}.zz-info{margin:6px 0 2px;padding:6px 10px;border-radius:8px;background:color-mix(in srgb,#3b7dd8 12%,transparent);font-size:.9rem}.zz-k{color:#2b63b0;font-weight:600}.zz-h{flex-basis:100%;font-weight:700;font-size:.88rem;margin:0 2px 2px}.zz-mine{background:color-mix(in srgb,#e0a21e 16%,transparent)}.zz-mine .zz-h{color:#a86d00}.zz-rec{background:color-mix(in srgb,#3b7dd8 12%,transparent)}.zz-rec .zz-h{color:#2b63b0}.zz-grp .zz-it{background:var(--surface)}.zz-it.on{border-color:var(--accent);font-weight:700}.zz-q{width:100%;margin-top:6px;padding:6px 8px;font-size:.95rem}.zz-bm{text-decoration:none;cursor:grab}
+.zz-list{max-height:50vh;overflow:auto;margin:6px 0}.zz-grp{display:flex;flex-wrap:wrap;gap:4px;padding:6px;border-radius:10px;margin-bottom:6px}.zz-info{margin:6px 0 2px;padding:6px 10px;border-radius:8px;background:color-mix(in srgb,#3b7dd8 12%,transparent);font-size:.9rem}#sgViews{padding:4px;gap:4px;background:color-mix(in srgb,var(--line) 70%,transparent);border-radius:12px;margin-bottom:6px}#sgViews .chip{border-color:transparent;background:transparent;font-weight:600}#sgViews .chip[aria-pressed=true]{background:var(--ink);color:var(--bg);box-shadow:0 1px 3px rgba(0,0,0,.25)}#sgViews .chip[aria-pressed=false]:hover{background:var(--surface)}.zz-k{color:#2b63b0;font-weight:600}.zz-h{flex-basis:100%;font-weight:700;font-size:.88rem;margin:0 2px 2px}.zz-mine{background:color-mix(in srgb,#e0a21e 16%,transparent)}.zz-mine .zz-h{color:#a86d00}.zz-rec{background:color-mix(in srgb,#3b7dd8 12%,transparent)}.zz-rec .zz-h{color:#2b63b0}.zz-grp .zz-it{background:var(--surface)}.zz-it.on{border-color:var(--accent);font-weight:700}.zz-q{width:100%;margin-top:6px;padding:6px 8px;font-size:.95rem}.zz-bm{text-decoration:none;cursor:grab}
 .phone-only{display:none}@media (pointer:coarse){.phone-only{display:inline}}
 /* 곡연습: 악보는 늘 전체 폭 — 믹서 · 반복 마디는 악보 위에 (넓으면 여러 칸) */
-#p-song .sg-grid{grid-template-columns:minmax(0,1fr)}
+#p-song .sg-grid{grid-template-columns:minmax(0,1fr)}#p-song .sg-view{order:-1}#p-song .sg-side{margin-top:6px}
 #p-song #sgMix{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:0 22px}
 /* ⛶ 악보 크게: 화면 폭 제한 없음 · 애드립 · 블루스는 악보를 먼저(위) 전체 폭으로, 설정은 아래로 */
 body.sg-big .wrap{max-width:none}
@@ -834,8 +834,6 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
         <label class="sg-rate">속도 <select id="sgRate"><option value="0.5">50%</option><option value="0.6">60%</option><option value="0.7">70%</option><option value="0.75">75%</option><option value="0.8">80%</option><option value="0.9">90%</option><option value="1">100%</option></select></label>
       </div>
       <input type="range" id="sgSeek" class="sg-seek" min="0" max="1000" value="0" aria-label="재생 위치">
-      <div id="sgDiag" class="sg-diag" role="status" hidden></div>
-      <details id="sgDbg" class="sg-diag" style="margin-top:4px"><summary>🔍 재생 상태 (안 될 때 이 부분을 열어 캡처해 주세요)</summary><pre id="sgDbgOut" style="white-space:pre-wrap;font-size:.75rem;margin:4px 0 0"></pre></details>
 
       <div class="sg-grid">
         <div class="sg-side">
@@ -850,6 +848,8 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
           <div id="sgSheet" class="sg-sheet"></div>
           <div id="sgTab" class="tab" hidden></div>
         </div>
+      <div id="sgDiag" class="sg-diag" role="status" hidden></div>
+      <details id="sgDbg" class="sg-diag" style="margin-top:4px"><summary>🔍 재생 상태 (안 될 때 이 부분을 열어 캡처해 주세요)</summary><pre id="sgDbgOut" style="white-space:pre-wrap;font-size:.75rem;margin:4px 0 0"></pre></details>
       </div>
     </div>
   </section>
@@ -1049,7 +1049,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-16 16:30';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-16 17:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -2689,7 +2689,7 @@ async function sgPitchInit(){
     SG.ids.forEach(i=>{const g=SG.gn.get(SG.els[i]);if(g){g.disconnect();g.connect(SG.ps)}});return true}
   catch(e){SG.psErr=String(e&&e.message||e);SG.psInit=null;return false}})();
 }
-function sgPitchSemi(){return SG.song&&SG.kc&&SG.kc.s?SG.kc.t:0}
+function sgPitchSemi(){return SG.song&&SG.kc?SG.kc.t:0}   /* 조옮김하면 음원 소리도 항상 같이 */
 async function sgPitchApply(){
   const n=sgPitchSemi();if(!n&&!SG.ps)return;
   if(!(await sgPitchInit())){if(n)alert('이 브라우저에서는 음원 키 바꾸기를 쓸 수 없습니다. (악보 조옮김만 됩니다)\n'+(SG.psErr||''));return}
@@ -2829,18 +2829,16 @@ function sgShapes(key){   /* 이 키를 쉬운 코드 모양(G C D A E)으로 �
   const out=[];for(let c=0;c<=7;c++){const sh=mod(key-c);if([7,0,2,9,4].includes(sh))out.push({c,sh})}return out;
 }
 function sgKeyBar(){
-  const k0=sgKey0(),T=SG.kc.t,C=SG.kc.c,S=!!SG.kc.s,key=mod(k0+T),shape=mod(key-C),hint=sgCapoHint(key);
+  const k0=sgKey0(),T=SG.kc.t,C=SG.kc.c,S=true,key=mod(k0+T),shape=mod(key-C),hint=sgCapoHint(key);
   const mi=SG._k0&&SG._k0.minor;
   return `<div class="sg-key">곡 키 <b>${nn(key)}</b>${mi?`<span class="sg-k0" title="${nn(mod(key+9))}m 이 중심인 곡 — ${nn(key)} 메이저와 같은 음 (나란한조)">(${nn(mod(key+9))}m 중심)</span>`:''}${T?`<span class="sg-k0">(분석 ${nn(k0)}${mi?' · '+nn(mod(k0+9))+'m':''})</span>`:''}
-    <span class="sg-kgrp">조옮김 <button class="ghost sm" data-sgtr="-1" aria-label="반음 내림">−</button><b class="sg-kv">${T>0?'+'+T:T}</b><button class="ghost sm" data-sgtr="1" aria-label="반음 올림">+</button>
-      <button class="ghost sm sg-snd" data-sgsnd="1" aria-pressed="${S}" title="조옮김한 만큼 음원(노래 · 반주 모두) 소리도 올리고 내림. 빠르기는 그대로">🔊 음원도 같이</button></span>
+    <span class="sg-kgrp">조옮김 <button class="ghost sm" data-sgtr="-1" aria-label="반음 내림">−</button><b class="sg-kv">${T>0?'+'+T:T}</b><button class="ghost sm" data-sgtr="1" aria-label="반음 올림">+</button></span>
     <span class="sg-kgrp">카포 <select id="sgCapo">${Array.from({length:10},(_,i)=>`<option value="${i}"${i===C?' selected':''}>${i?i+'프렛':'없음'}</option>`).join('')}</select></span>
     ${C?`<span>→ <b>${nn(shape)}</b> 코드 모양으로 연주</span>`:''}
     <span class="sg-kgrp sg-shapes">쉬운 모양 ${sgShapes(key).map(o=>`<button class="ghost sm" data-sgcapo="${o.c}" aria-pressed="${o.c===C}" title="${o.c?'카포 '+o.c+'프렛에 ':''}${nn(o.sh)} 코드 모양으로 치기">${nn(o.sh)}${o.c?' · 카포 '+o.c:''}</button>`).join('')}</span>
     ${(()=>{const hp=sgHarp();return hp?`<span class="sg-kgrp">하모니카 <select id="sgHarpKey"><option value="auto"${SG.harpKey==='auto'?' selected':''}>자동 (${NOTE_K(hp.auto)})</option>${SHARP.map((_,i)=>`<option value="${i}"${SG.harpKey===String(i)?' selected':''}>${NOTE_K(i)} 하모니카</option>`).join('')}</select></span>`:''})()}
     <span class="sg-kgrp">지판에 <button class="ghost sm" data-sgbd="sc" aria-pressed="${SG.bd.sc}" title="곡 키의 스케일 음을 지판 전체에 흐리게 — 지금 ${nn(key)} 메이저 (= ${nn(mod(key+9))}m 내추럴 마이너와 같은 음)">🎼 스케일 · ${nn(key)} 메이저 (${nn(mod(key+9))}m)</button><button class="ghost sm" data-sgbd="ch" aria-pressed="${SG.bd.ch}" title="지금 코드의 구성음을 지판 전체에 색으로">🎸 코드</button><button class="ghost sm" data-sgbd="ez" aria-pressed="${SG.bd.ez}" title="지금 코드를 운지가 가장 쉬운 오픈 코드 모양으로 (곡편집에서 고른 운지가 있으면 그것)">🤚 쉬운 코드</button></span>
     ${T||C?`<button class="ghost sm" data-sgkreset="1">원래대로</button>`:''}
-    ${T&&!S?`<span class="sg-knote">※ 지금은 악보만 바뀌고 소리는 원곡(${nn(k0)}) 그대로입니다 — [🔊 음원도 같이]를 켜면 소리도 ${nn(key)} 키로</span>`:''}
     ${T&&S?`<span class="sg-knote sg-knote-on">🔊 음원도 ${nn(k0)} → <b>${nn(key)}</b> 키로 재생 중 (빠르기 그대로)</span>`:''}</div>`;
 }
 /* 기타 음: 조옮김한 음높이를 카포 기준 프렛으로 (같은 줄 우선, 안 되면 가까운 프렛의 다른 줄) */
