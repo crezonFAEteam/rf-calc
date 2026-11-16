@@ -700,7 +700,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
 
   <section id="p-adlib" role="tabpanel" hidden>
     <div class="al-panel" id="alPanel"></div>
-    <details class="al-old" id="alOld"><summary>직접 입력 — 코드 진행 · PDF 로 애드립 TAB 만들기 (예전 방식)</summary>
+    <details class="al-old" id="alOld" hidden><summary>직접 입력 — 코드 진행 · PDF 로 애드립 TAB 만들기 (예전 방식)</summary>
     <div class="grid">
       <div>
         <div class="songbar">
@@ -1066,7 +1066,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-17 01:45';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-17 02:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
