@@ -278,9 +278,9 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 /* 곡연습: 악보는 늘 전체 폭 — 믹서 · 반복 마디는 악보 위에 (넓으면 여러 칸) */
 #p-song .sg-grid{grid-template-columns:minmax(0,1fr)}
 #p-song #sgMix{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:0 22px}
-/* ⛶ 악보 크게: 화면 폭 제한 없음 · 곡연습은 믹서 숨김 · 애드립 · 블루스는 악보를 먼저(위) 전체 폭으로, 설정은 아래로 */
+/* ⛶ 악보 크게: 화면 폭 제한 없음 · 애드립 · 블루스는 악보를 먼저(위) 전체 폭으로, 설정은 아래로 */
 body.sg-big .wrap{max-width:none}
-body.sg-big #p-song .sg-side{display:none}
+
 body.sg-big #p-adlib>.grid,body.sg-big #p-blues>.grid{grid-template-columns:minmax(0,1fr)}
 body.sg-big #p-adlib>.grid>div:last-child,body.sg-big #p-blues>.grid>div:last-child{order:-1}
 /* 조율기: 위에 고정된 지판 · 지판 안내를 숨겨 한 화면에 (줄 버튼이 따로 있음) */
@@ -585,7 +585,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
   <header class="top">
     <h1>쎄이기타</h1>
     <div class="tops">
-    <div class="lbl-tg" role="group" aria-label="화면 폭"><button id="sgBig" data-sgbig="1" aria-pressed="false" title="화면 폭 전체 사용 — 지판 · 악보 모두 넓게 · 곡연습은 트랙 믹서를 숨김 · 애드립 · 블루스는 악보를 위로 (다시 누르면 원래대로)">⛶ 넓게</button></div>
+    <div class="lbl-tg" role="group" aria-label="화면 폭"><button id="sgBig" data-sgbig="1" aria-pressed="false" title="화면 폭 전체 사용 — 지판 · 악보 모두 넓게 · 애드립 · 블루스는 악보를 위로 (다시 누르면 원래대로)">⛶ 넓게</button></div>
     <div class="lbl-tg" role="group" aria-label="지판 보기 방식">
       <button data-view="1" aria-pressed="true" title="한 줄로 보기 (옆으로 밀어서)">1줄</button>
       <button data-view="2" aria-pressed="false" title="두 줄로 나눠 15프렛 전체 보기">2줄</button>
@@ -1049,7 +1049,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-16 16:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-16 16:30';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
