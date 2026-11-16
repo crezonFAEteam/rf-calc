@@ -2984,6 +2984,12 @@ function lpInsTag(r){
   if(r.inst === '?' && /\bSW\b|라이선스|License/i.test(r.kind + ' ' + r.name)) return ' <span class="lp-ins q" title="이 품목은 장비 라이선스 코드와 짝이 없어 설치 여부를 장비에서 알 수 없다 (번들 · 구독 등)">? 장비에서 확인 안 됨</span>';
   return '';
 }
+/* 구분 표시: "기능 추가 · 기능 확장"(0150, 포털 분류 Hardware)은 HW 인지 SW 라이선스인지 앞에 붙인다 — 이름에 SW · License · Lic · IQsniffer 가 있으면 SW */
+function lpKindLabel(it){
+  var k = it[4] || '';
+  if(!/^기능 (추가|확장)$/.test(k)) return k;
+  return (/\bSW\b|Software|License|\bLic\b|IQsniffer/i.test(it[1] || '') ? 'SW ' : 'HW ') + k;
+}
 function lpRow(it, line, showLine, view){
   var pn = it[0], k0 = $('lp-std').value, dm0 = view !== undefined && k0 && LP_DET_KEY[k0] ? lpDetModel(line, it[1]) : null;
   var hit = dm0 ? !!dm0.sup[k0] : lpItemStd(it, k0);
@@ -2997,7 +3003,7 @@ function lpRow(it, line, showLine, view){
          (view !== undefined ? '<td class="c"><input type="radio" name="lp-body" data-body="' + lpEsc(view) + '"' + (view === LP_BODY ? ' checked' : '') + ' aria-label="옵션 보기"></td>' : '') +
          '<td><a data-desc>' + lpEsc(it[1]) + '</a>' + (incl ? '<span class="lp-inc-tag">본체 포함</span>' : '') + lpInsTag(ins) + (view !== undefined ? lpBodyTags(line, it) : '') + '' + (LPU_GONE[pn] || /단종/.test(it[6] || '') ? ' <span class="lp-gone" title="포털 제품 목록에서 찾지 못함 — 단종으로 처리">' + lpEsc(LPU_GONE[pn] ? LPU_Y + '년 이전 단종' : it[6]) + '</span>' : '') + (it[5] ? '<div class="lp-sum">' + lpEsc(it[5]) + '</div>' : '') + '</td>' +
          (showLine ? '<td class="k">' + lpEsc(lpName(line)) + '</td>' : '') +
-         '<td class="k kd">' + lpEsc(it[4]) + '</td>' +
+         '<td class="k kd"' + (lpKindLabel(it) !== it[4] ? ' title="포털 분류: ' + lpEsc(it[2] || '') + ' (' + lpEsc(pn.slice(0, 4)) + ')"' : '') + '>' + lpEsc(lpKindLabel(it)) + '</td>' +
          '<td class="pn">' + lpEsc(pn) + '</td></tr>' +
          '<tr class="lp-sub"' + (it[3] ? '' : ' data-empty') + (lpDescAll() && it[3] ? '' : ' hidden') + '>' + (view !== undefined ? '<td></td>' : '') + '<td colspan="' + (showLine ? 4 : 3) + '">' + lpEsc(it[3] || '설명 없음') + '</td></tr>';
 }
