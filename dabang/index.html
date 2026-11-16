@@ -165,7 +165,7 @@ textarea{width:100%;background:var(--surface);border:1px solid var(--line);borde
 .sname{font-size:clamp(1.8rem,4.6vw,2.5rem)}
 .sdesc{color:var(--muted);margin:10px 0 0;max-width:62ch;font-size:.92rem}
 .dlist{display:flex;flex-direction:column;gap:6px;margin-top:4px}
-.drow{display:grid;grid-template-columns:5.2em 1fr auto auto;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:4px 6px 4px 12px}
+.drow{display:grid;grid-template-columns:5.2em 1fr auto auto auto;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:4px 6px 4px 12px}
 .drow[aria-current="true"]{border-color:var(--accent-fill);box-shadow:inset 0 0 0 1px var(--accent-fill)}
 .drow .num{font-family:"Gowun Batang",serif;font-weight:700;font-size:1.05rem}
 .drow.var .num{color:var(--muted)}
@@ -527,7 +527,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
   .tones li{grid-template-columns:3.6em 1fr;padding:9px 10px}
   .stepper button{width:44px;height:44px}
   .acced button{min-width:42px;height:42px}
-  .drow{grid-template-columns:4.4em 1fr auto auto}
+  .drow{grid-template-columns:4.4em 1fr auto auto auto}
   .drow .go{min-height:36px}
   textarea,select,input{font-size:16px}   /* 16px 미만이면 아이폰이 입력할 때 확대한다 */
   select{width:100%}
@@ -1055,7 +1055,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-16 21:30';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-16 22:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -1494,7 +1494,7 @@ function renderScale(){
   const rows=base.map((x,j)=>({r:mod(st.sk+x),qi:st.s7?d.sev[j]:d.tri[j],num:st.s7?d.ns[j]:d.nt[j],fn:d.fn[j]}));
   if(st.smode==='minor')rows.push({r:mod(st.sk+7),qi:st.s7?2:0,num:st.s7?'V7':'V',fn:'도미넌트 (화성 단음계, 실제로 더 자주 씁)',v:true});
   el('s7').innerHTML=[[0,'3화음'],[1,'7화음']].map(([k,l])=>`<button class="chip" data-s7="${k}" aria-pressed="${st.s7===!!k}">${l}</button>`).join('');
-  el('sChords').innerHTML=rows.map(rw=>{const cur=!!(st.schSel&&st.schSel.r===rw.r&&st.schSel.qi===rw.qi);return `<div class="drow${rw.v?' var':''}" aria-current="${cur}"><span class="num">${rw.num}</span><button class="sel" data-r="${rw.r}" data-qi="${rw.qi}" aria-pressed="${cur}"><b>${cname(rw.r,rw.qi,null)}</b><span>${rw.fn}</span></button><button class="go" data-r="${rw.r}" data-qi="${rw.qi}"${shOn(rw)?' aria-pressed="true"':''}>${shOn(rw)?`다음 운지 ${Math.min(st.schShape.vi,shapeList(st.schShape).length-1)+1}/${shapeList(st.schShape).length}`:'운지 보기'}</button><button class="go va" data-allv="1" data-r="${rw.r}" data-qi="${rw.qi}"${VA&&VA.on&&VA.key===rw.r+'|'+rw.qi?' aria-pressed="true"':''} title="이 코드의 운지를 지판에 하나씩 보여 주며 차례로 소리 (빠르기 = 스케일 연습 빠르기 · 한 운지에 2박)">${VA&&VA.on&&VA.key===rw.r+'|'+rw.qi?'■ 멈춤':'▶ 운지 '+findVoicings(rw.r,rw.qi,null).length+'개 듣기'}</button></div>`}).join('');
+  el('sChords').innerHTML=rows.map(rw=>{const cur=!!(st.schSel&&st.schSel.r===rw.r&&st.schSel.qi===rw.qi);return `<div class="drow${rw.v?' var':''}" aria-current="${cur}"><span class="num">${rw.num}</span><button class="sel" data-r="${rw.r}" data-qi="${rw.qi}" aria-pressed="${cur}"><b>${cname(rw.r,rw.qi,null)}</b><span>${rw.fn}</span></button><button class="go" data-r="${rw.r}" data-qi="${rw.qi}"${shOn(rw)?' aria-pressed="true"':''}>${shOn(rw)?`다음 운지 ${Math.min(st.schShape.vi,shapeList(st.schShape).length-1)+1}/${shapeList(st.schShape).length}`:'운지 보기'}</button><button class="go va" data-allv="1" data-r="${rw.r}" data-qi="${rw.qi}"${VA&&VA.on&&VA.key===rw.r+'|'+rw.qi?' aria-pressed="true"':''} title="이 코드의 운지를 지판에 하나씩 보여 주며 차례로 소리 (빠르기 = 스케일 연습 빠르기 · 한 운지에 2박)">${VA&&VA.on&&VA.key===rw.r+'|'+rw.qi?'■ 멈춤':'▶ 운지 '+findVoicings(rw.r,rw.qi,null).length+'개 듣기'}</button><button class="go va" data-varp="1" data-r="${rw.r}" data-qi="${rw.qi}"${SCP&&SCP.on&&SCP.key===rw.r+'|'+rw.qi?' aria-pressed="true"':''} title="운지마다 그 자리에서 근음 → 3도 → 5도 → 3도 → 근음 (7화음이면 7도까지) · 스케일 연습의 빠르기 · 리듬 · 반복 · 박자를 같이 씀">${SCP&&SCP.on&&SCP.key===rw.r+'|'+rw.qi?'■ 멈춤':'▶ '+(st.s7?'1 3 5 7':'1 3 5 3 1')}</button></div>`}).join('');
 }
 function seq(ps){
   try{
@@ -1584,6 +1584,18 @@ function scaleRun(){
   return out.sort((x,y)=>x.p-y.p)}
 /* 다이아토닉 코드: 운지 모두 듣기 — 운지를 하나씩 지판에 보이며 스트럼 (한 운지 = 2박) · 반복 켜져 있으면 계속 */
 var VA={on:false,key:'',tm:0};
+function vaArp(r,qi){   /* 이 코드의 운지마다 그 운지 안(없으면 그 자리 ±1프렛)의 근음 → 3도 → 5도 (→ 7도) → 거꾸로 */
+  const L=findVoicings(r,qi,null),iv=Q[qi].iv.filter(x=>x<12),out=[],lab=cname(r,qi,null);
+  L.forEach((v,vi)=>{const on=[];v.forEach((f,i)=>{if(f>=0)on.push({i,f,p:TUNE[i]+f})});if(!on.length)return;
+    const fs=on.map(x=>x.f).filter(f=>f>0),lo=Math.max(0,(fs.length?Math.min(...fs):0)-1),hi=Math.max(...on.map(x=>x.f))+1;
+    const pool=[...on];for(let i=0;i<6;i++)for(let f=lo;f<=hi;f++)if(!pool.some(x=>x.i===i&&x.f===f))pool.push({i,f,p:TUNE[i]+f,ex:1});
+    const pick=(pc,above)=>pool.filter(x=>mod(x.p)===pc&&x.p>above).sort((a,b)=>(a.ex||0)-(b.ex||0)||a.p-b.p)[0];
+    const R=on.filter(x=>mod(x.p)===r).sort((a,b)=>a.p-b.p)[0];if(!R)return;
+    const up=[R];let last=R.p;for(const x of iv.slice(1)){const n=pick(mod(r+x),last);if(!n)break;up.push(n);last=n.p}
+    const vo=on.map(x=>({i:x.i,f:x.f})),seq=up.concat(up.slice(0,-1).reverse());
+    seq.forEach(n=>out.push({i:n.i,f:n.f,p:n.p,ch:lab+' · 운지 '+(vi+1)+'/'+L.length,vo,vi}))});
+  return out}
+function vaArpPlay(r,qi){if(VA.on)vaStop();st.schSel={r,qi};st.schShape={r,qi,vi:0};playScale(vaArp(r,qi),r+'|'+qi)}
 function vaStop(){VA.on=false;clearTimeout(VA.tm);VA.key='';renderScale()}
 function vaPlay(r,qi){
   const key=r+'|'+qi;if(VA.on&&VA.key===key){vaStop();return}
@@ -1593,24 +1605,24 @@ function vaPlay(r,qi){
     st.schShape.vi=k;boardKey='';renderScale();drawBoard();const v=shapeV();if(v)strum(v);
     VA.tm=setTimeout(()=>step(k+1),Math.max(700,120000/SCP.bpm))};
   step(0)}
-function scpStop(){SCP.on=false;SCP.vo=null;SCP.cur='';{const e=document.getElementById('scNow');if(e)e.textContent=''}SCP.src.forEach(s=>{try{s.stop()}catch(e){}});SCP.src=[];cancelAnimationFrame(SCP.raf);SCP.hot=null;
+function scpStop(){const wk=SCP.key;SCP.key='';if(wk)setTimeout(renderScale,0);SCP.on=false;SCP.vo=null;SCP.cur='';{const e=document.getElementById('scNow');if(e)e.textContent=''}SCP.src.forEach(s=>{try{s.stop()}catch(e){}});SCP.src=[];cancelAnimationFrame(SCP.raf);SCP.hot=null;
   const b=document.getElementById('playScale');if(b)b.textContent='▶ 스케일 들어보기';drawBoard()}
 function scpQueue(t0){   /* 한 바퀴 예약 */
   const L=SCP.list,dt=SCP.dt,g=actx.createGain();g.gain.value=0.32;g.connect(gOut());
-  const ring=SCP.path==='arp';L.forEach((n,k)=>{const s=actx.createBufferSource();s.buffer=makeBuf(n.p,ring?2.6:1.0,ring?0.9985:0.996,ring?0.7:0.9);s.connect(g);s.start(t0+k*dt);SCP.src.push(s)});
+  const ring=SCP.path==='arp'||!!SCP.key;L.forEach((n,k)=>{const s=actx.createBufferSource();s.buffer=makeBuf(n.p,ring?2.6:1.0,ring?0.9985:0.996,ring?0.7:0.9);s.connect(g);s.start(t0+k*dt);SCP.src.push(s)});
   const R=SCP.rhy;if(SCP.click)for(let k=0;k<L.length;k+=R){const o=actx.createOscillator(),e=actx.createGain(),t=t0+k*dt,acc=k%(R*4)===0;o.frequency.value=acc?1800:1200;
     e.gain.setValueAtTime(0.0001,t);e.gain.exponentialRampToValueAtTime(acc?0.2:0.12,t+0.002);e.gain.exponentialRampToValueAtTime(0.0001,t+0.05);o.connect(e);e.connect(gOut());o.start(t);o.stop(t+0.06);SCP.src.push(o)}
   if(SCP.src.length>600)SCP.src=SCP.src.slice(-300)}
-function playScale(){
-  if(SCP.on){scpStop();return}
+function playScale(list,key){
+  if(SCP.on){const same=SCP.key===(key||'');scpStop();if(same)return}
   try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume()}catch(e){return}
-  const up=scaleRun();if(!up.length)return;
-  SCP.list=scSeqList(up);SCP.dt=60/SCP.bpm/SCP.rhy;SCP.on=true;SCP.t0=actx.currentTime+0.12;SCP.next=SCP.t0+SCP.list.length*SCP.dt;
-  scpQueue(SCP.t0);document.getElementById('playScale').textContent='■ 멈춤';
+  const up=list||scaleRun();if(!up.length)return;SCP.key=key||'';
+  SCP.list=list?list.slice():scSeqList(up);SCP.dt=60/SCP.bpm/SCP.rhy;SCP.on=true;SCP.t0=actx.currentTime+0.12;SCP.next=SCP.t0+SCP.list.length*SCP.dt;
+  scpQueue(SCP.t0);if(!SCP.key)document.getElementById('playScale').textContent='■ 멈춤';else renderScale();
   const tick=()=>{if(!SCP.on)return;const now=actx.currentTime;
     if(now>=SCP.next-0.25){if(SCP.loop){SCP.t0=SCP.next;SCP.dt=60/SCP.bpm/SCP.rhy;SCP.next=SCP.t0+SCP.list.length*SCP.dt;scpQueue(SCP.t0)}else if(now>=SCP.next){scpStop();return}}
     const k=Math.floor((now-SCP.t0)/SCP.dt),n=k>=0&&k<SCP.list.length?SCP.list[k]:null;if(n&&n.ch&&n.ch!==SCP.cur){SCP.cur=n.ch;const e=document.getElementById('scNow');if(e)e.textContent='지금: '+n.ch}
-    if((n&&(!SCP.hot||SCP.hot.i!==n.i||SCP.hot.f!==n.f))||(!n&&SCP.hot)){SCP.hot=n?{i:n.i,f:n.f}:null;SCP.vo=n&&n.vo||null;drawBoard()}
+    if((n&&(!SCP.hot||SCP.hot.i!==n.i||SCP.hot.f!==n.f))||(!n&&SCP.hot)){SCP.hot=n?{i:n.i,f:n.f}:null;SCP.vo=n&&n.vo||null;if(n&&n.vi!=null&&st.schShape&&st.schShape.vi!==n.vi){st.schShape.vi=n.vi;boardKey='';renderScale()}drawBoard()}
     SCP.raf=requestAnimationFrame(tick)};
   SCP.raf=requestAnimationFrame(tick);
 }
@@ -1625,7 +1637,8 @@ document.addEventListener('DOMContentLoaded',scpUi);
 document.addEventListener('input',e=>{if(e.target.id==='scBpm'){SCP.bpm=+e.target.value;document.getElementById('scBpmOut').textContent=SCP.bpm;scpSave()}});
 document.getElementById('p-scale').addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;const ds=b.dataset;
-  if(ds.allv){vaPlay(+ds.r,+ds.qi);return}
+  if(ds.allv){if(SCP.on)scpStop();vaPlay(+ds.r,+ds.qi);return}
+  if(ds.varp){vaArpPlay(+ds.r,+ds.qi);return}
   if(VA.on&&(b.classList.contains('go')||b.classList.contains('sel')||ds.sk!=null||ds.smode||ds.stype||ds.s7!=null))vaStop();
   if(b.id==='playScale'){if(VA.on)vaStop();playScale();return}
   if(b.id==='scLoop'){SCP.loop=!SCP.loop;scpSave();scpUi();return}
