@@ -1126,7 +1126,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-25 01:25';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-25 01:40';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -2182,16 +2182,17 @@ function tabBarChord(lk,b,v0){   /* 그 마디 첫 코드 (+ 마디 안에서 �
   const name=chName(c),more=[...new Set(sg.slice(1).map(x=>chName(x.c)))].filter(n=>n!==name);
   let v=v0&&v0(b,c,name);if(!v){const cc=blChord(name);v=cc?(BLV[name]||getV(cc)):null}return {name,more,v}}
 function tabFocusHTML(lk,k,b,v0){   /* 블록: 마디마다 [코드 카드] 위 · [TAB 카드] 아래 같은 폭 — 옆으로 줄지어 있고 손가락으로 밀어 봄 · 재생하면 지금 블록이 왼쪽으로 와서 이어짐 */
-  const BAR=lk.bar||8,bars=Math.max(1,Math.ceil(lk.total/BAR)),C=tabC(),bt=Math.max(1,Math.round(BAR/4));b=Math.max(0,Math.min(bars-1,b));
+  const BAR=lk.bar||8,bars=Math.max(1,Math.ceil(lk.total/BAR));let C=tabC();const bt=Math.max(1,Math.round(BAR/4));b=Math.max(0,Math.min(bars-1,b));
+  const W3=Math.max(240,(window.innerWidth||400)-64),f3o=c=>((W3-16)/3-14)/((BAR*c+3)*0.61);if(f3o(C)<7&&C>1)C=1;   /* 가로로 더 줄이기: 한 칸 1글자 (두 자리 프렛은 옆 칸까지) */
+  tabC.force=C;const chars=BAR*C+3,f3=f3o(C),three=f3>=7,fs=three?Math.min(12,Math.round(f3*10)/10):12,bw=three?Math.floor((W3-16)/3):Math.round(Math.max(120,chars*0.62*fs+18));   /* 지난 · 지금 · 다음 세 블록이 한 화면에 (TAB 글자 7px 이상이 되면) — 아니면 지금 블록 가운데 + 양옆 살짝 */
   let tick='  ';for(let j=0;j<BAR;j++)tick+=(j%bt===0?String(j/bt+1):'·').padEnd(C,' ');
-  const chars=BAR*C+3,W3=Math.max(240,(window.innerWidth||400)-64),f3=((W3-16)/3-14)/(chars*0.61),three=f3>=7,fs=three?Math.min(12,Math.round(f3*10)/10):12,bw=three?Math.floor((W3-16)/3):Math.round(Math.max(120,chars*0.62*fs+18));   /* 지난 · 지금 · 다음 세 블록이 한 화면에 (TAB 글자 7px 이상이 되면) — 아니면 지금 블록 가운데 + 양옆 살짝 */
   const last=tabFocusHTML.last,adv=last&&last.k===k&&b===last.b+1;tabFocusHTML.last={k,b};
   const a0=Math.max(0,b-1),a1=Math.min(bars,b+7),cells=[];
   for(let j=a0;j<a1;j++){const ch=tabBarChord(lk,j,v0),tb=tabRender(lk,k,true,1,[j,j+1]).replace(/\n+$/,'').replace(/^[^\n]*\n/,'');
     cells.push(`<div class="tfb${j===b?' cur':j<b?' past':''}" data-tfbar="${j}" style="width:${bw}px">
       <div class="tfb-ch"><div class="tfc-nm">${ch?esc(ch.name):'·'}${ch&&ch.more.length?'<small> → '+ch.more.map(esc).join(' · ')+'</small>':''}<span class="tfc-b">${j+1}</span></div>${ch&&ch.v?`<div class="tfc-bx">${chordBox(ch.v)}</div>`:''}</div>
       <div class="tfb-tab"><pre class="tf-tick" style="font-size:${fs}px">${tick}</pre><pre class="tf-cur" style="font-size:${fs}px">${tb}</pre></div></div>`)}
-  const id='tfr'+(++tabFocusHTML.n);
+  tabC.force=0;const id='tfr'+(++tabFocusHTML.n);
   setTimeout(()=>{const r=document.getElementById(id);if(!r)return;const x=Math.max(0,(b-a0)*(bw+8)-Math.max(0,(r.clientWidth-bw)/2));   /* 지금 블록을 가운데 — 왼쪽에 지난 · 오른쪽에 다음 블록 · 한 칸 넘어온 것이면 미끄러지듯 */
     if(adv&&!r._user){r.scrollLeft=Math.max(0,x-(bw+8));requestAnimationFrame(()=>r.scrollTo({left:x,behavior:'smooth'}))}else r.scrollLeft=x},0);
   return `<div class="tf"><div class="tf-hd"><button class="ghost sm" data-tfgo="-1" aria-label="앞 마디">◀</button><b>${b+1}</b><span class="mt">/ ${bars}마디</span><button class="ghost sm" data-tfgo="1" aria-label="다음 마디">▶</button><button class="ghost sm" data-tfx="0" title="위아래로 전체 보기">전체 보기</button></div>
@@ -2207,7 +2208,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-tfx],[data
   document.addEventListener('touchend',e=>{if(x0==null)return;const t=e.changedTouches[0],dx=t.clientX-x0,dy=t.clientY-y0;x0=null;if(Math.abs(dx)<50||Math.abs(dy)>Math.abs(dx)*0.7)return;
     const el=document.getElementById(id);if(!el||!el.querySelector('.tf'))return;const btn=el.querySelector(`[data-tfgo="${dx<0?1:-1}"]`);if(btn&&!(id==='sgTab'&&SG.playing)&&!(id==='blTab'&&BL.playing))btn.click()},{passive:true})});
 function tabFocusBtn(){return (window.innerWidth||1000)<700&&!tabFocusOn()?'<button class="ghost sm" data-tfx="1" style="margin:4px 0">🎯 마디 보기 (지금 마디 크게)</button>':''}
-function tabC(){return (window.innerWidth||1000)<700?2:3}
+function tabC(){return tabC.force||((window.innerWidth||1000)<700?2:3)}
 function tabRender(lk,k,html,perIn,rg){
   const C=tabC(),BAR=lk.bar||8,per=perIn||4,W=BAR*C,out=[],bars=Math.ceil(lk.total/BAR);
   for(let b0=rg?rg[0]:0;b0<(rg?Math.min(bars,rg[1]):bars);b0+=per){
