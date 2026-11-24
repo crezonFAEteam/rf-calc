@@ -302,6 +302,9 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .bd-show{display:inline-flex;align-items:center;gap:4px;font-size:.85rem;padding:3px 10px;border:1px solid var(--line);border-radius:999px;cursor:pointer;user-select:none}.bd-show input{margin:0}
 body.bd-off #boardScroll,body.bd-off .board-bar,body.bd-off .legend{display:none}
 .vcard svg{width:100%;max-width:150px;height:auto;display:block;margin:0 auto}.vcard .vlab{display:block;font-size:.75rem;color:var(--muted);margin-top:2px}
+#p-song #sgSheet,#p-song #sgTab{max-height:calc(100vh - 150px);max-height:calc(100dvh - 150px);overflow:auto;overscroll-behavior:contain;border-radius:10px}
+#p-song .sg-ctl{padding:4px 0 2px}
+.fol-pause{position:sticky;top:0;float:right;z-index:3;font-size:.75rem;background:#ffd400;color:#222;padding:2px 8px;border-radius:8px;margin:4px}
 .zz-k{color:#2b63b0;font-weight:600}.zz-h{flex-basis:100%;font-weight:700;font-size:.88rem;margin:0 2px 2px}.zz-mine{background:color-mix(in srgb,#e0a21e 16%,transparent)}.zz-mine .zz-h{color:#a86d00}.zz-rec{background:color-mix(in srgb,#3b7dd8 12%,transparent)}.zz-rec .zz-h{color:#2b63b0}.zz-grp .zz-it{background:var(--surface)}.zz-it.on{border-color:var(--accent);font-weight:700}.zz-q{width:100%;margin-top:6px;padding:6px 8px;font-size:.95rem}.zz-bm{text-decoration:none;cursor:grab}
 .phone-only{display:none}@media (pointer:coarse){.phone-only{display:inline}}
 /* 곡연습: 악보는 늘 전체 폭 — 믹서 · 반복 마디는 악보 위에 (넓으면 여러 칸) */
@@ -865,7 +868,10 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
     <div id="sgHelp" class="sg-help"><p class="sdesc" style="margin:6px 0">곡편집에서 만든 곡 폴더를 고르세요.<span class="phone-only"><br>휴대폰: <b>📂 곡 묶음(zip) 열기</b> = PC 에서 분석한 곡 · <b>🎵 음원 · 영상으로 간이 분석</b> = 폰의 음원 · 영상(소리만)을 바로 (박자 · 코드만, 1~2분)</span></p></div>
     <div id="sgMain" hidden>
       <div class="sg-head"><b id="sgTitle"></b><span id="sgMeta" class="sg-meta"></span></div>
-      <div class="sg-tr">
+      <div id="sgViews" class="chips"></div>
+          <div id="sgKey"></div>
+      <div class="sg-cstrip" id="sgCStrip" hidden></div>
+      <div class="sg-ctl"><div class="sg-tr">
         <button id="sgPlay" class="play">재생</button>
         <button id="sgBack" class="ghost sm" title="5초 뒤로">⏪ 5초</button>
         <button id="sgZo" class="ghost sm pc-only" title="악보 작게 (Ctrl+휠, 휴대폰은 두 손가락)">가−</button><button id="sgZi" class="ghost sm pc-only" title="악보 크게 (Ctrl+휠)">가+</button>
@@ -874,8 +880,8 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
         <span class="sg-time"><output id="sgCur">0:00</output> / <output id="sgDur">0:00</output></span>
         <label class="sg-rate">속도 <select id="sgRate"><option value="0.3">30%</option><option value="0.4">40%</option><option value="0.5">50%</option><option value="0.6">60%</option><option value="0.7">70%</option><option value="0.75">75%</option><option value="0.8">80%</option><option value="0.9">90%</option><option value="1">100%</option></select></label>
       </div>
-      <input type="range" id="sgSeek" class="sg-seek" min="0" max="1000" value="0" aria-label="재생 위치">
-      <div class="sg-cstrip" id="sgCStrip" hidden></div>
+      <input type="range" id="sgSeek" class="sg-seek" min="0" max="1000" value="0" aria-label="재생 위치"></div>
+      
 
       <div class="sg-grid">
         <div class="sg-side">
@@ -885,8 +891,6 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
           <div class="blrange"><select id="sgFrom" aria-label="시작 마디"></select><span>~</span><select id="sgTo" aria-label="끝 마디"></select><button id="sgAll" class="ghost sm">전체</button></div>
         </div>
         <div class="sg-view">
-          <div id="sgViews" class="chips"></div>
-          <div id="sgKey"></div>
           <div id="sgSheet" class="sg-sheet"></div>
           <div id="sgTab" class="tab" hidden></div>
         </div>
@@ -1094,7 +1098,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-24 17:10';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-24 18:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -5628,6 +5632,7 @@ function folBlock(s){
     let a=li,b=li;while(a>0&&L[a-1].trim())a--;while(b<L.length-1&&L[b+1].trim())b++;
     return {top:pr.top+a*lh,bottom:pr.top+(b+1)*lh,height:(b-a+1)*lh}}catch(e){return s.getBoundingClientRect()}
 }
+['wheel','touchstart'].forEach(ev=>document.addEventListener(ev,e=>{const b=e.target.closest&&e.target.closest('#sgSheet,#sgTab');if(b)b._folPause=performance.now()+4000},{passive:true,capture:true}));
 function followNow(id){
   if(!follow)return;
   const box=document.getElementById(id),s=box&&box.querySelector('span.now');if(!s)return;
@@ -5636,6 +5641,11 @@ function followNow(id){
   const br=box.getBoundingClientRect();
   if(s.closest('pre')&&box.scrollWidth>box.clientWidth+4)folX(box,r);   /* 옆으로 따라가기는 TAB(한 줄로 긴 악보)만 — 코드 · 가사 · 흐름 보기는 줄 바꿈이라 옆으로 움직이지 않음 */
   else if(box.scrollLeft)box.scrollLeft=0;
+  /* 악보 칸이 스스로 스크롤되는 경우(곡연습): 칸 안에서만 따라감 → 페이지는 그대로라 재생 중에도 다른 설정을 볼 수 있음 · 악보를 직접 굴리면 4초 쉼 */
+  {const cs=getComputedStyle(box);if((cs.overflowY==='auto'||cs.overflowY==='scroll')&&box.scrollHeight>box.clientHeight+4){
+    if(performance.now()<(box._folPause||0))return;
+    const B=folBlock(s),bb=box.getBoundingClientRect(),rt=B.top-bb.top,rb=B.bottom-bb.top;
+    if(rt<4||rb>box.clientHeight-4)box.scrollTo({top:Math.max(0,box.scrollTop+rt-12),behavior:'smooth'});return}}
   /* 세로: 위에 고정된 영역(지판 · 탭 줄) 아래부터 보이는 범위 */
   let top=0;const pin=document.getElementById('pin'),tabs=document.querySelector('.tabs');
   if(pin&&!pin.classList.contains('off')){const pr=pin.getBoundingClientRect();if(pr.top<=1)top=Math.max(top,pr.bottom)}
