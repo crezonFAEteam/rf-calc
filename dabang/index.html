@@ -1139,7 +1139,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-25 04:20';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-25 04:30';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -5774,6 +5774,8 @@ function followNow(id){
   if(s.closest('pre')&&box.scrollWidth>box.clientWidth+4)folX(box,r);   /* 옆으로 따라가기는 TAB(한 줄로 긴 악보)만 — 코드 · 가사 · 흐름 보기는 줄 바꿈이라 옆으로 움직이지 않음 */
   else if(box.scrollLeft)box.scrollLeft=0;
   /* 악보 칸이 스스로 스크롤되는 경우(곡연습): 칸 안에서만 따라감 → 페이지는 그대로라 재생 중에도 다른 설정을 볼 수 있음 · 악보를 직접 굴리면 4초 쉼 */
+  if(box.querySelector('.tf')){folSt(box,performance.now()<(box._folPause||0)?'pause':'on');return}   /* 폰 블록 보기: 블록 줄이 옆으로 알아서 — 페이지는 건드리지 않음 */
+  if(/^(sgSheet|sgTab|blTab|adTab)$/.test(id)&&box.scrollHeight<=box.clientHeight+4){folSt(box,'on');return}   /* 악보가 칸 안에 다 들어감 — 페이지는 그대로 */
   {const cs=getComputedStyle(box);if((cs.overflowY==='auto'||cs.overflowY==='scroll')&&box.scrollHeight>box.clientHeight+4){
     if(performance.now()<(box._folPause||0)){folSt(box,'pause');return}folSt(box,'on');
     let pt=0;{const pin=document.getElementById('pin'),tabs=document.querySelector('.tabs');if(pin&&!pin.classList.contains('off')){const pr=pin.getBoundingClientRect();if(pr.top<=1)pt=Math.max(pt,pr.bottom)}if(tabs){const tr=tabs.getBoundingClientRect();if(tr.top<=pt+2&&tr.bottom>pt)pt=tr.bottom}}
