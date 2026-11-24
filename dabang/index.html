@@ -301,6 +301,7 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 @media (max-width:640px){.cs-card{width:108px}.cs-card .cs-nm{font-size:1.35rem}.cs-cards{gap:6px}.cs-seg{width:30px}}
 .bd-show{display:inline-flex;align-items:center;gap:4px;font-size:.85rem;padding:3px 10px;border:1px solid var(--line);border-radius:999px;cursor:pointer;user-select:none}.bd-show input{margin:0}
 body.bd-off #boardScroll,body.bd-off .board-bar,body.bd-off .legend{display:none}
+.vcard svg{width:100%;max-width:150px;height:auto;display:block;margin:0 auto}.vcard .vlab{display:block;font-size:.75rem;color:var(--muted);margin-top:2px}
 .zz-k{color:#2b63b0;font-weight:600}.zz-h{flex-basis:100%;font-weight:700;font-size:.88rem;margin:0 2px 2px}.zz-mine{background:color-mix(in srgb,#e0a21e 16%,transparent)}.zz-mine .zz-h{color:#a86d00}.zz-rec{background:color-mix(in srgb,#3b7dd8 12%,transparent)}.zz-rec .zz-h{color:#2b63b0}.zz-grp .zz-it{background:var(--surface)}.zz-it.on{border-color:var(--accent);font-weight:700}.zz-q{width:100%;margin-top:6px;padding:6px 8px;font-size:.95rem}.zz-bm{text-decoration:none;cursor:grab}
 .phone-only{display:none}@media (pointer:coarse){.phone-only{display:inline}}
 /* 곡연습: 악보는 늘 전체 폭 — 믹서 · 반복 마디는 악보 위에 (넓으면 여러 칸) */
@@ -1093,7 +1094,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-24 16:30';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-24 17:10';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -1354,7 +1355,7 @@ function renderFind(){
   document.getElementById('cNotes').innerHTML=notes;
   const box=document.getElementById('voicings');
   if(!st.voicings.length){box.innerHTML=`<div class="empty">이 조합으로 잡을 만한 운지를 찾지 못했습니다. 베이스음을 루트음으로 바꾸거나 다른 종류를 골라 보세요.</div>`;}
-  else box.innerHTML=st.voicings.map((v,i)=>`<button class="vcard" data-v="${i}" aria-pressed="${i===st.vi}" aria-label="운지 ${v.map(f=>f<0?'x':f).join(' ')}">${boxSVG(v,st.root)}</button>`).join('');
+  else box.innerHTML=st.voicings.map((v,i)=>`<button class="vcard" data-v="${i}" aria-pressed="${i===st.vi}" aria-label="운지 ${v.map(f=>f<0?'x':f).join(' ')}">${chordBox(v,st.root)}<span class="vlab">${v.map(f=>f<0?'x':f).join(' ')}</span></button>`).join('');
   const cv=st.voicings[st.vi],vd=document.getElementById('vdeg');
   if(cv){
     const ds=cv.map((f,i)=>{if(f<0)return'x';const x=mod(TUNE[i]+f-st.root);return q.iv.some(y=>mod(y)===x)?degree(x,q):'베'}).join(' ');
@@ -3318,18 +3319,18 @@ function sgFitNote(n,T,C){
 function vFingers(v){   /* 손가락 번호: 가장 낮은 프렛에 2줄 이상 + 그 위 줄이 모두 눌림 + 누를 곳이 4개 넘으면 1번 손가락 바레 · 나머지는 프렛 · 줄 순서로 2~4 */
   const on=v.map((f,i)=>({i,f})).filter(x=>x.f>0);const F=[0,0,0,0,0,0];if(!on.length)return {F,bar:null};
   const mn=Math.min(...on.map(x=>x.f)),at=on.filter(x=>x.f===mn);let bar=null,rest=on;
-  if(at.length>=2&&on.length>4){const a=Math.min(...at.map(x=>x.i));if(v.slice(a).every(f=>f>=mn)){bar={f:mn,a,b:5};rest=on.filter(x=>!(x.f===mn&&x.i>=a));at.forEach(x=>{if(x.i>=a)F[x.i]=1})}}
-  rest.sort((p,q)=>p.f-q.f||p.i-q.i);let n=bar?2:1;rest.forEach(x=>{F[x.i]=Math.min(4,n++)});return {F,bar}}
-function chordBox(v){   /* 세로 운지 그림 (왼쪽 6번 줄 E → 오른쪽 1번 줄 e) */
-  const fr=v.filter(f=>f>0),mx=fr.length?Math.max(...fr):0,mn=fr.length?Math.min(...fr):0,st0=mx<=4?1:mn,R=4,{F,bar}=vFingers(v);
+  if(at.length>=3||(at.length>=2&&on.length>4)){const a=Math.min(...at.map(x=>x.i));if(v.slice(a).every(f=>f>=mn)){bar={f:mn,a,b:5};rest=on.filter(x=>!(x.f===mn&&x.i>=a));at.forEach(x=>{if(x.i>=a)F[x.i]=1})}}
+  rest.sort((p,q)=>p.f-q.f||p.i-q.i);let n=bar?2:1;rest.forEach(x=>{const k=Math.min(4,Math.max(n,1+(x.f-mn)));F[x.i]=k;n=k+1});return {F,bar}}   /* 검지(1)가 가장 낮은 프렛 · 한 프렛 위면 중지(2) … 프렛 거리를 따름 */
+function chordBox(v,root){   /* 세로 운지 그림 (왼쪽 6번 줄 E → 오른쪽 1번 줄 e) · root 를 주면 근음 손가락은 금색 */
+  const fr=v.filter(f=>f>0),mx=fr.length?Math.max(...fr):0,mn=fr.length?Math.min(...fr):0,st0=mx<=4?1:mn,R=Math.max(4,mx-st0+1),{F,bar}=vFingers(v);
   const X=i=>22+i*22,Y=k=>30+k*30,W=150,H=30+R*30+26;let s=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
   if(st0>1)s+=`<text x="6" y="${Y(0)+20}" font-size="15" font-weight="700" fill="#222">${st0}</text>`;
   s+=`<line x1="${X(0)}" x2="${X(5)}" y1="${Y(0)}" y2="${Y(0)}" stroke="#222" stroke-width="${st0===1?5:1.6}"/>`;
   for(let k=1;k<=R;k++)s+=`<line x1="${X(0)}" x2="${X(5)}" y1="${Y(k)}" y2="${Y(k)}" stroke="#222" stroke-width="1.6"/>`;
   for(let i=0;i<6;i++)s+=`<line x1="${X(i)}" x2="${X(i)}" y1="${Y(0)}" y2="${Y(R)}" stroke="#222" stroke-width="1.6"/>`;
-  v.forEach((f,i)=>{if(f<0)s+=`<text x="${X(i)}" y="${Y(0)-8}" text-anchor="middle" font-size="16" font-weight="700" fill="#222">×</text>`;else if(f===0)s+=`<circle cx="${X(i)}" cy="${Y(0)-13}" r="5.5" fill="none" stroke="#222" stroke-width="1.8"/>`});
+  v.forEach((f,i)=>{if(f===0&&root!=null&&mod(TUNE[i]-root)===0){s+=`<circle cx="${X(i)}" cy="${Y(0)-13}" r="6" fill="#c98a1a"/>`;return}if(f<0)s+=`<text x="${X(i)}" y="${Y(0)-8}" text-anchor="middle" font-size="16" font-weight="700" fill="#222">×</text>`;else if(f===0)s+=`<circle cx="${X(i)}" cy="${Y(0)-13}" r="5.5" fill="none" stroke="#222" stroke-width="1.8"/>`});
   if(bar){const k=bar.f-st0;s+=`<rect x="${X(bar.a)-11}" y="${Y(k)+4}" width="${X(bar.b)-X(bar.a)+22}" height="22" rx="11" fill="#2c2f33"/><text x="${(X(bar.a)+X(bar.b))/2}" y="${Y(k)+20}" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">1</text>`}
-  v.forEach((f,i)=>{if(f<=0||(bar&&F[i]===1))return;const k=f-st0;if(k<0||k>=R)return;s+=`<circle cx="${X(i)}" cy="${Y(k)+15}" r="11" fill="#2c2f33"/><text x="${X(i)}" y="${Y(k)+20}" text-anchor="middle" font-size="13.5" font-weight="700" fill="#fff">${F[i]||''}</text>`});
+  v.forEach((f,i)=>{if(f<=0||(bar&&F[i]===1))return;const k=f-st0;if(k<0||k>=R)return;s+=`<circle cx="${X(i)}" cy="${Y(k)+15}" r="11" fill="${root!=null&&mod(TUNE[i]+f-root)===0?'#c98a1a':'#2c2f33'}"/><text x="${X(i)}" y="${Y(k)+20}" text-anchor="middle" font-size="13.5" font-weight="700" fill="#fff">${F[i]||''}</text>`});
   ['E','A','D','G','B','E'].forEach((n,i)=>s+=`<text x="${X(i)}" y="${H-6}" text-anchor="middle" font-size="11" fill="#444">${n}</text>`);
   return s+'</svg>'}
 SG.cstrip=store.get('chordcalc-cstrip')!=='0';
