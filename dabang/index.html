@@ -285,6 +285,7 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .al-old>summary{cursor:pointer;color:var(--muted);font-size:.9rem;margin:6px 0}
 .sc-play{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.sc-bpm{display:flex;align-items:center;gap:6px;font-size:.9rem}.sc-bpm input{width:140px}#scPlayCap{margin:6px 0 0;font-size:.85rem}
 #board .vo-ring,#board2 .vo-ring{fill:none;stroke:#ff8a00;stroke-width:2;stroke-dasharray:4 3;pointer-events:none}#board .hot-ring,#board2 .hot-ring{fill:rgba(255,138,0,.18);stroke:#ff8a00;stroke-width:5;pointer-events:none}.tu-advd{margin:8px 0}.tu-advd>summary{cursor:pointer;color:var(--muted)}#tuAdv{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:10px;margin-top:8px}.tu-ag{display:flex;flex-direction:column;gap:4px;padding:8px;border-radius:10px;background:color-mix(in srgb,var(--line) 40%,transparent)}.tu-ar{display:grid;grid-template-columns:1fr 120px 1fr;gap:2px 8px;align-items:center;font-size:.85rem;padding:4px 0;border-bottom:1px dashed var(--line)}.tu-ar .nm{grid-column:1/3;font-weight:600}.tu-ar output{grid-column:3;text-align:right;font-weight:700}.tu-ar output small{color:#c46a00;font-weight:500}.tu-ar .sn{font-style:normal;font-size:.72rem;font-weight:700;padding:1px 6px;border-radius:8px;margin-left:4px;background:linear-gradient(90deg,#ffe2c4 50%,#d8e6fb 50%);color:#333}.tu-ar .sn.s{background:linear-gradient(90deg,#d8e6fb 50%,#ffe2c4 50%)}.tu-ar .lo,.tu-ar .hi{font-size:.75rem;color:var(--muted);line-height:1.25}.tu-ar .lo{text-align:right}.tu-ar input{width:100%}#tuAdv .btns{grid-column:1/-1}
+.f-edit{margin:8px 0;padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--line) 40%,transparent);display:flex;flex-direction:column;gap:4px}.f-ed-h{font-size:1rem}.f-ed-n{font-size:1.35rem;color:#c46a00}.f-edit code{font-size:.95rem}
 .zz-k{color:#2b63b0;font-weight:600}.zz-h{flex-basis:100%;font-weight:700;font-size:.88rem;margin:0 2px 2px}.zz-mine{background:color-mix(in srgb,#e0a21e 16%,transparent)}.zz-mine .zz-h{color:#a86d00}.zz-rec{background:color-mix(in srgb,#3b7dd8 12%,transparent)}.zz-rec .zz-h{color:#2b63b0}.zz-grp .zz-it{background:var(--surface)}.zz-it.on{border-color:var(--accent);font-weight:700}.zz-q{width:100%;margin-top:6px;padding:6px 8px;font-size:.95rem}.zz-bm{text-decoration:none;cursor:grab}
 .phone-only{display:none}@media (pointer:coarse){.phone-only{display:inline}}
 /* 곡연습: 악보는 늘 전체 폭 — 믹서 · 반복 마디는 악보 위에 (넓으면 여러 칸) */
@@ -630,8 +631,8 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
     <button role="tab" data-tab="song" aria-selected="false" title="분석한 곡에 맞춰 코드 · 가사 · TAB 따라 치기 (PC)">곡연습</button>
     <button role="tab" data-tab="adlib" aria-selected="false" title="애드리브 · 반주">애드립</button>
     <button role="tab" data-tab="scale" aria-selected="false" title="펜타토닉 · 다이아토닉">펜타토닉</button>
-    <button role="tab" data-tab="name" aria-selected="false" title="운지 → 코드 이름">코드명</button>
-    <button role="tab" data-tab="find" aria-selected="true" title="코드 → 운지">운지법</button>
+    <button role="tab" data-tab="name" aria-selected="false" title="운지 → 코드 이름" hidden>코드명</button><!-- 운지법에 합침 -->
+    <button role="tab" data-tab="find" aria-selected="true" title="코드 → 운지 · 지판을 눌러 운지를 바꾸면 코드 이름">운지법</button>
     <button role="tab" data-tab="shift" aria-selected="false" hidden>조옮김 · 카포</button><!-- 우선 숨김 (hidden 지우면 다시 보임) -->
   </nav>
     <div class="board-scroll" id="boardScroll"><svg id="board" viewBox="0 0 1000 226" role="img" aria-label="기타 지판"></svg><svg id="board2" viewBox="0 0 1000 226" aria-hidden="true" hidden></svg></div>
@@ -661,6 +662,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
         <span class="flabel">운지 고르기</span>
         <div id="voicings" class="voicings"></div>
         <div id="vdeg" class="vdeg"></div>
+        <div id="fEdit" class="f-edit"></div>
         <span class="flabel">코드톤과 각 음의 역할</span>
         <ul id="tones" class="tones"></ul>
       </div>
@@ -1074,7 +1076,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-24 11:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-24 12:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -1107,6 +1109,7 @@ const sy=i=>32+(5-i)*30;
 const cx=f=>f===0?36:(fx(f-1)+fx(f))/2;
 /* 점은 줄 간격(30)에 거의 꽉 차게(반지름 14), 글자는 점 안에서 최대한 크게. 세 글자(♭13 등)는 조금 줄임 */
 function dot(i,f,cls,label){const L=String(label).replace(/<[^>]*>/g,'').length,fs=L>=3?12:L===2?14.5:16.5;return `<g class="dot ${cls}" data-i="${i}" data-fr="${f}"><circle cx="${cx(f).toFixed(1)}" cy="${sy(i)}" r="14"/><text x="${cx(f).toFixed(1)}" y="${(sy(i)+fs*0.36).toFixed(1)}" style="font-size:${fs}px">${label}</text></g>`}
+function fHits(){let s='';for(let i=0;i<6;i++)for(let f=0;f<=FR;f++){const x1=f===0?0:fx(f-1),x2=f===0?X0-6:fx(f);s+=`<rect class="hit" data-s="${i}" data-f="${f}" x="${x1.toFixed(1)}" y="${sy(i)-15}" width="${(x2-x1).toFixed(1)}" height="30"><title>${6-i}번 줄 ${f===0?'개방현/뮤트':f+'프렛'}</title></rect>`}return s}
 function drawBoard(){
   let s=`<rect x="${X0}" y="14" width="${(fx(FR)-X0+8).toFixed(1)}" height="186" rx="3" class="wood"/>`;
   [3,5,7,9,15].forEach(n=>s+=`<circle cx="${cx(n).toFixed(1)}" cy="107" r="7" class="inlay"/>`);
@@ -1147,6 +1150,15 @@ function drawBoard(){
     if(SCP&&SCP.vo)SCP.vo.forEach(v=>s+=`<circle cx="${cx(v.f).toFixed(1)}" cy="${sy(v.i)}" r="17" class="vo-ring"/>`);
     if(SCP&&SCP.hot)s+=`<circle cx="${cx(SCP.hot.f).toFixed(1)}" cy="${sy(SCP.hot.i)}" r="18" class="hot-ring"/>`;
     cap.textContent=scaleCap();
+  }else if(st.ed){   /* 운지법: 지판에서 직접 바꾼 운지 → 이름 알아보기 (예전 코드명 탭) */
+    const v=st.ed,idr=identify(v),idb=idr.list&&idr.list[0];
+    for(let i=0;i<6;i++){
+      if(v[i]<0)s+=`<text x="${cx(0)}" y="${sy(i)+8}" class="mute">×</text>`;
+      else{const pc=mod(TUNE[i]+v[i]);let cls='tone',lab=nn(pc);
+        if(idb){const x=mod(pc-idb.r),q2=Q[idb.qi];if(q2.iv.some(y=>mod(y)===x)){cls=role(x,q2);if(st.lbl==='deg')lab=degree(x,q2)}}
+        s+=dot(i,v[i],cls+' on',lab)}}
+    s+=fHits();
+    cap.textContent='바꾼 운지입니다. 칸을 누르면 그 줄을 그 프렛으로 · 같은 칸을 다시 누르면 뮤트(×) · 너트 왼쪽은 개방현 ↔ 뮤트.';
   }else{
     const q=Q[st.qi],bass=st.bass==null?st.root:st.bass;
     const pcs=new Set(q.iv.map(x=>mod(st.root+x)));pcs.add(bass);
@@ -1160,7 +1172,8 @@ function drawBoard(){
         s+=dot(i,f,(inC?role(x,q):'tone')+(on?' on':' dim'),lab);
       }
     }
-    cap.textContent=`${cname(st.root,st.qi,st.bass)}의 구성음 위치입니다. 진한 점이 선택한 운지, 금색이 루트음입니다.`;
+    s+=fHits();
+    cap.textContent=`${cname(st.root,st.qi,st.bass)}의 구성음 위치입니다. 진한 점이 선택한 운지, 금색이 루트음입니다. 칸을 누르면 운지를 직접 바꿔 코드 이름을 알아볼 수 있습니다.`;
   }
   document.getElementById('board').innerHTML=s;
   document.getElementById('board2').innerHTML=s;   /* 두 줄 보기: 같은 지판을 아랫줄(7~15프렛) 창으로 한 번 더 */
@@ -1180,6 +1193,10 @@ function boardFollow(){
   sc.scrollTo({left:f<=3?0:Math.max(0,(cx(f)-110)*k),behavior:'smooth'});
 }
 ['board','board2'].forEach(id=>document.getElementById(id).addEventListener('click',e=>{
+  if(st.tab==='find'){const t=e.target.closest('rect.hit[data-s]');if(!t)return;const i=+t.dataset.s,f=+t.dataset.f;
+    if(!st.ed){const v=st.voicings[st.vi];st.ed=v?v.slice():[-1,-1,-1,-1,-1,-1]}
+    if(f===0)st.ed[i]=st.ed[i]===0?-1:0;else st.ed[i]=st.ed[i]===f?-1:f;
+    drawBoard();renderFind();if(st.ed[i]>=0){const one=[-1,-1,-1,-1,-1,-1];one[i]=st.ed[i];strum(one)}return}
   if(st.tab!=='name')return;
   const t=e.target.closest('[data-s]');if(!t)return;
   const i=+t.dataset.s,f=+t.dataset.f;
@@ -1332,13 +1349,26 @@ function renderFind(){
   let th=order.map(x=>`<li><span class="tdeg"><i style="background:${RC[role(x,q)]}"></i>${degree(x,q)}</span><p><b>${nn(st.root+x)}</b>${toneInfo(x,q)}</p></li>`).join('');
   if(st.bass!=null&&!q.iv.some(y=>mod(st.root+y)===st.bass))th+=`<li><span class="tdeg"><i style="background:${RC.tone}"></i>베이스</span><p><b>${nn(st.bass)}</b>코드 구성음이 아닌 베이스음입니다. 저음이 한 음씩 움직이는 진행(C → C/B → Am)에서 베이스 라인을 이어 줍니다.</p></li>`;
   document.getElementById('tones').innerHTML=th;
-  document.getElementById('playFind').disabled=!st.voicings.length;
+  document.getElementById('playFind').disabled=!st.voicings.length&&!st.ed;
+  const fe=document.getElementById('fEdit');
+  if(!st.ed)fe.innerHTML='<span class="mt">💡 지판의 칸을 누르면 이 운지를 직접 바꿀 수 있고, 바꾼 모양의 코드 이름을 바로 알려 줍니다.</span>';
+  else{const r=identify(st.ed),snd=st.ed.map((f,i)=>f<0?null:nn(TUNE[i]+f)).filter(Boolean);let nm,alt='';
+    if(r.empty){nm='—';alt='소리 나는 줄이 없습니다'}else if(r.single!=null){nm=nn(r.single);alt='한 가지 음만 울림'}else if(!r.list.length){nm='?';alt='알려진 코드 모양과 맞지 않습니다 — 줄을 하나 바꾸거나 뮤트해 보세요'}
+    else{const a=r.list[0];nm=cname(a.r,a.qi,a.bass,a.omit5);alt=nn(a.r)+' '+Q[a.qi].k+(r.list.length>1?' · 다른 해석: '+r.list.slice(1,5).map(c=>'<b>'+cname(c.r,c.qi,c.bass,c.omit5)+'</b>').join(', '):'')}
+    fe.innerHTML=`<div class="f-ed-h">✏️ 바꾼 운지 <code>${st.ed.map(f=>f<0?'x':f).join(' ')}</code> → <b class="f-ed-n">${nm}</b></div><div class="mt">${alt} · 소리: ${snd.join(' ')}</div>
+      <div class="btns left"><button class="play sm" data-fed="play">들어보기</button>${r.list&&r.list.length?'<button class="ghost sm" data-fed="take" title="위 루트 · 코드 종류를 이 이름으로 바꿈">이 이름으로 보기</button>':''}<button class="ghost sm" data-fed="mute">모두 뮤트</button><button class="ghost sm" data-fed="back">원래 운지로</button></div>`}
 }
-document.getElementById('roots').addEventListener('click',e=>{const b=e.target.closest('[data-root]');if(!b)return;st.root=+b.dataset.root;computeFind();renderFindControls();renderFind();drawBoard()});
-document.getElementById('quals').addEventListener('click',e=>{const b=e.target.closest('[data-q]');if(!b)return;st.qi=+b.dataset.q;computeFind();renderFindControls();renderFind();drawBoard()});
-document.getElementById('bassSel').addEventListener('change',e=>{st.bass=e.target.value===''?null:+e.target.value;computeFind();renderFind();drawBoard()});
-document.getElementById('voicings').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;st.vi=+b.dataset.v;renderFind();drawBoard();strum(st.voicings[st.vi])});
-document.getElementById('playFind').addEventListener('click',()=>{if(st.voicings[st.vi])strum(st.voicings[st.vi])});
+document.getElementById('fEdit').addEventListener('click',e=>{const b=e.target.closest('[data-fed]');if(!b||!st.ed)return;const k=b.dataset.fed;
+  if(k==='play'){strum(st.ed);return}
+  if(k==='mute'){st.ed=[-1,-1,-1,-1,-1,-1];renderFind();drawBoard();return}
+  if(k==='back'){st.ed=null;renderFind();drawBoard();return}
+  if(k==='take'){const a=(identify(st.ed).list||[])[0];if(!a)return;st.root=a.r;st.qi=a.qi;st.bass=a.bass!=null&&a.bass!==a.r?a.bass:null;computeFind();
+    const j=st.voicings.findIndex(v=>v.join()===st.ed.join());if(j>=0){st.vi=j;st.ed=null}renderFindControls();renderFind();drawBoard()}});
+document.getElementById('roots').addEventListener('click',e=>{const b=e.target.closest('[data-root]');if(!b)return;st.root=+b.dataset.root;st.ed=null;computeFind();renderFindControls();renderFind();drawBoard()});
+document.getElementById('quals').addEventListener('click',e=>{const b=e.target.closest('[data-q]');if(!b)return;st.qi=+b.dataset.q;st.ed=null;computeFind();renderFindControls();renderFind();drawBoard()});
+document.getElementById('bassSel').addEventListener('change',e=>{st.bass=e.target.value===''?null:+e.target.value;st.ed=null;computeFind();renderFind();drawBoard()});
+document.getElementById('voicings').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;st.vi=+b.dataset.v;st.ed=null;renderFind();drawBoard();strum(st.voicings[st.vi])});
+document.getElementById('playFind').addEventListener('click',()=>{if(st.ed)strum(st.ed);else if(st.voicings[st.vi])strum(st.voicings[st.vi])});
 
 /* ---------- 운지 → 이름 ---------- */
 function renderName(){
