@@ -1,0 +1,16 @@
+{
+  "name": "쎄이기타",
+  "short_name": "쎄이기타",
+  "description": "통기타 연습 — 곡연습 · 조율기 · 블루스 · 애드립 · 스케일",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#111915",
+  "theme_color": "#111915",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
+    {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}
