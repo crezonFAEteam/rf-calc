@@ -485,7 +485,7 @@ body[data-page="tune"] #boardScroll,body[data-page="tune"] .board-bar,body[data-
 #blTab .bar-off{opacity:.35}
 .blpw{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 10px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
 .blpw input{flex:1 1 140px;min-width:0;padding:6px 8px}
-.blbox{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:10px 8px;border-radius:14px;background:#17191c}
+.blbox{display:block;padding:10px 8px 8px;border-radius:14px;background:#17191c}.blbox .cs-cards{gap:8px}.blbox .cs-card.past{opacity:.38}.blbox .cs-card.past .bx{background:#8d8f92}.blbox .vcard,.blbox .vcard[aria-pressed=true]{border:0;outline:none;box-shadow:none;background:none}
 .blbox .vcard{padding:0;border:0;background:none;color:#eee;font:inherit;width:118px;cursor:pointer}.blbox .vcard .cs-nm{font-size:1.5rem}.blbox .vcard[aria-pressed=true] .bx{box-shadow:0 0 0 3px #ffd400}.blbox .vcard[aria-pressed=false] .bx{opacity:.92}.blbox .bl-fg{display:block;font-size:.72rem;color:#bbb;margin-top:3px}
 .blbox .vname{display:block;text-align:center;font-weight:700;font-size:.9rem;color:var(--accent)}
 .tabhd{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin:0 0 6px}
@@ -1103,7 +1103,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-24 21:10';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-24 21:40';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -2373,21 +2373,28 @@ function blShapes(lk){
   lk.segs.forEach(sg=>{if(out.some(o=>o.name===sg.c.name))return;const v=BLV[sg.c.name]||getV(sg.c);if(v)out.push({name:sg.c.name,c:sg.c,v,fing:null})});
   return {kind:'chord',list:out};
 }
-function blBoxRender(){
+function blBoxRender(){   /* 운지표 = 코드 띠: 예제의 코드를 나오는 순서대로 — 지난(흐림) · 지금(노란 테) · 다음 3개, 재생에 맞춰 넘어감 */
   const f=document.getElementById('blBoxField'),el=document.getElementById('blBox');
   const sh=BL.lk?blShapes(BL.lk):null;if(BL.shapes&&sh&&BL.boxSel!=null&&(BL.shapes.list[BL.boxSel]||{}).name!==(sh.list[BL.boxSel]||{}).name)BL.boxSel=null;BL.shapes=sh;
-  if(!sh||!sh.list.length){f.hidden=true;return}
+  if(!sh||!sh.list.length){f.hidden=true;BL.seq=null;return}
   f.hidden=false;
-  document.getElementById('blBoxLbl').textContent=sh.kind==='bar'?'운지표 (아래 숫자는 손가락 번호 · 누르면 소리)':'운지표 (이 예제에서 쓰는 코드 · 누르면 소리)';
-  el.innerHTML=sh.list.map((o,k)=>`<button class="vcard cs-card" data-blbox="${k}" aria-pressed="false" aria-label="${esc(o.name)} 운지 ${o.v.map(x=>x<0?'x':x).join(' ')}"><div class="cs-nm">${esc(o.name)}</div><div class="bx">${chordBox(o.v,o.c.r)}</div>${o.fing?`<span class="bl-fg">손가락 ${esc(o.fing)}</span>`:''}</button>`).join('');   /* 곡연습 코드 띠와 같은 그림 (손가락 번호 · 바레) */
-  blBoxMark();
+  document.getElementById('blBoxLbl').textContent=sh.kind==='bar'?'운지표 (마디 순서 · 손가락 번호 · 누르면 소리)':'운지표 (코드 순서 · 누르면 소리)';
+  if(sh.kind==='bar')BL.seq=sh.list.map((o,k)=>({...o,si:k}));
+  else{BL.seq=[];BL.lk.segs.forEach(sg=>{const L=BL.seq[BL.seq.length-1];if(L&&L.name===sg.c.name){L.to=sg.start+sg.len;return}const si=sh.list.findIndex(o=>o.name===sg.c.name);if(si<0)return;BL.seq.push({...sh.list[si],si,from:sg.start,to:sg.start+sg.len})})}
+  BL.seqK=0;el.dataset.k='';blBoxMark();
 }
 function blBoxMark(){
-  const sh=BL.shapes,lk=BL.lk;if(!sh||!lk)return;
-  const t=BL.cur?BL.cur.t:null;let on=t==null&&BL.boxSel!=null?BL.boxSel:-1;
-  if(t!=null){if(sh.kind==='bar')on=sh.list.findIndex(o=>t>=o.from&&t<o.to);
-    else{const sg=lk.segs.find(x=>t>=x.start&&t<x.start+x.len);if(sg)on=sh.list.findIndex(o=>o.name===sg.c.name)}}
-  document.querySelectorAll('#blBox .vcard').forEach((b,k)=>b.setAttribute('aria-pressed',k===on));
+  const sh=BL.shapes,lk=BL.lk,Q=BL.seq,el=document.getElementById('blBox');if(!sh||!lk||!Q||!el)return;
+  const t=BL.cur?BL.cur.t:null;
+  if(t!=null){const k=Q.findIndex(o=>t>=o.from&&t<o.to);if(k>=0)BL.seqK=k}
+  else if(BL.boxSel!=null){const k=Q.findIndex(o=>o.si===BL.boxSel);if(k>=0)BL.seqK=k}
+  const k=BL.seqK||0,key=[k,Q.length,BL.boxSel].join('|');
+  if(el.dataset.k!==key){el.dataset.k=key;const cards=[];
+    for(let j=k-1;j<=k+3;j++){if(j<0||j>=Q.length){cards.push('<div class="cs-card" style="visibility:hidden;width:118px"></div>');continue}const o=Q[j];
+      cards.push(`<button class="vcard cs-card ${j<k?'past':j===k?'cur':j===k+1?'next1':'next'}" data-blbox="${o.si}" aria-pressed="${j===k}" aria-label="${esc(o.name)} 운지 ${o.v.map(x=>x<0?'x':x).join(' ')}"><div class="cs-nm">${esc(o.name)}</div><div class="bx">${chordBox(o.v,o.c.r)}</div>${o.fing?`<span class="bl-fg">손가락 ${esc(o.fing)}</span>`:''}</button>`)}
+    const seg=[];for(let j=Math.max(0,k-4);j<=Math.min(Q.length-1,k+4);j++)seg.push(`<div class="cs-seg ${j<k?'done':j===k?'cur':''}">${j===k?'<span class="cs-lab">'+esc(Q[j].name)+'</span><i id="blFill"></i>':''}</div>`);
+    el.innerHTML=`<div class="cs-cards">${cards.join('')}</div><div class="cs-bar">${seg.join('')}</div>`}
+  const o=Q[k],fl=document.getElementById('blFill');if(o&&fl)fl.style.width=(t==null?0:Math.max(0,Math.min(100,(t-o.from)/Math.max(1,o.to-o.from)*100)))+'%';
 }
 function blMark(){
   blBoxMark();
