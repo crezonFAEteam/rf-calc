@@ -301,7 +301,10 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 @media (max-width:640px){.cs-card{width:108px}.cs-card .cs-nm{font-size:1.35rem}.cs-cards{gap:6px}.cs-seg{width:30px}}
 .bd-show{display:inline-flex;align-items:center;gap:4px;font-size:.85rem;padding:3px 10px;border:1px solid var(--line);border-radius:999px;cursor:pointer;user-select:none}.bd-show input{margin:0}
 body.bd-off #boardScroll,body.bd-off .board-bar,body.bd-off .legend{display:none}
-.vcard svg{width:100%;max-width:150px;height:auto;display:block;margin:0 auto}.vcard .vlab{display:block;font-size:.75rem;color:var(--muted);margin-top:2px}
+#voicings{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-start;padding:10px;border-radius:14px;background:#17191c}
+#voicings .vcard{width:150px;padding:0;border:0;background:none;cursor:pointer}#voicings .vcard .bx{background:#f1f1f0;border-radius:12px;padding:6px 4px 2px}
+#voicings .vcard[aria-pressed=true] .bx{box-shadow:0 0 0 3px #ffd400}#voicings .vcard svg{width:100%;height:auto;display:block}
+@media (max-width:640px){#voicings .vcard,.blbox .vcard{width:108px}.blbox .vcard .cs-nm{font-size:1.35rem}}
 #p-song #sgSheet,#p-song #sgTab{max-height:calc(100vh - 150px);max-height:calc(100dvh - 150px);overflow:auto;overscroll-behavior:contain;border-radius:10px}
 #p-song .sg-ctl{padding:4px 0 2px}
 .fol-pause{position:sticky;top:0;float:right;z-index:3;font-size:.75rem;background:#ffd400;color:#222;padding:2px 8px;border-radius:8px;margin:4px}
@@ -486,7 +489,7 @@ body[data-page="tune"] #boardScroll,body[data-page="tune"] .board-bar,body[data-
 .blpw{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 10px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
 .blpw input{flex:1 1 140px;min-width:0;padding:6px 8px}
 .blbox{display:block;padding:10px 8px 8px;border-radius:14px;background:#17191c}.blbox .cs-cards{gap:8px}.blbox .cs-card.past{opacity:.38}.blbox .cs-card.past .bx{background:#8d8f92}.blbox .vcard,.blbox .vcard[aria-pressed=true]{border:0;outline:none;box-shadow:none;background:none}
-.blbox .vcard{padding:0;border:0;background:none;color:#eee;font:inherit;width:118px;cursor:pointer}.blbox .vcard .cs-nm{font-size:1.5rem}.blbox .vcard[aria-pressed=true] .bx{box-shadow:0 0 0 3px #ffd400}.blbox .vcard[aria-pressed=false] .bx{opacity:.92}.blbox .bl-fg{display:block;font-size:.72rem;color:#bbb;margin-top:3px}
+.blbox .vcard{padding:0;border:0;background:none;color:#eee;font:inherit;width:150px;cursor:pointer}.blbox .vcard .cs-nm{font-size:1.9rem}.blbox .vcard[aria-pressed=true] .bx{box-shadow:0 0 0 3px #ffd400}.blbox .vcard[aria-pressed=false] .bx{opacity:.92}.blbox .bl-fg{display:block;font-size:.72rem;color:#bbb;margin-top:3px}
 .blbox .vname{display:block;text-align:center;font-weight:700;font-size:.9rem;color:var(--accent)}
 .tabhd{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin:0 0 6px}
 .tabhd .tabttl{margin:0}
@@ -1103,7 +1106,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-24 21:50';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-24 22:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -1364,7 +1367,7 @@ function renderFind(){
   document.getElementById('cNotes').innerHTML=notes;
   const box=document.getElementById('voicings');
   if(!st.voicings.length){box.innerHTML=`<div class="empty">이 조합으로 잡을 만한 운지를 찾지 못했습니다. 베이스음을 루트음으로 바꾸거나 다른 종류를 골라 보세요.</div>`;}
-  else box.innerHTML=st.voicings.map((v,i)=>`<button class="vcard" data-v="${i}" aria-pressed="${i===st.vi}" aria-label="운지 ${v.map(f=>f<0?'x':f).join(' ')}">${chordBox(v,st.root)}<span class="vlab">${v.map(f=>f<0?'x':f).join(' ')}</span></button>`).join('');
+  else box.innerHTML=st.voicings.map((v,i)=>`<button class="vcard" data-v="${i}" aria-pressed="${i===st.vi}" aria-label="운지 ${v.map(f=>f<0?'x':f).join(' ')}" title="${v.map(f=>f<0?'x':f).join(' ')}"><div class="bx">${chordBox(v)}</div></button>`).join('');
   const cv=st.voicings[st.vi],vd=document.getElementById('vdeg');
   if(cv){
     const ds=cv.map((f,i)=>{if(f<0)return'x';const x=mod(TUNE[i]+f-st.root);return q.iv.some(y=>mod(y)===x)?degree(x,q):'베'}).join(' ');
@@ -2390,8 +2393,8 @@ function blBoxMark(){
   else if(BL.boxSel!=null){const k=Q.findIndex(o=>o.si===BL.boxSel);if(k>=0)BL.seqK=k}
   const k=BL.seqK||0,key=[k,Q.length,BL.boxSel].join('|');
   if(el.dataset.k!==key){el.dataset.k=key;const cards=[];
-    for(let j=k-1;j<=k+3;j++){if(j<0||j>=Q.length){cards.push('<div class="cs-card" style="visibility:hidden;width:118px"></div>');continue}const o=Q[j];
-      cards.push(`<button class="vcard cs-card ${j<k?'past':j===k?'cur':j===k+1?'next1':'next'}" data-blbox="${o.si}" aria-pressed="${j===k}" aria-label="${esc(o.name)} 운지 ${o.v.map(x=>x<0?'x':x).join(' ')}"><div class="cs-nm">${esc(o.name)}</div><div class="bx">${chordBox(o.v,o.c.r)}</div>${o.fing?`<span class="bl-fg">손가락 ${esc(o.fing)}</span>`:''}</button>`)}
+    for(let j=k-1;j<=k+3;j++){if(j<0||j>=Q.length){cards.push('<div class="cs-card" style="visibility:hidden;width:150px"></div>');continue}const o=Q[j];
+      cards.push(`<button class="vcard cs-card ${j<k?'past':j===k?'cur':j===k+1?'next1':'next'}" data-blbox="${o.si}" aria-pressed="${j===k}" aria-label="${esc(o.name)} 운지 ${o.v.map(x=>x<0?'x':x).join(' ')}"><div class="cs-nm">${esc(o.name)}</div><div class="bx">${chordBox(o.v)}</div>${o.fing?`<span class="bl-fg">손가락 ${esc(o.fing)}</span>`:''}</button>`)}
     const seg=[];for(let j=Math.max(0,k-4);j<=Math.min(Q.length-1,k+4);j++)seg.push(`<div class="cs-seg ${j<k?'done':j===k?'cur':''}">${j===k?'<span class="cs-lab">'+esc(Q[j].name)+'</span><i id="blFill"></i>':''}</div>`);
     el.innerHTML=`<div class="cs-cards">${cards.join('')}</div><div class="cs-bar">${seg.join('')}</div>`}
   const o=Q[k],fl=document.getElementById('blFill');if(o&&fl)fl.style.width=(t==null?0:Math.max(0,Math.min(100,(t-o.from)/Math.max(1,o.to-o.from)*100)))+'%';
