@@ -1134,7 +1134,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-25 03:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-25 03:20';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -5754,7 +5754,7 @@ function folBlock(s){
     let a=li,b=li;while(a>0&&L[a-1].trim())a--;while(b<L.length-1&&L[b+1].trim())b++;
     return {top:pr.top+a*lh,bottom:pr.top+(b+1)*lh,height:(b-a+1)*lh}}catch(e){return s.getBoundingClientRect()}
 }
-['wheel','touchmove'].forEach(ev=>document.addEventListener(ev,e=>{const b=e.target.closest&&e.target.closest('#sgSheet,#sgTab');if(b)b._folPause=performance.now()+4000},{passive:true,capture:true}));   /* 직접 굴릴 때만 잠깐 쉼 (눌러서 자리 옮기기는 바로 따라감) */
+['wheel','touchmove'].forEach(ev=>document.addEventListener(ev,e=>{const b=e.target.closest&&e.target.closest('#sgSheet,#sgTab');if(b)b._folPause=performance.now()+4000;else window._pgPause=performance.now()+6000},{passive:true,capture:true}));   /* 직접 굴릴 때만 잠깐 쉼 (눌러서 자리 옮기기는 바로 따라감) */
 /* 따라가기 상태 표시: 재생 줄 옆 · 악보 칸 테두리 */
 function folSt(box,st){const e=document.getElementById('folSt');if(box){box.classList.toggle('fol-on',st==='on');box.classList.toggle('fol-pause',st==='pause')}
   if(!e)return;e.dataset.st=st;e.textContent=st==='on'?'⇣ 따라가는 중':st==='pause'?'✋ 직접 보는 중 · 곧 다시 따라감':st==='off'?'따라가기 꺼짐':'';e.hidden=!st}
@@ -5770,8 +5770,13 @@ function followNow(id){
   /* 악보 칸이 스스로 스크롤되는 경우(곡연습): 칸 안에서만 따라감 → 페이지는 그대로라 재생 중에도 다른 설정을 볼 수 있음 · 악보를 직접 굴리면 4초 쉼 */
   {const cs=getComputedStyle(box);if((cs.overflowY==='auto'||cs.overflowY==='scroll')&&box.scrollHeight>box.clientHeight+4){
     if(performance.now()<(box._folPause||0)){folSt(box,'pause');return}folSt(box,'on');
-    const B=folBlock(s),bb=box.getBoundingClientRect(),rt=B.top-bb.top,rb=B.bottom-bb.top;
-    if(rt<4||rb>box.clientHeight-4||rt>box.clientHeight*0.55)box.scrollTo({top:Math.max(0,box.scrollTop+rt-box.clientHeight*0.18),behavior:'smooth'});return}}   /* 지금 줄을 칸 위쪽 1/5 근처에 늘 두기 */
+    let pt=0;{const pin=document.getElementById('pin'),tabs=document.querySelector('.tabs');if(pin&&!pin.classList.contains('off')){const pr=pin.getBoundingClientRect();if(pr.top<=1)pt=Math.max(pt,pr.bottom)}if(tabs){const tr=tabs.getBoundingClientRect();if(tr.top<=pt+2&&tr.bottom>pt)pt=tr.bottom}}
+    let bb=box.getBoundingClientRect();const H=window.innerHeight;
+    /* 악보 칸이 화면에 조금만 보이면(아래로 밀려 있으면) 칸을 화면 위쪽으로 — 직접 페이지를 굴린 뒤 6초 동안은 안 함 */
+    if(Math.min(bb.bottom,H)-Math.max(bb.top,pt)<H*0.45&&performance.now()>(window._pgPause||0)){window.scrollBy({top:bb.top-pt-6,behavior:'smooth'});bb={top:pt+6,bottom:pt+6+bb.height}}
+    const vt=Math.max(bb.top,pt),vb=Math.min(bb.bottom,H),vh=Math.max(60,vb-vt),B=folBlock(s),y=B.top-(box.getBoundingClientRect().top-bb.top);
+    /* 화면에 실제로 보이는 범위 기준: 지금 줄이 그 범위의 절반을 넘거나 벗어나기 전에 미리 위쪽(15%)으로 */
+    if(y<vt+2||B.bottom-(box.getBoundingClientRect().top-bb.top)>vb-4||y-vt>vh*0.5)box.scrollTo({top:Math.max(0,box.scrollTop+(y-vt)-vh*0.15),behavior:'smooth'});return}}
   /* 세로: 위에 고정된 영역(지판 · 탭 줄) 아래부터 보이는 범위 */
   let top=0;const pin=document.getElementById('pin'),tabs=document.querySelector('.tabs');
   if(pin&&!pin.classList.contains('off')){const pr=pin.getBoundingClientRect();if(pr.top<=1)top=Math.max(top,pr.bottom)}
