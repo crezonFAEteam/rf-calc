@@ -318,11 +318,11 @@ body.bd-off #boardScroll,body.bd-off .board-bar,body.bd-off .legend{display:none
 .tfb-ch{background:#17191c;border-radius:14px;padding:6px 8px 8px;display:flex;flex-direction:column;gap:4px}.tfb.cur .tfb-ch,.tfb.cur .tfb-tab{box-shadow:0 0 0 3px #ffd400}
 .tfb-tab{background:#17191c;border-radius:14px;padding:8px 8px 6px;flex:1}
 .tab .tf .tfb pre.tf-cur,.tab .tf .tfb pre.tf-tick{color:#e8e8e8;margin:0;letter-spacing:0;line-height:1.4;overflow:hidden}.tab .tf .tfb pre.tf-tick{color:#ffb84d}.tfb pre .ch{display:none}
-.tab .tfb pre [data-n]{background:none!important;color:#8fd0ff;font-weight:700;box-shadow:none}.tab .tfb pre [data-n].now{background:#ffd400!important;color:#111;border-radius:2px}
+.tab .tfb pre [data-n]{background:none!important;color:#fff;font-weight:700;box-shadow:none}.tab .tfb pre [data-n].now{background:#ffd400!important;color:#111;border-radius:2px}
 .tfc-row{display:flex;gap:6px;align-items:stretch;overflow:hidden}.tfc{flex:1 1 0;min-width:0;background:#17191c;border-radius:12px;padding:6px 6px 4px;display:flex;flex-direction:column;gap:3px;opacity:.6}.tfc.cur{opacity:1;box-shadow:0 0 0 3px #ffd400}
 .tfc-nm{font:800 1.25rem/1.1 system-ui,sans-serif;color:#eee;display:flex;align-items:baseline;gap:4px;white-space:nowrap;overflow:hidden}.tfc-nm small{font-size:.7rem;font-weight:600;color:#bbb}.tfc-b{margin-left:auto;font-size:.7rem;color:#888;font-weight:600}
 .tfc-bx{background:#f1f1f0;border-radius:9px;padding:4px 2px 0;width:100%;max-width:140px;align-self:center}.tfc-bx svg{width:100%;height:auto;display:block}
-.tab .tf .tfc pre.tf-cur,.tab .tf .tfc pre.tf-tick{color:#e8e8e8;margin:0;letter-spacing:0;line-height:1.35}.tab .tf .tfc pre.tf-tick{color:#ffb84d}.tfc pre .ch{display:none}.tab .tfc pre [data-n]{background:none!important;color:#8fd0ff;font-weight:700;box-shadow:none}.tab .tfc pre [data-n].now{background:#ffd400!important;color:#111;border-radius:2px}
+.tab .tf .tfc pre.tf-cur,.tab .tf .tfc pre.tf-tick{color:#e8e8e8;margin:0;letter-spacing:0;line-height:1.35}.tab .tf .tfc pre.tf-tick{color:#ffb84d}.tfc pre .ch{display:none}.tab .tfc pre [data-n]{background:none!important;color:#fff;font-weight:700;box-shadow:none}.tab .tfc pre [data-n].now{background:#ffd400!important;color:#111;border-radius:2px}
 @keyframes csSlide{from{transform:translateX(34%);opacity:.55}to{transform:none;opacity:1}}.cs-slide>*{animation:csSlide .28s ease-out}.tf-slide{animation:csSlide .28s ease-out}
 @media (max-width:699px){.cs-cards,.blbox .cs-cards{gap:6px;justify-content:stretch}.cs-cards .cs-card,.blbox .vcard{width:calc((100% - 16px)/3)!important;flex:0 0 auto}.cs-card .cs-nm,.blbox .vcard .cs-nm{font-size:1.25rem}.cs-card.cur{transform:none}.sg-cstrip,.blbox{padding:8px 6px 6px}.cs-seg{width:24px}}.tf-hd{display:flex;align-items:center;gap:6px;margin-bottom:2px}.tf-hd b{font-size:1.2rem}
 .tab .tf pre.tf-cur,.tab .tf pre.tf-tick{font-size:15px;line-height:1.45;color:var(--ink)}.tab .tf pre.tf-tick{color:#c46a00;margin:0;line-height:1.1;font-weight:700}
@@ -1128,7 +1128,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-25 01:50';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-25 02:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
