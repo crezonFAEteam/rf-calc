@@ -1098,7 +1098,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-24 18:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-24 18:40';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -2144,8 +2144,10 @@ function genBlock(b,pool,style){
   const L=notes[notes.length-1];if(L&&ad.vib&&L.bend==null)L.vib=true;
   return {name:b.name,segs,notes,total:t,bar:BAR};
 }
+/* TAB 칸 폭: 16분음표 한 칸 = 3글자 (화면이 좁으면 2글자 — 한 마디가 폰 폭에 들어옴) */
+function tabC(){return (window.innerWidth||1000)<700?2:3}
 function tabRender(lk,k,html,perIn){
-  const BAR=lk.bar||8,per=perIn||4,W=BAR*3,out=[],bars=Math.ceil(lk.total/BAR);
+  const C=tabC(),BAR=lk.bar||8,per=perIn||4,W=BAR*C,out=[],bars=Math.ceil(lk.total/BAR);
   for(let b0=0;b0<bars;b0+=per){
     let head='  ',dirl='  ',hasDir=false,accl='  ',hasAcc=false;const rows=['e','B','G','D','A','E'].map(n=>n+'|');
     /* 가사 줄: 코드 이름과 같은 칸에서 시작. 화면(html)에서는 칸 폭(ch)을 고정한 상자에 넣어 한글이 넓어도 줄이 밀리지 않게 */
@@ -2153,7 +2155,7 @@ function tabRender(lk,k,html,perIn){
     for(let b=b0;b<Math.min(bars,b0+per);b++){
       const inBar=lk.segs.filter(s=>s.start>=b*BAR&&s.start<b*BAR+BAR);let lc=0;
       inBar.forEach((s,j)=>{
-        const pos=(s.start-b*BAR)*3+1,end=j+1<inBar.length?(inBar[j+1].start-b*BAR)*3+1:W+1,txt=s.ly||'';
+        const pos=(s.start-b*BAR)*C+1,end=j+1<inBar.length?(inBar[j+1].start-b*BAR)*C+1:W+1,txt=s.ly||'';
         if(txt)hasLy=true;
         if(pos>lc){lyl+=html?`<span class="ly" style="width:${pos-lc}ch"></span>`:' '.repeat(pos-lc);lc=pos}
         const w=Math.max(1,end-lc);
@@ -2165,7 +2167,7 @@ function tabRender(lk,k,html,perIn){
     for(let b=b0;b<Math.min(bars,b0+per);b++){
       let col=0,hs='';
       lk.segs.filter(s=>s.start>=b*BAR&&s.start<b*BAR+BAR).forEach(s=>{
-        const pos=(s.start-b*BAR)*3+1,name=chName(s.c);
+        const pos=(s.start-b*BAR)*C+1,name=chName(s.c);
         if(pos>col){hs+=' '.repeat(pos-col);col=pos}else if(col>0){hs+=' ';col++}
         hs+=html?`<span class="ch" data-sg="${lk.segs.indexOf(s)}">${name}</span>`:name;col+=name.length;
       });
@@ -2173,7 +2175,7 @@ function tabRender(lk,k,html,perIn){
       const cells=[0,1,2,3,4,5].map(()=>Array(W).fill('-')),marks=[0,1,2,3,4,5].map(()=>({})),dc=Array(W+1).fill(' '),ac=Array(W+1).fill(' ');
       lk.notes.forEach((n,ni)=>{
         if(n.t<b*BAR||n.t>=b*BAR+BAR)return;
-        const r=5-n.i,x=(n.t-b*BAR)*3+1,tx=n.mute?'x':n.bend!=null?`${n.bend}b${n.f}`:String(n.f)+(n.vib?'~':'');if(n.dir){dc[x]=n.dir;hasDir=true}if(n.acc){ac[x]='>';hasAcc=true}
+        const r=5-n.i,x=(n.t-b*BAR)*C+1,tx=n.mute?'x':n.bend!=null?`${n.bend}b${n.f}`:String(n.f)+(n.vib?'~':'');if(n.dir){dc[x]=n.dir;hasDir=true}if(n.acc){ac[x]='>';hasAcc=true}
         if(n.tech)cells[r][x-1]=n.tech;
         for(let q=0;q<tx.length;q++)cells[r][x+q]=tx[q];
         marks[r][x]={len:tx.length,id:k+'-'+ni};
@@ -2224,7 +2226,7 @@ function tabPer(bar,id){
   if(!tabCw){const m=document.createElement('span');m.style.cssText='font:13px ui-monospace,"SF Mono",Menlo,Consolas,monospace;visibility:hidden;position:absolute;white-space:pre';m.textContent='-'.repeat(50);document.body.appendChild(m);tabCw=m.getBoundingClientRect().width/50;m.remove()}
   if(!(w>0)||!tabCw)return 4;
   const cw=tabCw*tabFsNow()/13;                        /* 악보 글자 크기에 맞춰 한 줄 마디 수 */
-  return Math.max(1,Math.min(16,Math.floor((w-2*cw)/(((bar||8)*3+1)*cw))));
+  return Math.max(1,Math.min(16,Math.floor((w-2*cw)/(((bar||8)*tabC()+1)*cw))));
 }
 /* ⛶ 악보 크게 (기억) — 폭이 바뀌면 한 줄 마디 수도 다시 */
 function sgBigSet(on){
@@ -3327,8 +3329,8 @@ function vFingers(v){   /* 손가락 번호: 가장 낮은 프렛에 2줄 이상
   rest.sort((p,q)=>p.f-q.f||p.i-q.i);let n=bar?2:1;rest.forEach(x=>{const k=Math.min(4,Math.max(n,1+(x.f-mn)));F[x.i]=k;n=k+1});return {F,bar}}   /* 검지(1)가 가장 낮은 프렛 · 한 프렛 위면 중지(2) … 프렛 거리를 따름 */
 function chordBox(v,root){   /* 세로 운지 그림 (왼쪽 6번 줄 E → 오른쪽 1번 줄 e) · root 를 주면 근음 손가락은 금색 */
   const fr=v.filter(f=>f>0),mx=fr.length?Math.max(...fr):0,mn=fr.length?Math.min(...fr):0,st0=mx<=4?1:mn,R=Math.max(4,mx-st0+1),{F,bar}=vFingers(v);
-  const X=i=>22+i*22,Y=k=>30+k*30,W=150,H=30+R*30+26;let s=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
-  if(st0>1)s+=`<text x="6" y="${Y(0)+20}" font-size="15" font-weight="700" fill="#222">${st0}</text>`;
+  const X=i=>30+i*21,Y=k=>30+k*30,W=150,H=30+R*30+26;let s=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+  if(st0>1)s+=`<text x="2" y="${Y(0)+20}" font-size="13" font-weight="700" fill="#222">${st0}</text>`;
   s+=`<line x1="${X(0)}" x2="${X(5)}" y1="${Y(0)}" y2="${Y(0)}" stroke="#222" stroke-width="${st0===1?5:1.6}"/>`;
   for(let k=1;k<=R;k++)s+=`<line x1="${X(0)}" x2="${X(5)}" y1="${Y(k)}" y2="${Y(k)}" stroke="#222" stroke-width="1.6"/>`;
   for(let i=0;i<6;i++)s+=`<line x1="${X(i)}" x2="${X(i)}" y1="${Y(0)}" y2="${Y(R)}" stroke="#222" stroke-width="1.6"/>`;
