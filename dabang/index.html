@@ -896,6 +896,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
         <div id="tuHz" class="tu-hz"></div>
       </div>
       <div id="tuHelp" class="tu-help" hidden></div>
+      <div class="chips sc-pat" id="tuPre"></div>
       <details class="tu-advd"><summary>⚙ 세부 조정 (측정 · 판정 값)</summary><div id="tuAdv"></div></details>
       <div class="tu-strings" id="tuStrings"></div>
       <div class="tu-opts">
@@ -1073,7 +1074,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-24 10:40';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-24 11:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -2497,7 +2498,9 @@ const TU={view:'trail',trail:[],mode:'auto',sel:0,tun:'std',a4:440,on:false,stre
 function tuPrecBtns(){document.querySelectorAll('[data-tuprec]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.tuprec===(TU.prec==='fine'?'fine':'norm')))}
 document.addEventListener('input',e=>{const k=e.target&&e.target.dataset&&e.target.dataset.tup;if(!k)return;TU.P[k]=+e.target.value;tuPSave();const o=e.target.nextElementSibling;const o2=e.target.closest('.tu-ar');if(o2){const out=o2.querySelector('output');if(out)out.textContent=TU.P[k]}});
 document.addEventListener('change',e=>{if(e.target&&e.target.dataset&&e.target.dataset.tup)tuAdv()});
-document.addEventListener('click',e=>{const b=e.target.closest('[data-tupreset],#tuDingB');if(!b)return;if(b.id==='tuDingB'){TU.P.ding=TU.P.ding?0:1;tuPSave();b.setAttribute('aria-pressed',!!TU.P.ding);if(TU.P.ding){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)()}catch(x){}tuDing()}return}
+document.addEventListener('input',e=>{if(e.target&&e.target.dataset&&e.target.dataset.tup)tuPreBtns()});
+document.addEventListener('click',e=>{const pb=e.target.closest('[data-tupre]');if(pb){const v=(TU_PRE.find(x=>x[0]===pb.dataset.tupre)||[])[3]||{};TU.P=Object.assign({},TU_PD,v,{ding:TU.P.ding});tuPSave();tuAdv();return}
+  const b=e.target.closest('[data-tupreset],#tuDingB');if(!b)return;if(b.id==='tuDingB'){TU.P.ding=TU.P.ding?0:1;tuPSave();b.setAttribute('aria-pressed',!!TU.P.ding);if(TU.P.ding){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)()}catch(x){}tuDing()}return}
   TU.P=Object.assign({},TU_PD,{ding:TU.P.ding});tuPSave();tuAdv()});
 document.addEventListener('DOMContentLoaded',()=>{tuAdv();const b=document.getElementById('tuDingB');if(b)b.setAttribute('aria-pressed',!!TU.P.ding)});
 function tuSave(){store.set('chordcalc-tuner',JSON.stringify({mode:TU.mode,tun:TU.tun,a4:TU.a4,sel:TU.sel,view:TU.view,prec:TU.prec}))}
@@ -2517,9 +2520,17 @@ const TU_PM=[   /* [값, 이름, 최소, 최대, 단계, 작게 하면, 크게 �
    ['late','늦은 부분 (최고 음량의 비)',0.1,0.8,0.01,'끝부분도 실시간으로 보임','일찍 대표값으로 고정']]]];
 /* 크게 하면: d = 둔감해짐(안정 · 늦음) · s = 민감해짐(빠름 · 흔들림) */
 const TU_SENS={hyst:'d',lockMs:'d',smooth:'d',fast:'d',firstN:'d',firstC:'s',loud:'d',atkN:'d',atkJ:'d',clar:'d',clarW:'d',strN:'d',newN:'d',newC:'d',tail:'d',late:'d'};
+/* 상황별 묶음 — 기본값에서 바뀌는 것만 */
+const TU_PRE=[['fast','⚡ 빠름','조용한 방 · 빨리 맞출 때 — 빨리 뜨고 빨리 따라감',{smooth:0.2,fast:0.05,firstN:5,firstC:40,lockMs:400,strN:6}],
+  ['norm','보통','기본값',{}],
+  ['fine','🎯 정밀','화음까지 깨끗하게 — ±3센트 · 오래 맞아야 ✓ · 차분',{okN:3,okF:2,lockMs:900,smooth:0.35,firstN:10,firstC:20}],
+  ['noisy','🔊 시끄러운 곳','말소리 · 선풍기 · 야외 — 큰 소리 · 선명한 소리만',{loud:2.5,atkN:4,atkJ:2.2,clar:0.65,clarW:0.7,firstN:10,firstC:25,smooth:0.5,strN:10}]];
+function tuPreOf(){const P=TU.P;return (TU_PRE.find(([k,,,v])=>Object.keys(TU_PD).every(x=>x==='ding'||P[x]===(x in v?v[x]:TU_PD[x])))||[''])[0]}
+function tuPreBtns(){const e=document.getElementById('tuPre');if(!e)return;const cur=tuPreOf();
+  e.innerHTML='<span class="sc-lb">반응</span>'+TU_PRE.map(([k,l,d])=>`<button class="chip" data-tupre="${k}" aria-pressed="${cur===k}" title="${d}">${l}</button>`).join('')+(cur?'':'<span class="mt">직접 조정함</span>')}
 TU.P=Object.assign({},TU_PD);try{Object.assign(TU.P,JSON.parse(store.get('chordcalc-tunerP')||'{}'))}catch(e){}
 function tuPSave(){store.set('chordcalc-tunerP',JSON.stringify(TU.P))}
-function tuAdv(){const e=document.getElementById('tuAdv');if(!e)return;const P=TU.P;
+function tuAdv(){tuPreBtns();const e=document.getElementById('tuAdv');if(!e)return;const P=TU.P;
   e.innerHTML=TU_PM.map(([g,rows])=>`<div class="tu-ag"><b>${g}</b>${rows.map(([k,l,mn,mx,st,lo,hi])=>`<label class="tu-ar"><span class="nm">${l}${TU_SENS[k]?` <i class="sn ${TU_SENS[k]}">${TU_SENS[k]==='d'?'◀ 민감 · 둔감 ▶':'◀ 둔감 · 민감 ▶'}</i>`:''}</span><output>${P[k]}${P[k]!==TU_PD[k]?' <small>(기본 '+TU_PD[k]+')</small>':''}</output><span class="lo">◀ ${lo}</span><input type="range" data-tup="${k}" min="${mn}" max="${mx}" step="${st}" value="${P[k]}"><span class="hi">${hi} ▶</span></label>`).join('')}</div>`).join('')+
     `<div class="btns left"><button class="ghost sm" data-tupreset="1">기본값으로</button><span class="mt"><b style="background:#ffe2c4;padding:0 4px;border-radius:4px">민감</b> = 빨리 반응 · 작은 소리도 · 대신 흔들리거나 틀린 값이 보일 수 · <b style="background:#d8e6fb;padding:0 4px;border-radius:4px">둔감</b> = 차분 · 확실 · 대신 늦거나 반응 없을 수 · 바꾼 값은 이 기기에 기억</span></div>`}
 function tuDing(){if(!TU.P.ding)return;try{const t=actx.currentTime+0.01,g=actx.createGain();g.connect(gOut());g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.35,t+0.008);g.gain.exponentialRampToValueAtTime(0.0001,t+0.9);
