@@ -881,6 +881,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
             <button id="edImpFile" class="ghost sm" title="음원 · 영상 파일 이름으로 새 곡 폴더">🎵 음원 · 영상</button>
             <button id="edImpLink" class="ghost sm" title="링크 영상 제목으로 새 곡 폴더 (원음 받음)">🔗 링크</button>
             <button id="edImpRec" class="ghost sm" title="녹음 → 이름을 정해 새 곡 폴더">🔴 녹음</button>
+            <button id="edImpZz" class="ghost sm" title="잔잔 내 악보 · 최근 본 노래에서 골라 → 그 곡 제목으로 새 곡 폴더 + 리듬악보">🎼 잔잔</button>
             <button class="ghost sm ed-od" data-edopen="입력" title="입력 폴더 열기">📂 입력 폴더</button></div>
           <div id="edIn" class="ed-list"></div>
         </div>
@@ -1150,7 +1151,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-25 05:05';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-25 05:20';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -3765,7 +3766,7 @@ function edZanzan(song){
     const box=sgEl('edPick');box.hidden=false;
     const draw=()=>{const q=nz(song);
       const L=((D&&D.songs)||[]).map((s,i)=>{const t=nz(s.title);const hit=q&&t?(t===q?3:(t.includes(q)||q.includes(t))?2:0):0;return {s,i,hit,sc:hit*2+(s.mine===1?1:0)}}).sort((a,b)=>b.sc-a.sc);
-      box.innerHTML=`<div><b>${esc(song)} — 잔잔에서 가져오기</b>
+      box.innerHTML=`<div><b>${song?esc(song)+' — 잔잔에서 가져오기':'＋ 새 곡 — 잔잔 악보 고르기 (곡 제목으로 곡 폴더)'}</b>
         <p class="pk-sum">처음 한 번: <b>Ctrl+Shift+B</b> 로 북마크바(주소창 아래 줄)를 켜고 → <b>⭐ 잔잔 내 악보</b> · <b>⭐ 잔잔 최근 본 노래</b>를 그 <b>북마크바 위로</b> 끌어 놓기 (주소창 말고)<br>또는 [📋 복사] → 북마크바 오른쪽 클릭 › 페이지 추가 › URL 칸에 붙여넣기<br>그다음: zanzan.kr 에서 그 북마크 누르기 → 받은 <b>.json</b> 을 [📂 파일 고르기] (둘 다 넣으면 합쳐짐)<br><span class="mt">내 악보 = 「내가 만든 노래들」 · 최근 본 노래 = 「최근 본 노래들」</span></p>
         <div class="pk-bar"><a class="ghost sm zz-bm" href="${ZZ_BM}" title="북마크바로 끌어 놓으세요 (여기서 누르면 안 됨)">⭐ 잔잔 내 악보</a><button class="ghost sm" data-pk="copy" data-bm="mine">📋 복사</button>
           <a class="ghost sm zz-bm" href="${ZZ_BM_ALL}" title="북마크바로 끌어 놓으세요 (여기서 누르면 안 됨)">⭐ 잔잔 최근 본 노래</a><button class="ghost sm" data-pk="copy" data-bm="all">📋 복사</button></div><div class="pk-bar"><button class="ghost sm" data-pk="file">📂 파일 고르기</button><span class="pk-sum">${D?D.songs.length+'곡 · '+esc(String(D.at||'').slice(0,10))+' 받음':''}</span></div>
@@ -3785,7 +3786,7 @@ function edZanzan(song){
           j.songs=j.songs.filter(x=>x&&typeof x.music==='string');fixMine(j);
           if(D&&Array.isArray(D.songs)){const key=x=>x.title+'|'+String(x.music||'').length,M=new Map(D.songs.map(x=>[key(x),x]));j.songs.forEach(x=>{const o=M.get(key(x));M.set(key(x),o?Object.assign({},o,x,{mine:(o.mine===1||x.mine===1)?1:0}):x)});j={kind:'zanzan',at:j.at,songs:[...M.values()]}}
           D=j;try{localStorage.setItem('sg-zz',JSON.stringify(j))}catch(er){}draw()}catch(er){console.error(er);alert('「'+f.name+'」 을 읽지 못했습니다: '+(er&&er.message||er))}return}
-      if(t.dataset.zz!=null){const s=D.songs[+t.dataset.zz];box.innerHTML='';res(await edPasteRhy(song,String(s.music||''),'잔잔 - '+String(s.title||song).replace(/[\\/:*?"<>|]/g,' '),zzInfo(s)))}
+      if(t.dataset.zz!=null){const s=D.songs[+t.dataset.zz];box.innerHTML='';if(!song){const ti=String(s.title||'잔잔 곡').replace(/[\/:*?"<>|]/g,' ').trim();try{await edApi('/song-new',{song:ti},'')}catch(er){alert('곡 폴더를 만들지 못했습니다: '+(er.message||er));return done(false)}song=ti;ED.song=ti;store.set('chordcalc-edsong',ti)}res(await edPasteRhy(song,String(s.music||''),'잔잔 - '+String(s.title||song).replace(/[\\/:*?"<>|]/g,' '),zzInfo(s)))}
     };
   });
 }
@@ -3813,7 +3814,7 @@ function edNewSong(){
   ED.song='';ED.list=null;const o=sgEl('edScoreOut');o.hidden=true;o.innerHTML='';sgEl('ceBox').hidden=true;try{sgEl('ceAudio').pause()}catch(e){}
   sgEl('edSong').value='@new';
   sgEl('edIn').innerHTML=`<div class="ed-row"><div class="ed-k">＋ 새 곡</div><div class="ed-files"><div class="ed-rule">매체를 하나 넣으면 그 <b>제목으로 곡 폴더</b>를 만들고, 그 곡으로 바뀝니다. 그다음 리듬악보 · 기타악보 · 기타타브 등은 그 곡에 넣으세요.</div>
-    <div class="ed-act" style="justify-content:flex-start;margin-top:8px"><button class="play" data-ednew="edImpFile">🎵 음원 · 영상 파일 (파일 이름 → 곡 제목)</button><button class="play" data-ednew="edImpLink">🔗 링크 (영상 제목 → 곡 제목)</button><button class="ghost sm" data-ednew="edImpRec">🔴 녹음 (이름 정하기)</button></div></div></div>`;
+    <div class="ed-act" style="justify-content:flex-start;margin-top:8px"><button class="play" data-ednew="edImpFile">🎵 음원 · 영상 파일 (파일 이름 → 곡 제목)</button><button class="play" data-ednew="edImpLink">🔗 링크 (영상 제목 → 곡 제목)</button><button class="ghost sm" data-ednew="edImpRec">🔴 녹음 (이름 정하기)</button><button class="play" data-ednew="edImpZz">🎼 잔잔 악보 (곡 제목 → 곡 폴더)</button></div></div></div>`;
   sgEl('edOut').innerHTML='';
 }
 sgEl('edIn').addEventListener('click',e=>{const b=e.target.closest('[data-ednew]');if(b)sgEl(b.dataset.ednew).click()});
@@ -3841,6 +3842,7 @@ sgEl('edImpLink').addEventListener('click',async()=>{
       sgEl('edUpdBox').textContent=`링크에서 원음 받는 중… ${Math.round(s.pct||0)}% ${s.msg||''}`}
   }catch(e){alert('가져오지 못했습니다: '+(e.message||e))}
 });
+sgEl('edImpZz').addEventListener('click',async()=>{if(await edZanzan(''))edShow()});
 sgEl('edImpRec').addEventListener('click',()=>{
   const t=(prompt('녹음할 곡의 이름 (이 이름으로 곡 폴더를 만들고, 녹음이 끝나면 매체녹음으로 넣습니다)','')||'').trim();if(!t)return;
   SG.recTarget=t;sgRecord();
