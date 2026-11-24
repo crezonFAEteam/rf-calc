@@ -1076,7 +1076,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-24 12:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-24 13:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -3038,7 +3038,7 @@ class SgPitch extends AudioWorkletProcessor{
     this.cos=new Float32Array(H);this.sin=new Float32Array(H);for(let i=0;i<H;i++){this.cos[i]=Math.cos(2*Math.PI*i/N);this.sin[i]=Math.sin(2*Math.PI*i/N)}
     this.gain=1/(N*os*3/8);   /* 분석 크기(×2, 한쪽 스펙트럼) · Hann² 겹침 합(os·3/8) 보정 */
   }
-  mk(){const N=this.N;return{inF:new Float32Array(N),outF:new Float32Array(N),acc:new Float32Array(2*N),lp:new Float32Array(N/2+1),sp:new Float32Array(N/2+1),rv:this.lat}}
+  mk(){const N=this.N;return{eh:0,inF:new Float32Array(N),outF:new Float32Array(N),acc:new Float32Array(2*N),lp:new Float32Array(N/2+1),sp:new Float32Array(N/2+1),rv:this.lat}}
   fft(inv){
     const N=this.N,re=this.re,im=this.im,rev=this.rev;
     for(let i=0;i<N;i++){const j=rev[i];if(j>i){let t=re[i];re[i]=re[j];re[j]=t;t=im[i];im[i]=im[j];im[j]=t}}
@@ -3064,7 +3064,8 @@ class SgPitch extends AudioWorkletProcessor{
     if(last<0)for(let k=0;k<=H;k++)pk[k]=0;else for(let k=last+1;k<=H;k++)pk[k]=last;
     /* 1단계: 봉우리 성분 → 새 칸(k·비율)에서 새 주파수로 위상 이어서 누적 */
     for(let k=0;k<=H;k++){re[k]=0;im[k]=0;sM[k]=0}
-    for(let k=0;k<=H;k++)if(pk[k]===k){const j=Math.round(k*r);if(j>H)break;S.sp[j]+=ex*aF[k]*r;pp[k]=S.sp[j]}
+    let eh=0;for(let k=H>>3;k<=H;k++)eh+=aM[k]*aM[k];const atk=S.eh>0&&eh>S.eh*2.2&&eh>1e-6;S.eh=S.eh?S.eh*0.6+eh*0.4:eh;   /* 어택(줄 튕김 · 타악기): 고음 쪽 에너지가 갑자기 커지면 위상을 분석 위상으로 다시 맞춤 → 어택이 덜 뭉개짐 */
+    for(let k=0;k<=H;k++)if(pk[k]===k){const j=Math.round(k*r);if(j>H)break;if(atk)S.sp[j]=ph[k];else S.sp[j]+=ex*aF[k]*r;pp[k]=S.sp[j]}
     /* 2단계: 같은 음의 이웃 성분(봉우리 덩어리)은 봉우리와 같은 칸 수만큼 옮기고, 봉우리 위상 + (분석 위상 차) → 모양 · 음량 유지. 겹치면 큰 쪽 */
     for(let k=0;k<=H;k++){const kp=pk[k],j=Math.round(kp*r)+(k-kp);if(j<0||j>H||aM[k]<=sM[j])continue;sM[j]=aM[k];   /* 봉우리 덩어리째 옮김 */
       let p;if(kp===k)p=S.sp[j];else{p=pp[kp]+ph[k]-ph[kp];S.sp[j]=p}
@@ -3108,6 +3109,7 @@ async function sgPitchApply(){
   if(!(await sgPitchInit())){if(n)alert('이 브라우저에서는 음원 키 바꾸기를 쓸 수 없습니다. (악보 조옮김만 됩니다)\n'+(SG.psErr||''));return}
   SG.ids.forEach(i=>sgRoute(SG.els[i]));sgVol();
   SG.ps.parameters.get('semi').setValueAtTime(n,SG.ac.currentTime);
+  if(SG.dd)SG.dd.delayTime.setValueAtTime(n?1792/SG.ac.sampleRate:0,SG.ac.currentTime);   /* 키 바꾸기 지연(2048-256 샘플)만큼 드럼도 늦춤 */
   if(SG.playing&&SG.ac.state!=='running')SG.ac.resume();
 }
 /* 음량 0~200%: 100% 까지는 재생 요소 음량 그대로(기본 경로) · 100% 넘는 트랙이 생기면 그때 모든 트랙을 Web Audio 로 → 트랙마다 증폭 → 리미터(찌그러짐 방지) → 스피커 */
@@ -3116,7 +3118,8 @@ function sgAc(){if(!SG.ac){const AC=window.AudioContext||window.webkitAudioConte
   if(!SG.lim){const c=SG.ac.createDynamicsCompressor();c.threshold.value=-2;c.knee.value=2;c.ratio.value=20;c.attack.value=0.002;c.release.value=0.15;c.connect(SG.ac.destination);SG.lim=c}
   return SG.ac}
 function sgRoute(e){   /* 재생 요소 → 증폭 → (키 바꾸기) → 리미터 */
-  if(!e||SG.routed.has(e)||!sgAc())return;const g=SG.ac.createGain();SG.ac.createMediaElementSource(e).connect(g);g.connect(SG.ps||SG.lim);SG.gn.set(e,g);SG.routed.add(e)}
+  if(!e||SG.routed.has(e)||!sgAc())return;const g=SG.ac.createGain();SG.ac.createMediaElementSource(e).connect(g);
+  const id=SG.ids.find(i=>SG.els[i]===e);if(id==='drums'){if(!SG.dd){SG.dd=SG.ac.createDelay(0.2);SG.dd.connect(SG.lim)}g.connect(SG.dd)}else g.connect(SG.ps||SG.lim);SG.gn.set(e,g);SG.routed.add(e)}   /* 드럼은 키가 없으니 키 바꾸기를 거치지 않음(어택이 또렷) — 같은 지연만 */
 function sgVol(){const anySolo=SG.ids.some(i=>SG.mix[i].solo);
   const boost=SG.ids.some(i=>SG.mix[i].vol>1.001);
   if(boost){try{SG.ids.forEach(i=>sgRoute(SG.els[i]));if(SG.playing&&SG.ac&&SG.ac.state!=='running')SG.ac.resume()}catch(e){}}
