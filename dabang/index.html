@@ -332,6 +332,8 @@ body.bd-off #boardScroll,body.bd-off .board-bar,body.bd-off .legend{display:none
 .tab .tf pre.tf-nx{font-size:12px;line-height:1.3;opacity:.5}.tf-sep{font-size:.8rem;color:var(--muted);border-top:1px dashed var(--line);padding-top:4px;margin-top:6px}
 .sg-cstrip .cs-card{width:118px}.sg-cstrip .cs-card .cs-nm{font-size:1.5rem}.sg-cstrip .cs-card.cur{transform:none}   /* 곡연습 코드 띠: 블루스 운지표 크기 */
 @media (max-width:699px){.sg-cstrip .cs-cards{justify-content:center}.sg-cstrip .cs-cards .cs-card{width:min(96px,calc((100% - 16px)/3))!important}.sg-cstrip .cs-card .cs-nm{font-size:1.15rem}}
+.fol-st{font-size:.8rem;font-weight:700;padding:3px 10px;border-radius:999px;background:#d8f0dd;color:#1f6b3a}.fol-st[data-st=pause]{background:#fff1a8;color:#7a5b00}.fol-st[data-st=off]{background:var(--line);color:var(--muted)}
+#p-song #sgSheet.fol-on,#p-song #sgTab.fol-on{box-shadow:0 0 0 2px #2e9d5b}#p-song #sgSheet.fol-pause,#p-song #sgTab.fol-pause{box-shadow:0 0 0 2px #e0a21e}
 .zz-k{color:#2b63b0;font-weight:600}.zz-h{flex-basis:100%;font-weight:700;font-size:.88rem;margin:0 2px 2px}.zz-mine{background:color-mix(in srgb,#e0a21e 16%,transparent)}.zz-mine .zz-h{color:#a86d00}.zz-rec{background:color-mix(in srgb,#3b7dd8 12%,transparent)}.zz-rec .zz-h{color:#2b63b0}.zz-grp .zz-it{background:var(--surface)}.zz-it.on{border-color:var(--accent);font-weight:700}.zz-q{width:100%;margin-top:6px;padding:6px 8px;font-size:.95rem}.zz-bm{text-decoration:none;cursor:grab}
 .phone-only{display:none}@media (pointer:coarse){.phone-only{display:inline}}
 /* 곡연습: 악보는 늘 전체 폭 — 믹서 · 반복 마디는 악보 위에 (넓으면 여러 칸) */
@@ -911,7 +913,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
         <button id="sgZo" class="ghost sm pc-only" title="악보 칸 간격 좁게 (글자 크기는 그대로 · Ctrl+휠, 휴대폰은 두 손가락)">가−</button><button id="sgZi" class="ghost sm pc-only" title="악보 칸 간격 넓게 (글자 크기는 그대로)">가+</button>
         <button id="sgLoop" class="ghost" aria-pressed="false" title="끝까지(또는 고른 마디 끝까지) 가면 처음부터 반복">⟳ 반복</button>
         <button class="ghost follow" data-follow aria-pressed="true" title="재생 중 지금 위치가 보이도록 자동 스크롤">⇣ 따라가기</button>
-        <span class="sg-time"><output id="sgCur">0:00</output> / <output id="sgDur">0:00</output></span>
+        <span id="folSt" class="fol-st" hidden></span><span class="sg-time"><output id="sgCur">0:00</output> / <output id="sgDur">0:00</output></span>
         <label class="sg-rate">속도 <select id="sgRate"><option value="0.3">30%</option><option value="0.4">40%</option><option value="0.5">50%</option><option value="0.6">60%</option><option value="0.7">70%</option><option value="0.75">75%</option><option value="0.8">80%</option><option value="0.9">90%</option><option value="1">100%</option></select></label>
       </div>
       <input type="range" id="sgSeek" class="sg-seek" min="0" max="1000" value="0" aria-label="재생 위치"></div>
@@ -1132,7 +1134,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-25 02:20';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-25 03:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -3337,6 +3339,7 @@ function sgPlayStart(){
 }
 function sgKeepPitch(e){const k=SG.rate!==1;if(e.preservesPitch!==k){e.preservesPitch=k;e.mozPreservesPitch=k;e.webkitPreservesPitch=k}}
 function sgPause(){
+  try{folSt(document.getElementById('sgSheet'),'');folSt(document.getElementById('sgTab'),'')}catch(x){}
   Object.values(SG.els).forEach(e=>{try{e.pause()}catch(x){}});SG.playing=false;clearInterval(SG.sync);clearTimeout(SG.pchk);
   const b=sgEl('sgPlay');if(b)b.textContent='재생';
 }
@@ -5751,10 +5754,14 @@ function folBlock(s){
     let a=li,b=li;while(a>0&&L[a-1].trim())a--;while(b<L.length-1&&L[b+1].trim())b++;
     return {top:pr.top+a*lh,bottom:pr.top+(b+1)*lh,height:(b-a+1)*lh}}catch(e){return s.getBoundingClientRect()}
 }
-['wheel','touchstart'].forEach(ev=>document.addEventListener(ev,e=>{const b=e.target.closest&&e.target.closest('#sgSheet,#sgTab');if(b)b._folPause=performance.now()+4000},{passive:true,capture:true}));
+['wheel','touchmove'].forEach(ev=>document.addEventListener(ev,e=>{const b=e.target.closest&&e.target.closest('#sgSheet,#sgTab');if(b)b._folPause=performance.now()+4000},{passive:true,capture:true}));   /* 직접 굴릴 때만 잠깐 쉼 (눌러서 자리 옮기기는 바로 따라감) */
+/* 따라가기 상태 표시: 재생 줄 옆 · 악보 칸 테두리 */
+function folSt(box,st){const e=document.getElementById('folSt');if(box){box.classList.toggle('fol-on',st==='on');box.classList.toggle('fol-pause',st==='pause')}
+  if(!e)return;e.dataset.st=st;e.textContent=st==='on'?'⇣ 따라가는 중':st==='pause'?'✋ 직접 보는 중 · 곧 다시 따라감':st==='off'?'따라가기 꺼짐':'';e.hidden=!st}
 function followNow(id){
+  if(id==='sgSheet'||id==='sgTab'){if(!SG.playing){folSt(document.getElementById(id),'');}else if(!follow)folSt(document.getElementById(id),'off')}
   if(!follow)return;
-  const box=document.getElementById(id),s=box&&box.querySelector('span.now');if(!s)return;
+  const box=document.getElementById(id),s=box&&(box.querySelector('span.now')||box.querySelector('.sg-c.now,i.now,.rz-t.now,.now'));if(!s)return;   /* 코드 · 가사(칸 보기)는 마디 칸 · 가사에 now */
   const r=s.getBoundingClientRect(),lh=r.height||16;
   /* 가로: 악보 칸 안에서 옆으로 넘친 경우 */
   const br=box.getBoundingClientRect();
@@ -5762,9 +5769,9 @@ function followNow(id){
   else if(box.scrollLeft)box.scrollLeft=0;
   /* 악보 칸이 스스로 스크롤되는 경우(곡연습): 칸 안에서만 따라감 → 페이지는 그대로라 재생 중에도 다른 설정을 볼 수 있음 · 악보를 직접 굴리면 4초 쉼 */
   {const cs=getComputedStyle(box);if((cs.overflowY==='auto'||cs.overflowY==='scroll')&&box.scrollHeight>box.clientHeight+4){
-    if(performance.now()<(box._folPause||0))return;
+    if(performance.now()<(box._folPause||0)){folSt(box,'pause');return}folSt(box,'on');
     const B=folBlock(s),bb=box.getBoundingClientRect(),rt=B.top-bb.top,rb=B.bottom-bb.top;
-    if(rt<4||rb>box.clientHeight-4)box.scrollTo({top:Math.max(0,box.scrollTop+rt-12),behavior:'smooth'});return}}
+    if(rt<4||rb>box.clientHeight-4||rt>box.clientHeight*0.55)box.scrollTo({top:Math.max(0,box.scrollTop+rt-box.clientHeight*0.18),behavior:'smooth'});return}}   /* 지금 줄을 칸 위쪽 1/5 근처에 늘 두기 */
   /* 세로: 위에 고정된 영역(지판 · 탭 줄) 아래부터 보이는 범위 */
   let top=0;const pin=document.getElementById('pin'),tabs=document.querySelector('.tabs');
   if(pin&&!pin.classList.contains('off')){const pr=pin.getBoundingClientRect();if(pr.top<=1)top=Math.max(top,pr.bottom)}
