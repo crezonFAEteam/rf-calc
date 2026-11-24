@@ -312,6 +312,9 @@ body.bd-off #boardScroll,body.bd-off .board-bar,body.bd-off .legend{display:none
 .ph-bar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center;color:#eee;font-size:.9rem}.ph-bar .chip{background:#2a2d31;color:#eee;border-color:#444}.ph-bar .chip[aria-pressed=true]{background:#ffd400;color:#222}
 .ph-wrap{flex:1;min-height:0;display:flex;align-items:flex-start;justify-content:center;width:100%;overflow:auto}
 .ph-dev{border:10px solid #000;border-radius:28px;background:#fff;box-shadow:0 10px 40px rgba(0,0,0,.6);transform-origin:top center}.ph-dev iframe{display:block;border:0;border-radius:18px;background:#fff}
+.tab .tf{display:flex;flex-direction:column;gap:2px}.tf-hd{display:flex;align-items:center;gap:6px;margin-bottom:2px}.tf-hd b{font-size:1.2rem}
+.tab .tf pre.tf-cur,.tab .tf pre.tf-tick{font-size:15px;line-height:1.45;color:var(--ink)}.tab .tf pre.tf-tick{color:#c46a00;margin:0;line-height:1.1;font-weight:700}
+.tab .tf pre.tf-nx{font-size:12px;line-height:1.3;opacity:.5}.tf-sep{font-size:.8rem;color:var(--muted);border-top:1px dashed var(--line);padding-top:4px;margin-top:6px}
 .zz-k{color:#2b63b0;font-weight:600}.zz-h{flex-basis:100%;font-weight:700;font-size:.88rem;margin:0 2px 2px}.zz-mine{background:color-mix(in srgb,#e0a21e 16%,transparent)}.zz-mine .zz-h{color:#a86d00}.zz-rec{background:color-mix(in srgb,#3b7dd8 12%,transparent)}.zz-rec .zz-h{color:#2b63b0}.zz-grp .zz-it{background:var(--surface)}.zz-it.on{border-color:var(--accent);font-weight:700}.zz-q{width:100%;margin-top:6px;padding:6px 8px;font-size:.95rem}.zz-bm{text-decoration:none;cursor:grab}
 .phone-only{display:none}@media (pointer:coarse){.phone-only{display:inline}}
 /* 곡연습: 악보는 늘 전체 폭 — 믹서 · 반복 마디는 악보 위에 (넓으면 여러 칸) */
@@ -1111,7 +1114,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-24 22:20';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-24 23:10';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -2158,10 +2161,27 @@ function genBlock(b,pool,style){
   return {name:b.name,segs,notes,total:t,bar:BAR};
 }
 /* TAB 칸 폭: 16분음표 한 칸 = 3글자 (화면이 좁으면 2글자 — 한 마디가 폰 폭에 들어옴) */
+/* ---------- 폰: TAB '마디 보기' — 지금 마디를 크게(폭에 꽉) · 다음 마디는 작게 미리 · 재생하면 제자리에서 바뀜 · 멈추면 좌우로 밀어 앞뒤 마디 ---------- */
+function tabFocusOn(){return (window.innerWidth||1000)<700&&store.get('chordcalc-tabfocus')!=='0'}
+function tabFocusHTML(lk,k,b){const BAR=lk.bar||8,bars=Math.max(1,Math.ceil(lk.total/BAR)),C=tabC(),bt=Math.max(1,Math.round(BAR/4));b=Math.max(0,Math.min(bars-1,b));
+  let tick='  ';for(let j=0;j<BAR;j++)tick+=(j%bt===0?String(j/bt+1):'·').padEnd(C,' ');
+  const cur=tabRender(lk,k,true,1,[b,b+1]).replace(/\n+$/,''),nx=b+1<bars?tabRender(lk,k,true,1,[b+1,b+2]).replace(/\n+$/,''):'';
+  return `<div class="tf"><div class="tf-hd"><button class="ghost sm" data-tfgo="-1" aria-label="앞 마디">◀</button><b>${b+1}</b><span class="mt">/ ${bars}마디</span><button class="ghost sm" data-tfgo="1" aria-label="다음 마디">▶</button><button class="ghost sm" data-tfx="0" title="위아래로 전체 보기">전체 보기</button></div>
+    <pre class="tf-tick">${tick}</pre><pre class="tf-cur">${cur}</pre>${nx?`<div class="tf-sep">다음 · ${b+2}마디</div><pre class="tf-nx">${nx}</pre>`:'<div class="tf-sep">끝</div>'}</div>`}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-tfx],[data-tfgo]');if(!b)return;e.stopPropagation();
+  if(b.dataset.tfx!=null){store.set('chordcalc-tabfocus',b.dataset.tfx==='1'?'1':'0')}
+  const inBl=!!b.closest('#blTab'),d=b.dataset.tfgo?+b.dataset.tfgo:0;
+  if(inBl){if(d){BL.tfb=Math.max(0,(BL.tfb||0)+d)}blTabDraw();if(typeof blMark==='function')blMark();return}
+  if(d&&SG.song){const lk=sgLick(SG.view),nb=(SG.tfb||0)+d;if(nb>=0){sgSeek(Math.max(0,sgTime(nb*(lk.bar||16))+0.01));return}}
+  if(SG.song)sgTabView()},true);
+['sgTab','blTab'].forEach(id=>{let x0=null,y0=0;document.addEventListener('touchstart',e=>{const t=e.target.closest&&e.target.closest('#'+id);if(t&&e.touches.length===1){x0=e.touches[0].clientX;y0=e.touches[0].clientY}else x0=null},{passive:true});
+  document.addEventListener('touchend',e=>{if(x0==null)return;const t=e.changedTouches[0],dx=t.clientX-x0,dy=t.clientY-y0;x0=null;if(Math.abs(dx)<50||Math.abs(dy)>Math.abs(dx)*0.7)return;
+    const el=document.getElementById(id);if(!el||!el.querySelector('.tf'))return;const btn=el.querySelector(`[data-tfgo="${dx<0?1:-1}"]`);if(btn&&!(id==='sgTab'&&SG.playing)&&!(id==='blTab'&&BL.playing))btn.click()},{passive:true})});
+function tabFocusBtn(){return (window.innerWidth||1000)<700&&!tabFocusOn()?'<button class="ghost sm" data-tfx="1" style="margin:4px 0">🎯 마디 보기 (지금 마디 크게)</button>':''}
 function tabC(){return (window.innerWidth||1000)<700?2:3}
-function tabRender(lk,k,html,perIn){
+function tabRender(lk,k,html,perIn,rg){
   const C=tabC(),BAR=lk.bar||8,per=perIn||4,W=BAR*C,out=[],bars=Math.ceil(lk.total/BAR);
-  for(let b0=0;b0<bars;b0+=per){
+  for(let b0=rg?rg[0]:0;b0<(rg?Math.min(bars,rg[1]):bars);b0+=per){
     let head='  ',dirl='  ',hasDir=false,accl='  ',hasAcc=false;const rows=['e','B','G','D','A','E'].map(n=>n+'|');
     /* 가사 줄: 코드 이름과 같은 칸에서 시작. 화면(html)에서는 칸 폭(ch)을 고정한 상자에 넣어 한글이 넓어도 줄이 밀리지 않게 */
     let lyl=html?'<span class="ly" style="width:calc(2*(1ch + var(--tls,0px)))"></span>':'  ',hasLy=false;
@@ -2366,11 +2386,14 @@ function blRender(){
   g('blShuf').setAttribute('aria-pressed',blShuf(ex));
   g('blBpm').value=blBpm(ex);g('blBpmOut').textContent=blBpm(ex);
   g('blPlay').textContent=BL.playing?'정지':'재생';g('blLoop').setAttribute('aria-pressed',BL.loop);
-  tab.innerHTML=`<div class="tabsec"><pre>${tabRender(lk,'b',true,tabPer(lk.bar,'blTab'))}</pre></div>`;
+  BL.tfb=0;blTabDraw();
   blBoxRender();
   blMark();drawBoard();
 }
 /* 운지표: 운지 예제(마디마다 '@ 손가락')는 마디별 모양, 나머지는 쓰는 코드의 기본 모양 */
+function blTabDraw(){const tab=document.getElementById('blTab'),lk=BL.lk;if(!tab||!lk)return;
+  if(tabFocusOn()){tab.innerHTML=`<div class="tabsec">${tabFocusHTML(lk,'b',BL.tfb||0)}</div>`;BL.tfOn=true}
+  else{BL.tfOn=false;tab.innerHTML=`<div class="tabsec">${tabFocusBtn()}<pre>${tabRender(lk,'b',true,tabPer(lk.bar,'blTab'))}</pre></div>`}}
 function blShapes(lk){
   const out=[];
   if(lk.segs.some(sg=>sg.ly)){
@@ -2406,6 +2429,7 @@ function blBoxMark(){
 }
 function blMark(){
   blBoxMark();
+  if(BL.tfOn&&BL.cur&&BL.lk){const b=Math.floor(BL.cur.t/(BL.lk.bar||8));if(b!==BL.tfb){BL.tfb=b;blTabDraw()}}
   document.querySelectorAll('#blTab span.now').forEach(x=>x.classList.remove('now'));
   if(BL.cur&&BL.lk)BL.lk.notes.forEach((n,ni)=>{if(n.t===BL.cur.t){const s=document.querySelector('#blTab [data-n="b-'+ni+'"]');if(s)s.classList.add('now')}});
   if(BL.playing)followNow('blTab');
@@ -3388,12 +3412,13 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-cs]');if(!
 /* ---------- 📱 폰 보기: PC 에서 같은 앱을 휴대폰 · 태블릿 폭으로 (화면에 맞춰 축소) — PC 곡 목록 · 도우미 그대로 ---------- */
 const PH_DEV=[['iphone','아이폰 (390×844)',390,844],['small','작은 폰 (360×780)',360,780],['galaxy','갤럭시 (412×915)',412,915],['ipad','아이패드 (820×1180)',820,1180],['land','폰 가로 (844×390)',844,390]];
 function phOpen(dev){
-  let ov=document.getElementById('phOv');const d=PH_DEV.find(x=>x[0]===dev)||PH_DEV[0];store.set('chordcalc-phdev',d[0]);
+  let ov=document.getElementById('phOv');const d=PH_DEV.find(x=>x[0]===dev)||PH_DEV[0];store.set('chordcalc-phdev',d[0]);const th=store.get('chordcalc-phtheme')||'dark';
   if(!ov){ov=document.createElement('div');ov.id='phOv';ov.className='ph-ov';document.body.appendChild(ov);
-    ov.addEventListener('click',e=>{const b=e.target.closest('[data-phdev],[data-phx]');if(!b)return;if(b.dataset.phx){ov.remove();document.body.style.overflow='';return}phOpen(b.dataset.phdev)})}
-  ov.innerHTML=`<div class="ph-bar">📱 폰 보기 ${PH_DEV.map(x=>`<button class="chip" data-phdev="${x[0]}" aria-pressed="${x[0]===d[0]}">${x[1]}</button>`).join('')}<button class="chip" data-phx="1">닫기 ✕</button></div>
+    ov.addEventListener('click',e=>{const b=e.target.closest('[data-phdev],[data-phx],[data-phth]');if(!b)return;if(b.dataset.phx){ov.remove();document.body.style.overflow='';return}if(b.dataset.phth){store.set('chordcalc-phtheme',b.dataset.phth);phOpen(store.get('chordcalc-phdev')||'iphone');return}phOpen(b.dataset.phdev)})}
+  ov.innerHTML=`<div class="ph-bar">📱 폰 보기 ${PH_DEV.map(x=>`<button class="chip" data-phdev="${x[0]}" aria-pressed="${x[0]===d[0]}">${x[1]}</button>`).join('')}<button class="chip" data-phth="dark" aria-pressed="${th==='dark'}">🌙 어둡게</button><button class="chip" data-phth="light" aria-pressed="${th==='light'}">☀ 밝게</button><button class="chip" data-phx="1">닫기 ✕</button></div>
     <div class="ph-wrap"><div class="ph-dev"><iframe title="폰 보기" src="${esc(location.href.split('#')[0])}" width="${d[2]}" height="${d[3]}"></iframe></div></div>`;
   document.body.style.overflow='hidden';
+  {const f=ov.querySelector('iframe');f.addEventListener('load',()=>{try{f.contentDocument.documentElement.dataset.theme=th}catch(e){}})}   /* 폰의 어두운 모드처럼 */
   const fit=()=>{const w=ov.querySelector('.ph-wrap'),dv=ov.querySelector('.ph-dev');if(!w||!dv)return;const k=Math.min(1,(w.clientHeight-10)/(d[3]+20),(w.clientWidth-10)/(d[2]+20));dv.style.transform=`scale(${k.toFixed(3)})`};
   requestAnimationFrame(fit);window.addEventListener('resize',fit,{once:true})}
 document.addEventListener('click',e=>{if(e.target.closest('#phPrev'))phOpen(store.get('chordcalc-phdev')||'iphone')});
@@ -5038,7 +5063,9 @@ function sgRhyView(){   /* 곡편집에서 저장한 완성 리듬악보 — 없
   el.innerHTML=`<div class="tabttl" style="cursor:default">📜 리듬악보 <span class="chips" style="display:inline-flex;margin-left:8px"><button class="chip" data-sgrz="flow" data-m="rhythm" aria-pressed="false">흐름 보기</button><button class="chip" data-sgrz="box" data-m="rhythm" aria-pressed="true">묶음 보기</button></span> — ${esc(R.file||'')}${(SG.kc.t||SG.kc.c)?' (조옮김 · 카포는 이 보기에 적용되지 않음)':''}</div><div class="ce-rtxs ce-rsheet sg-rhy">`+
     R.blocks.map((b,i)=>`<div class="ce-rtx${b.gen?' gen':''}" data-sgrb="${i}" data-s="${b.s}" data-e="${b.e}"><pre>${b.pre}</pre></div>`).join('')+'</div>';
 }
-function sgTabView(){if(SG.view==='final')return sgFinalView();if(SG.view==='rhythm')return sgRhyView();if(SG.song.parts[SG.view]&&SG.song.parts[SG.view].kind==='harmonica')return sgHarpView(SG.view);const lk=sgLick(SG.view);sgEl('sgTab').innerHTML=`<div class="tabttl" style="cursor:default">${esc(lk.name)}</div><pre>${tabRender(lk,'g',true,tabPer(16,'sgTab'))}</pre>`}
+function sgTabView(){if(SG.view==='final')return sgFinalView();if(SG.view==='rhythm')return sgRhyView();if(SG.song.parts[SG.view]&&SG.song.parts[SG.view].kind==='harmonica')return sgHarpView(SG.view);const lk=sgLick(SG.view);
+  if(tabFocusOn()){SG.tfb=Math.floor(Math.max(0,SG.slot)/(lk.bar||16));sgEl('sgTab').innerHTML=`<div class="tabttl" style="cursor:default">${esc(lk.name)}</div>${tabFocusHTML(lk,'g',SG.tfb)}`;return}
+  SG.tfb=null;sgEl('sgTab').innerHTML=`<div class="tabttl" style="cursor:default">${esc(lk.name)}</div>${tabFocusBtn()}<pre>${tabRender(lk,'g',true,tabPer(16,'sgTab'))}</pre>`}
 function sgMark(t){
   const s=SG.song,sl=SG.slot;
   document.querySelectorAll('#p-song .now').forEach(x=>x.classList.remove('now'));
@@ -5064,7 +5091,7 @@ function sgMark(t){
     if(b){b.classList.add('ce-now','now');const c=[...b.querySelectorAll('.ce-rt[data-rs]')].find(x=>sl>=+x.dataset.rs&&sl<+x.dataset.re);if(c)c.classList.add('now')}
   }else if(!s.parts[SG.view]){   /* 최종 반주 보기: 하이라이트 없음 */
   }else{
-    const lk=sgLick(SG.view);let k=sl;while(k>sl-3&&!lk.map[k])k--;
+    const lk=sgLick(SG.view);if(SG.tfb!=null&&Math.floor(Math.max(0,sl)/(lk.bar||16))!==SG.tfb)sgTabView();let k=sl;while(k>sl-3&&!lk.map[k])k--;
     (lk.map[k]||[]).forEach(ni=>{const e=document.querySelector(`#sgTab [data-n="g-${ni}"]`);if(e)e.classList.add('now')});
   }
   if(SG.playing)followNow(SG.view==='sheet'?'sgSheet':'sgTab');
