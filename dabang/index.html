@@ -286,6 +286,21 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .sc-play{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.sc-bpm{display:flex;align-items:center;gap:6px;font-size:.9rem}.sc-bpm input{width:140px}#scPlayCap{margin:6px 0 0;font-size:.85rem}
 #board .vo-ring,#board2 .vo-ring{fill:none;stroke:#ff8a00;stroke-width:2;stroke-dasharray:4 3;pointer-events:none}#board .hot-ring,#board2 .hot-ring{fill:rgba(255,138,0,.18);stroke:#ff8a00;stroke-width:5;pointer-events:none}.tu-advd{margin:8px 0}.tu-advd>summary{cursor:pointer;color:var(--muted)}#tuAdv{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:10px;margin-top:8px}.tu-ag{display:flex;flex-direction:column;gap:4px;padding:8px;border-radius:10px;background:color-mix(in srgb,var(--line) 40%,transparent)}.tu-ar{display:grid;grid-template-columns:1fr 120px 1fr;gap:2px 8px;align-items:center;font-size:.85rem;padding:4px 0;border-bottom:1px dashed var(--line)}.tu-ar .nm{grid-column:1/3;font-weight:600}.tu-ar output{grid-column:3;text-align:right;font-weight:700}.tu-ar output small{color:#c46a00;font-weight:500}.tu-ar .sn{font-style:normal;font-size:.72rem;font-weight:700;padding:1px 6px;border-radius:8px;margin-left:4px;background:linear-gradient(90deg,#ffe2c4 50%,#d8e6fb 50%);color:#333}.tu-ar .sn.s{background:linear-gradient(90deg,#d8e6fb 50%,#ffe2c4 50%)}.tu-ar .lo,.tu-ar .hi{font-size:.75rem;color:var(--muted);line-height:1.25}.tu-ar .lo{text-align:right}.tu-ar input{width:100%}#tuAdv .btns{grid-column:1/-1}
 .f-edit{margin:8px 0;padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--line) 40%,transparent);display:flex;flex-direction:column;gap:4px}.f-ed-h{font-size:1rem}.f-ed-n{font-size:1.35rem;color:#c46a00}.f-edit code{font-size:.95rem}
+.sg-cstrip{margin:6px 0 4px;padding:8px 8px 6px;border-radius:14px;background:#17191c;position:relative}
+.cs-cards{display:flex;gap:10px;justify-content:center;overflow:hidden}
+.cs-card{flex:0 0 auto;width:150px;text-align:center;transition:opacity .25s,transform .25s}
+.cs-card .cs-nm{font:800 1.9rem/1.15 system-ui,sans-serif;color:#eee;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cs-card .bx{background:#f1f1f0;border-radius:12px;padding:6px 4px 2px}
+.cs-card.past{opacity:.38}.cs-card.past .bx{background:#8d8f92}.cs-card.cur{transform:scale(1.04)}.cs-card.cur .bx{box-shadow:0 0 0 3px #ffd400}
+.cs-card.next1 .cs-nm{color:#ccc}.cs-card svg{width:100%;height:auto;display:block}
+.cs-bar{display:flex;gap:6px;justify-content:center;align-items:flex-end;margin-top:8px}
+.cs-seg{width:64px;height:6px;border-radius:4px;background:#4a4d52;position:relative;overflow:hidden}.cs-seg.done{background:#6b6e73}.cs-seg i{position:absolute;inset:0 auto 0 0;background:#fff;border-radius:4px}
+.cs-seg.cur{height:7px}.cs-lab{position:absolute;top:-1.35em;left:50%;transform:translateX(-50%);color:#eee;font-weight:700;font-size:.9rem;white-space:nowrap}
+.cs-hide{position:absolute;right:8px;top:6px;background:none;border:0;color:#999;cursor:pointer;font-size:.8rem}
+.cs-show{margin:4px 0}
+@media (max-width:640px){.cs-card{width:108px}.cs-card .cs-nm{font-size:1.35rem}.cs-cards{gap:6px}.cs-seg{width:30px}}
+.bd-show{display:inline-flex;align-items:center;gap:4px;font-size:.85rem;padding:3px 10px;border:1px solid var(--line);border-radius:999px;cursor:pointer;user-select:none}.bd-show input{margin:0}
+body.bd-off #boardScroll,body.bd-off .board-bar,body.bd-off .legend{display:none}
 .zz-k{color:#2b63b0;font-weight:600}.zz-h{flex-basis:100%;font-weight:700;font-size:.88rem;margin:0 2px 2px}.zz-mine{background:color-mix(in srgb,#e0a21e 16%,transparent)}.zz-mine .zz-h{color:#a86d00}.zz-rec{background:color-mix(in srgb,#3b7dd8 12%,transparent)}.zz-rec .zz-h{color:#2b63b0}.zz-grp .zz-it{background:var(--surface)}.zz-it.on{border-color:var(--accent);font-weight:700}.zz-q{width:100%;margin-top:6px;padding:6px 8px;font-size:.95rem}.zz-bm{text-decoration:none;cursor:grab}
 .phone-only{display:none}@media (pointer:coarse){.phone-only{display:inline}}
 /* 곡연습: 악보는 늘 전체 폭 — 믹서 · 반복 마디는 악보 위에 (넓으면 여러 칸) */
@@ -599,10 +614,11 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
     <h1>쎄이기타</h1>
     <div class="tops">
     <div class="lbl-tg" role="group" aria-label="화면 폭"><button id="sgBig" data-sgbig="1" aria-pressed="false" title="화면 폭 전체 사용 — 지판 · 악보 모두 넓게 · 애드립 · 블루스는 악보를 위로 (다시 누르면 원래대로)">⛶ 넓게</button></div>
-    <div class="lbl-tg" role="group" aria-label="지판 보기 방식">
+    <div class="lbl-tg" role="group" aria-label="지판 보기 방식" hidden>
       <button data-view="1" aria-pressed="true" title="한 줄로 보기 (옆으로 밀어서)">1줄</button>
       <button data-view="2" aria-pressed="false" title="두 줄로 나눠 15프렛 전체 보기">2줄</button>
     </div>
+    <label class="bd-show" title="위쪽 지판 보이기 / 숨기기"><input type="checkbox" id="boardShow" checked> 지판</label>
     <div class="lbl-tg" role="group" aria-label="지판 점에 표시할 내용">
       <button data-lbl="note" aria-pressed="true">음이름</button>
       <button data-lbl="deg" aria-pressed="false">도수</button>
@@ -858,6 +874,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
         <label class="sg-rate">속도 <select id="sgRate"><option value="0.3">30%</option><option value="0.4">40%</option><option value="0.5">50%</option><option value="0.6">60%</option><option value="0.7">70%</option><option value="0.75">75%</option><option value="0.8">80%</option><option value="0.9">90%</option><option value="1">100%</option></select></label>
       </div>
       <input type="range" id="sgSeek" class="sg-seek" min="0" max="1000" value="0" aria-label="재생 위치">
+      <div class="sg-cstrip" id="sgCStrip" hidden></div>
 
       <div class="sg-grid">
         <div class="sg-side">
@@ -1076,7 +1093,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-24 15:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-24 16:30';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -1212,7 +1229,7 @@ const VB1=[0,0,1000,226];
 const VB_A=[0,0,+(fx(SPLIT)+6).toFixed(1),226];
 const VB_B=[+(fx(SPLIT)-6).toFixed(1),0,+(1000-(fx(SPLIT)-6)).toFixed(1),226];
 const bs=document.getElementById('boardScroll'),b1=document.getElementById('board'),b2=document.getElementById('board2');
-let bview=store.get('chordcalc-view')||(window.innerWidth<640?'2':'1');
+let bview='1';   /* 2줄 보기는 뺌 (항상 1줄) */
 if(bview!=='1'&&bview!=='2')bview='1';
 /* 1줄: 100% = 화면 폭에 15프렛 전체가 딱 맞는 크기 (휴대폰 · PC 같은 기준). 기준이 바뀌어 예전 저장값은 한 번만 초기화 */
 if(store.get('chordcalc-bzv')!=='3'){try{localStorage.removeItem('chordcalc-bz1')}catch(e){}store.set('chordcalc-bzv','3')}
@@ -3240,7 +3257,7 @@ function sgTick(){
 function sgShowTime(t,force){
   const m=sgMaster();sgEl('sgCur').textContent=sgFmt(t);
   if(!SG.dragging&&m&&m.duration)sgEl('sgSeek').value=Math.round(t/m.duration*1000);
-  const sl=Math.floor(sgSlot(t));if(sl===SG.slot&&!force)return;SG.slot=sl;sgMark(t);
+  const sl=Math.floor(sgSlot(t));if(sl===SG.slot&&!force)return;SG.slot=sl;sgMark(t);try{sgCStrip()}catch(e){}
   if(st.tab==='song')drawBoard();
 }
 /* ---------- 화면 ---------- */
@@ -3297,6 +3314,43 @@ function sgFitNote(n,T,C){
   let best=null;for(let j=0;j<6;j++){const f=p-TUNE[j]-C;if(f<0||f>15)continue;const d=Math.abs(f-n.f)+Math.abs(j-n.i)*0.5;if(!best||d<best.d)best={i:j,f,d}}
   return best?{i:best.i,f:best.f}:null;
 }
+/* ---------- 코드 띠: 지난 코드(흐림) · 지금(노란 테) · 다음 코드들 — 운지 그림에 손가락 번호 · 바레 ---------- */
+function vFingers(v){   /* 손가락 번호: 가장 낮은 프렛에 2줄 이상 + 그 위 줄이 모두 눌림 + 누를 곳이 4개 넘으면 1번 손가락 바레 · 나머지는 프렛 · 줄 순서로 2~4 */
+  const on=v.map((f,i)=>({i,f})).filter(x=>x.f>0);const F=[0,0,0,0,0,0];if(!on.length)return {F,bar:null};
+  const mn=Math.min(...on.map(x=>x.f)),at=on.filter(x=>x.f===mn);let bar=null,rest=on;
+  if(at.length>=2&&on.length>4){const a=Math.min(...at.map(x=>x.i));if(v.slice(a).every(f=>f>=mn)){bar={f:mn,a,b:5};rest=on.filter(x=>!(x.f===mn&&x.i>=a));at.forEach(x=>{if(x.i>=a)F[x.i]=1})}}
+  rest.sort((p,q)=>p.f-q.f||p.i-q.i);let n=bar?2:1;rest.forEach(x=>{F[x.i]=Math.min(4,n++)});return {F,bar}}
+function chordBox(v){   /* 세로 운지 그림 (왼쪽 6번 줄 E → 오른쪽 1번 줄 e) */
+  const fr=v.filter(f=>f>0),mx=fr.length?Math.max(...fr):0,mn=fr.length?Math.min(...fr):0,st0=mx<=4?1:mn,R=4,{F,bar}=vFingers(v);
+  const X=i=>22+i*22,Y=k=>30+k*30,W=150,H=30+R*30+26;let s=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+  if(st0>1)s+=`<text x="6" y="${Y(0)+20}" font-size="15" font-weight="700" fill="#222">${st0}</text>`;
+  s+=`<line x1="${X(0)}" x2="${X(5)}" y1="${Y(0)}" y2="${Y(0)}" stroke="#222" stroke-width="${st0===1?5:1.6}"/>`;
+  for(let k=1;k<=R;k++)s+=`<line x1="${X(0)}" x2="${X(5)}" y1="${Y(k)}" y2="${Y(k)}" stroke="#222" stroke-width="1.6"/>`;
+  for(let i=0;i<6;i++)s+=`<line x1="${X(i)}" x2="${X(i)}" y1="${Y(0)}" y2="${Y(R)}" stroke="#222" stroke-width="1.6"/>`;
+  v.forEach((f,i)=>{if(f<0)s+=`<text x="${X(i)}" y="${Y(0)-8}" text-anchor="middle" font-size="16" font-weight="700" fill="#222">×</text>`;else if(f===0)s+=`<circle cx="${X(i)}" cy="${Y(0)-13}" r="5.5" fill="none" stroke="#222" stroke-width="1.8"/>`});
+  if(bar){const k=bar.f-st0;s+=`<rect x="${X(bar.a)-11}" y="${Y(k)+4}" width="${X(bar.b)-X(bar.a)+22}" height="22" rx="11" fill="#2c2f33"/><text x="${(X(bar.a)+X(bar.b))/2}" y="${Y(k)+20}" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">1</text>`}
+  v.forEach((f,i)=>{if(f<=0||(bar&&F[i]===1))return;const k=f-st0;if(k<0||k>=R)return;s+=`<circle cx="${X(i)}" cy="${Y(k)+15}" r="11" fill="#2c2f33"/><text x="${X(i)}" y="${Y(k)+20}" text-anchor="middle" font-size="13.5" font-weight="700" fill="#fff">${F[i]||''}</text>`});
+  ['E','A','D','G','B','E'].forEach((n,i)=>s+=`<text x="${X(i)}" y="${H-6}" text-anchor="middle" font-size="11" fill="#444">${n}</text>`);
+  return s+'</svg>'}
+SG.cstrip=store.get('chordcalc-cstrip')!=='0';
+function sgCStrip(){
+  const e=document.getElementById('sgCStrip');if(!e)return;if(!SG.song){e.hidden=true;return}
+  if(!SG.cstrip){e.hidden=false;if(e.dataset.mode!=='off'){e.dataset.mode='off';e.style.background='none';e.innerHTML='<button class="ghost sm cs-show" data-cs="1">🎸 코드 모양 보기</button>'}return}
+  if(e.dataset.mode==='off'){e.dataset.mode='';e.style.background='';e.dataset.k=''}e.hidden=false;
+  const L=[];for(const c of sgCh()){if(!L.length||L[L.length-1].name!==c.name)L.push({name:c.name,s:c.s})}
+  const tot=(SG.song.bars||0)*16;L.forEach((c,i)=>c.e=i+1<L.length?L[i+1].s:Math.max(tot,c.s+16));
+  const sl=Math.max(0,SG.slot);let k=0;for(let i=0;i<L.length;i++){if(L[i].s<=sl)k=i;else break}
+  const key=[SG.song.title,k,SG.kc.t,SG.kc.c,SG.bd.ez,L.length].join('|');
+  if(e.dataset.k!==key){e.dataset.k=key;
+    const vOf=name=>{const cc=blChord(name);return cc?(SG.bd.ez?sgEzV(cc,name):(BLV[name]||getV(cc))):null};
+    const cards=[];for(let j=k-1;j<=k+3;j++){if(j<0||j>=L.length){cards.push('<div class="cs-card" style="visibility:hidden"></div>');continue}const v=vOf(L[j].name);
+      cards.push(`<div class="cs-card ${j<k?'past':j===k?'cur':j===k+1?'next1':'next'}"><div class="cs-nm">${esc(L[j].name)}</div><div class="bx">${v?chordBox(v):'<div style="height:150px"></div>'}</div></div>`)}
+    const seg=[];for(let j=k-4;j<=k+4;j++){if(j<0||j>=L.length)continue;seg.push(`<div class="cs-seg ${j<k?'done':j===k?'cur':''}">${j===k?'<span class="cs-lab">'+esc(L[j].name)+'</span><i id="csFill"></i>':''}</div>`)}
+    e.innerHTML=`<button class="cs-hide" data-cs="0" title="코드 띠 숨기기">숨기기 ✕</button><div class="cs-cards">${cards.join('')}</div><div class="cs-bar">${seg.join('')}</div>${SG.kc.c?`<div class="mt" style="text-align:center;color:#aaa">카포 ${SG.kc.c}프렛 기준 모양</div>`:''}`}
+  const c=L[k],f=document.getElementById('csFill');if(c&&f)f.style.width=Math.max(0,Math.min(100,(sl-c.s)/Math.max(1,c.e-c.s)*100))+'%'}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-cs]');if(!b)return;SG.cstrip=b.dataset.cs==='1';store.set('chordcalc-cstrip',SG.cstrip?'1':'0');const x=document.getElementById('sgCStrip');if(x)x.dataset.k='';sgCStrip()});
+(function(){const off=store.get('chordcalc-boardshow')==='0';const apply=v=>{document.body.classList.toggle('bd-off',!v);const c=document.getElementById('boardShow');if(c)c.checked=v};
+  document.addEventListener('DOMContentLoaded',()=>apply(!off));document.addEventListener('change',e=>{if(e.target&&e.target.id==='boardShow'){store.set('chordcalc-boardshow',e.target.checked?'1':'0');apply(e.target.checked)}})})();
 function sgChordAt(sl){const cs=sgCh();let c=null;for(const x of cs){if(x.s<=sl)c=x;else break}return c}
 /* ---------- 곡편집: 곡 폴더(saygita\songAnalyze\곡명) — 입력 모으기 · 곡 분석 · 최종악보 · 휴대폰 공유 ----------
    모든 동작은 PC 분석 도우미(127.0.0.1:52525)로. 목록은 도우미가 폴더를 훑어 만든 목록.json */
@@ -4666,7 +4720,7 @@ function sgFix(song,fx){   /* 곡편집에서 악보 기준으로 고친 코드(
     song.chords=fx.chords;song.fixed=(fx.changes||[]).length||0}
 }
 function sgRender(){
-  const s=SG.song;sgEl('sgMain').hidden=!s;sgEl('sgHelp').hidden=!!s;if(!s)return;
+  const s=SG.song;sgEl('sgMain').hidden=!s;sgEl('sgHelp').hidden=!!s;{const x=document.getElementById('sgCStrip');if(x)x.dataset.k=''}try{sgCStrip()}catch(e){}if(!s)return;
   sgEl('sgTitle').textContent=s.title;
   const chs=[...new Set(sgCh().map(c=>c.name))];
   sgEl('sgMeta').textContent=` · 템포 약 ${s.tempo} BPM · ${s.bars}마디 · 코드 ${chs.slice(0,10).join(' ')}${chs.length>10?' …':''}`+(s.quick?' · 간이 분석(박자 · 코드). 가사 · 트랙 분리 · TAB은 PC 분석에서':'')+(s.fixed?` · 🎼 악보 기준 보정 코드(${s.fixed}곳)`:'');
