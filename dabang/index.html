@@ -308,7 +308,8 @@ body.bd-off #boardScroll,body.bd-off .board-bar,body.bd-off .legend{display:none
 #voicings .vcard{width:150px;padding:0;border:0;background:none;cursor:pointer}#voicings .vcard .bx{background:#f1f1f0;border-radius:12px;padding:6px 4px 2px}
 #voicings .vcard[aria-pressed=true] .bx{box-shadow:0 0 0 3px #ffd400}#voicings .vcard svg{width:100%;height:auto;display:block}
 @media (max-width:640px){#voicings .vcard,.blbox .vcard{width:108px}.blbox .vcard .cs-nm{font-size:1.35rem}}
-#p-song #sgSheet,#p-song #sgTab{max-height:calc(100vh - 150px);max-height:calc(100dvh - 150px);overflow:auto;overscroll-behavior:contain;border-radius:10px}
+#p-song #sgSheet,#p-song #sgTab,#p-blues #blTab,#p-adlib #adTab{max-height:calc(100vh - 150px);max-height:calc(100dvh - 150px);overflow:auto;overscroll-behavior:contain;border-radius:10px}
+#p-blues #blTab.fol-on,#p-adlib #adTab.fol-on{box-shadow:0 0 0 2px #2e9d5b}#p-blues #blTab.fol-pause,#p-adlib #adTab.fol-pause{box-shadow:0 0 0 2px #e0a21e}
 #p-song .sg-ctl{padding:4px 0 2px}
 .fol-pause{position:sticky;top:0;float:right;z-index:3;font-size:.75rem;background:#ffd400;color:#222;padding:2px 8px;border-radius:8px;margin:4px}
 .ph-ov{position:fixed;inset:0;z-index:9999;background:rgba(10,12,14,.88);display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px}
@@ -835,7 +836,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
         <div class="field" id="blBoxField" style="margin-top:14px" hidden><span class="flabel" id="blBoxLbl">운지표</span><div id="blBox" class="blbox"></div></div>
       </div>
       <div>
-        <div class="btns left"><button id="blPlay" class="play">재생</button><button id="blLoop" class="ghost" aria-pressed="false" title="켜면 끝까지 재생한 뒤 처음부터 계속 반복">⟳ 반복</button><button class="ghost follow" data-follow aria-pressed="true" title="재생 중 지금 치는 음이 보이도록 악보를 자동으로 스크롤">⇣ 따라가기</button><button id="blZo" class="ghost pc-only" title="악보 글자 작게 (Ctrl+휠)">가−</button><button id="blZi" class="ghost pc-only" title="악보 글자 크게 (Ctrl+휠)">가+</button></div>
+        <div class="btns left"><button id="blPlay" class="play">재생</button><button id="blLoop" class="ghost" aria-pressed="false" title="켜면 끝까지 재생한 뒤 처음부터 계속 반복">⟳ 반복</button><button class="ghost follow" data-follow aria-pressed="true" title="재생 중 지금 치는 음이 보이도록 악보를 자동으로 스크롤">⇣ 따라가기</button><button id="blZo" class="ghost pc-only" title="악보 글자 작게 (Ctrl+휠)">가−</button><button id="blZi" class="ghost pc-only" title="악보 글자 크게 (Ctrl+휠)">가+</button><span class="fol-st" hidden></span></div>
         <div class="tab" id="blTab"></div>
         <div class="blctl">   <!-- 반복할 마디 · 리듬 · 템포: 악보 바로 아래 (왼쪽 운지표와 악보를 나란히 보도록) -->
         <div class="field" ><span class="flabel">반복할 마디</span>
@@ -1134,7 +1135,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-25 03:30';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-25 03:45';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -2474,7 +2475,7 @@ function blMark(){
 }
 function blStop(){
   BL.timers.forEach(clearTimeout);BL.timers=[];hlClear('bl');BL.srcs.forEach(s=>{try{s.stop()}catch(e){}});BL.srcs=[];
-  const was=BL.playing;BL.playing=false;BL.cur=null;
+  const was=BL.playing;BL.playing=false;BL.cur=null;try{folSt(document.getElementById('blTab'),'')}catch(e){}
   if(was){document.getElementById('blPlay').textContent='재생';blMark();drawBoard()}
 }
 function blPlay(range){   /* range={a,z}: 그 칸 범위만 (악보에서 코드 누름). 없으면 고른 마디 범위 */
@@ -5754,12 +5755,12 @@ function folBlock(s){
     let a=li,b=li;while(a>0&&L[a-1].trim())a--;while(b<L.length-1&&L[b+1].trim())b++;
     return {top:pr.top+a*lh,bottom:pr.top+(b+1)*lh,height:(b-a+1)*lh}}catch(e){return s.getBoundingClientRect()}
 }
-['wheel','touchmove'].forEach(ev=>document.addEventListener(ev,e=>{const b=e.target.closest&&e.target.closest('#sgSheet,#sgTab');if(b)b._folPause=performance.now()+4000;else window._pgPause=performance.now()+6000},{passive:true,capture:true}));   /* 직접 굴릴 때만 잠깐 쉼 (눌러서 자리 옮기기는 바로 따라감) */
+['wheel','touchmove'].forEach(ev=>document.addEventListener(ev,e=>{const b=e.target.closest&&e.target.closest('#sgSheet,#sgTab,#blTab,#adTab');if(b)b._folPause=performance.now()+4000;else window._pgPause=performance.now()+6000},{passive:true,capture:true}));   /* 직접 굴릴 때만 잠깐 쉼 (눌러서 자리 옮기기는 바로 따라감) */
 /* 따라가기 상태 표시: 재생 줄 옆 · 악보 칸 테두리 */
-function folSt(box,st){const e=document.getElementById('folSt');if(box){box.classList.toggle('fol-on',st==='on');box.classList.toggle('fol-pause',st==='pause')}
+function folSt(box,st){const sec=box&&box.closest('section'),e=(sec&&sec.querySelector('.fol-st'))||document.getElementById('folSt');if(box){box.classList.toggle('fol-on',st==='on');box.classList.toggle('fol-pause',st==='pause')}
   if(!e)return;e.dataset.st=st;e.textContent=st==='on'?'⇣ 따라가는 중':st==='pause'?'✋ 직접 보는 중 · 곧 다시 따라감':st==='off'?'따라가기 꺼짐':'';e.hidden=!st}
 function followNow(id){
-  if(id==='sgSheet'||id==='sgTab'){if(!SG.playing){folSt(document.getElementById(id),'');}else if(!follow)folSt(document.getElementById(id),'off')}
+  {const pl=id==='blTab'?BL.playing:id==='adTab'?ad.playing:SG.playing;if(!pl)folSt(document.getElementById(id),'');else if(!follow)folSt(document.getElementById(id),'off')}
   if(!follow)return;
   const box=document.getElementById(id),s=box&&(box.querySelector('span.now')||box.querySelector('.sg-c.now,i.now,.rz-t.now,.now'));if(!s)return;   /* 코드 · 가사(칸 보기)는 마디 칸 · 가사에 now */
   const r=s.getBoundingClientRect(),lh=r.height||16;
