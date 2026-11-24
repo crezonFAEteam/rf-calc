@@ -284,7 +284,7 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .al-ft .k{white-space:nowrap;color:var(--muted)}.al-ft .ly{color:var(--muted);font-size:.85rem}.fc{display:inline-block;margin:1px 2px;padding:1px 6px;border-radius:6px;font-weight:700;line-height:1.35}.fc small{display:block;font-weight:500;font-size:.75rem;opacity:.8}.fT{background:#d8f0dd;color:#1f6b3a}.fS{background:#dbe7fb;color:#2b4f99}.fD{background:#fbdcd8;color:#a33224}.fX{background:#eee2f7;color:#6a3d99}
 .al-old>summary{cursor:pointer;color:var(--muted);font-size:.9rem;margin:6px 0}
 .sc-play{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.sc-bpm{display:flex;align-items:center;gap:6px;font-size:.9rem}.sc-bpm input{width:140px}#scPlayCap{margin:6px 0 0;font-size:.85rem}
-#board .vo-ring,#board2 .vo-ring{fill:none;stroke:#ff8a00;stroke-width:2;stroke-dasharray:4 3;pointer-events:none}#board .hot-ring,#board2 .hot-ring{fill:rgba(255,138,0,.18);stroke:#ff8a00;stroke-width:5;pointer-events:none}.tu-advd{margin:8px 0}.tu-advd>summary{cursor:pointer;color:var(--muted)}#tuAdv{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;margin-top:8px}.tu-ag{display:flex;flex-direction:column;gap:4px;padding:8px;border-radius:10px;background:color-mix(in srgb,var(--line) 40%,transparent)}.tu-ar{display:grid;grid-template-columns:1fr 110px 44px;gap:6px;align-items:center;font-size:.85rem}.tu-ar small{grid-column:1/-1;color:#c46a00;font-size:.75rem;margin-top:-4px}.tu-ar output{text-align:right;font-weight:700}#tuAdv .btns{grid-column:1/-1}
+#board .vo-ring,#board2 .vo-ring{fill:none;stroke:#ff8a00;stroke-width:2;stroke-dasharray:4 3;pointer-events:none}#board .hot-ring,#board2 .hot-ring{fill:rgba(255,138,0,.18);stroke:#ff8a00;stroke-width:5;pointer-events:none}.tu-advd{margin:8px 0}.tu-advd>summary{cursor:pointer;color:var(--muted)}#tuAdv{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:10px;margin-top:8px}.tu-ag{display:flex;flex-direction:column;gap:4px;padding:8px;border-radius:10px;background:color-mix(in srgb,var(--line) 40%,transparent)}.tu-ar{display:grid;grid-template-columns:1fr 120px 1fr;gap:2px 8px;align-items:center;font-size:.85rem;padding:4px 0;border-bottom:1px dashed var(--line)}.tu-ar .nm{grid-column:1/3;font-weight:600}.tu-ar output{grid-column:3;text-align:right;font-weight:700}.tu-ar output small{color:#c46a00;font-weight:500}.tu-ar .sn{font-style:normal;font-size:.72rem;font-weight:700;padding:1px 6px;border-radius:8px;margin-left:4px;background:linear-gradient(90deg,#ffe2c4 50%,#d8e6fb 50%);color:#333}.tu-ar .sn.s{background:linear-gradient(90deg,#d8e6fb 50%,#ffe2c4 50%)}.tu-ar .lo,.tu-ar .hi{font-size:.75rem;color:var(--muted);line-height:1.25}.tu-ar .lo{text-align:right}.tu-ar input{width:100%}#tuAdv .btns{grid-column:1/-1}
 .zz-k{color:#2b63b0;font-weight:600}.zz-h{flex-basis:100%;font-weight:700;font-size:.88rem;margin:0 2px 2px}.zz-mine{background:color-mix(in srgb,#e0a21e 16%,transparent)}.zz-mine .zz-h{color:#a86d00}.zz-rec{background:color-mix(in srgb,#3b7dd8 12%,transparent)}.zz-rec .zz-h{color:#2b63b0}.zz-grp .zz-it{background:var(--surface)}.zz-it.on{border-color:var(--accent);font-weight:700}.zz-q{width:100%;margin-top:6px;padding:6px 8px;font-size:.95rem}.zz-bm{text-decoration:none;cursor:grab}
 .phone-only{display:none}@media (pointer:coarse){.phone-only{display:inline}}
 /* 곡연습: 악보는 늘 전체 폭 — 믹서 · 반복 마디는 악보 위에 (넓으면 여러 칸) */
@@ -1073,7 +1073,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-24 10:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-24 10:40';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -2495,7 +2495,7 @@ const TUNINGS={std:{n:'표준 (E A D G B E)',o:[0,0,0,0,0,0]},half:{n:'반음 �
 const TU={view:'trail',trail:[],mode:'auto',sel:0,tun:'std',a4:440,on:false,stream:null,src:null,an:null,buf:null,raf:0,hist:[],last:0,cur:null,sc:null,okSince:0,locked:false};
 (function(){try{const u=JSON.parse(store.get('chordcalc-tuner')||'{}');if(u.mode)TU.mode=u.mode;if(TUNINGS[u.tun])TU.tun=u.tun;if(u.a4>=430&&u.a4<=450)TU.a4=u.a4;if(u.sel>=0&&u.sel<6)TU.sel=u.sel;if(u.view==='needle'||u.view==='trail')TU.view=u.view;if(u.prec==='fine'||u.prec==='norm')TU.prec=u.prec}catch(e){}})();
 function tuPrecBtns(){document.querySelectorAll('[data-tuprec]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.tuprec===(TU.prec==='fine'?'fine':'norm')))}
-document.addEventListener('input',e=>{const k=e.target&&e.target.dataset&&e.target.dataset.tup;if(!k)return;TU.P[k]=+e.target.value;tuPSave();const o=e.target.nextElementSibling;if(o)o.textContent=TU.P[k]});
+document.addEventListener('input',e=>{const k=e.target&&e.target.dataset&&e.target.dataset.tup;if(!k)return;TU.P[k]=+e.target.value;tuPSave();const o=e.target.nextElementSibling;const o2=e.target.closest('.tu-ar');if(o2){const out=o2.querySelector('output');if(out)out.textContent=TU.P[k]}});
 document.addEventListener('change',e=>{if(e.target&&e.target.dataset&&e.target.dataset.tup)tuAdv()});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-tupreset],#tuDingB');if(!b)return;if(b.id==='tuDingB'){TU.P.ding=TU.P.ding?0:1;tuPSave();b.setAttribute('aria-pressed',!!TU.P.ding);if(TU.P.ding){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)()}catch(x){}tuDing()}return}
   TU.P=Object.assign({},TU_PD,{ding:TU.P.ding});tuPSave();tuAdv()});
@@ -2503,16 +2503,25 @@ document.addEventListener('DOMContentLoaded',()=>{tuAdv();const b=document.getEl
 function tuSave(){store.set('chordcalc-tuner',JSON.stringify({mode:TU.mode,tun:TU.tun,a4:TU.a4,sel:TU.sel,view:TU.view,prec:TU.prec}))}
 /* 조율기 세부 조정값 (채점 · 실험용) — 기본값은 지금까지 쓰던 값 */
 const TU_PD={ding:1,okN:5,okF:3,hyst:2,lockMs:600,smooth:0.4,fast:0.08,clar:0.5,clarW:0.6,loud:1.8,atkN:3,atkJ:1.8,firstN:8,firstC:30,newN:12,newC:20,tail:0.15,late:0.3,clear:1.5,strN:8};
-const TU_PM=[
- ['맞음 판정',[['okN','맞음 범위 · 보통 (±센트)',1,10,1,'이 안이면 "거의 맞음"'],['okF','맞음 범위 · 정밀 (±센트)',1,10,1,''],['hyst','맞은 뒤 여유 (센트)',0,5,1,'한 번 맞은 뒤엔 이만큼 더 넓게 봐서 깜빡임 막기'],['lockMs','맞음 고정까지 (ms)',100,2000,50,'이 시간 동안 맞으면 ✓ 고정 · 소리']]],
- ['표시 안정',[['smooth','떨림 줄이기 (초)',0.05,1.5,0.05,'클수록 바늘이 천천히 · 덜 흔들림'],['fast','줄감개 돌릴 때 따라가기 (초)',0.02,0.5,0.01,'한쪽으로 계속 움직이면 이 빠르기로'],['firstN','첫 표시 확인 개수',3,20,1,'튕긴 뒤 이만큼 같은 음이 이어져야 표시 (작을수록 빨리 뜸)'],['firstC','첫 표시 허용 흔들림 (센트)',5,60,1,''],['clear','소리 없으면 지우기 (초)',0.5,5,0.1,'']]],
- ['소리 잡기',[['loud','측정 시작 크기 (바탕 잡음의 배)',1.1,5,0.1,'작을수록 작은 소리도 잼 · 잡음도 잡힐 수 있음'],['atkN','새로 튕김 크기 (바탕 잡음의 배)',1.5,8,0.1,''],['atkJ','새로 튕김 갑자기 커짐 (배)',1.2,4,0.1,'앞 소리보다 이만큼 커지면 새로 튕긴 것'],['clar','선명도 기준 · 정밀',0.2,0.95,0.05,'낮을수록 잡음 속에서도 잼 · 틀린 값 위험'],['clarW','선명도 기준 · 줄 찾기',0.2,0.95,0.05,'']]],
- ['줄 · 새 음',[['strN','줄 정하기 확인 횟수',2,20,1,'자동 모드에서 같은 줄이 이만큼 이어져야 그 줄로'],['newN','새 음 확인 개수',3,30,1,'지금 음과 많이 다른 값이 이만큼 이어지면 새 음'],['newC','새 음 차이 (센트)',5,60,1,''],['tail','꼬리 끊기 (최고 음량의 비)',0.05,0.5,0.01,'이보다 작아지면 새 값 안 받음'],['late','늦은 부분 (최고 음량의 비)',0.1,0.8,0.01,'이보다 작아지면 대표값 유지']]]];
+const TU_PM=[   /* [값, 이름, 최소, 최대, 단계, 작게 하면, 크게 하면] */
+ ['맞음 판정',[['okN','맞음 범위 · 보통 (±센트)',1,10,1,'더 정확히 맞춰야 ✓ (엄격)','조금 틀려도 ✓ (너그러움)'],['okF','맞음 범위 · 정밀 (±센트)',1,10,1,'더 엄격','더 너그러움'],
+   ['hyst','맞은 뒤 여유 (센트)',0,5,1,'✓가 쉽게 풀림 (깜빡일 수 있음)','한 번 맞으면 잘 유지'],['lockMs','맞음 고정까지 (ms)',100,2000,50,'✓ · 띵이 빨리 (잠깐 스쳐도)','오래 맞아야 ✓ (확실)']]],
+ ['표시 안정',[['smooth','떨림 줄이기 (초)',0.05,1.5,0.05,'숫자가 빨리 반응 · 많이 떨림','숫자가 천천히 · 차분함'],['fast','줄감개 돌릴 때 따라가기 (초)',0.02,0.5,0.01,'돌리는 대로 바로 따라감','천천히 따라감'],
+   ['firstN','첫 표시 확인 개수',3,20,1,'튕기자마자 표시 (틀린 값이 잠깐 보일 수)','조금 늦게 뜨지만 정확'],['firstC','첫 표시 허용 흔들림 (센트)',5,60,1,'깨끗한 소리만 표시 (안 뜰 때가 늘어남)','흔들려도 표시'],
+   ['clear','소리 없으면 지우기 (초)',0.5,5,0.1,'소리가 끝나면 바로 지움','마지막 값을 오래 남김']]],
+ ['소리 잡기',[['loud','측정 시작 크기 (바탕 잡음의 배)',1.1,5,0.1,'작게 튕겨도 잼 (잡음에도 반응)','크게 튕겨야 잼 (잡음에 덜 반응)'],['atkN','새로 튕김 크기 (바탕 잡음의 배)',1.5,8,0.1,'약하게 튕겨도 새 음으로 앎','세게 튕겨야 새 음으로 앎'],
+   ['atkJ','새로 튕김 갑자기 커짐 (배)',1.2,4,0.1,'조금만 커져도 새로 튕긴 것으로','확 커져야 새로 튕긴 것으로'],['clar','선명도 기준 · 측정',0.2,0.95,0.05,'시끄러워도 잼 (틀린 값 위험)','깨끗할 때만 잼 (반응 없음이 늘어남)'],
+   ['clarW','선명도 기준 · 줄 찾기',0.2,0.95,0.05,'줄을 쉽게 정함 (잘못 고를 수)','확실할 때만 줄을 정함']]],
+ ['줄 · 새 음',[['strN','줄 정하기 확인 횟수',2,20,1,'줄을 빨리 정함 (틀릴 수)','늦지만 확실하게 정함'],['newN','새 음 확인 개수',3,30,1,'줄감개를 많이 돌리면 바로 새 음','새 음으로 늦게 바뀜 (안정)'],
+   ['newC','새 음 차이 (센트)',5,60,1,'조금만 달라도 새 음으로','많이 달라야 새 음으로'],['tail','꼬리 끊기 (최고 음량의 비)',0.05,0.5,0.01,'소리 끝까지 잼 (끝에서 흔들림)','일찍 재기를 멈춤'],
+   ['late','늦은 부분 (최고 음량의 비)',0.1,0.8,0.01,'끝부분도 실시간으로 보임','일찍 대표값으로 고정']]]];
+/* 크게 하면: d = 둔감해짐(안정 · 늦음) · s = 민감해짐(빠름 · 흔들림) */
+const TU_SENS={hyst:'d',lockMs:'d',smooth:'d',fast:'d',firstN:'d',firstC:'s',loud:'d',atkN:'d',atkJ:'d',clar:'d',clarW:'d',strN:'d',newN:'d',newC:'d',tail:'d',late:'d'};
 TU.P=Object.assign({},TU_PD);try{Object.assign(TU.P,JSON.parse(store.get('chordcalc-tunerP')||'{}'))}catch(e){}
 function tuPSave(){store.set('chordcalc-tunerP',JSON.stringify(TU.P))}
 function tuAdv(){const e=document.getElementById('tuAdv');if(!e)return;const P=TU.P;
-  e.innerHTML=TU_PM.map(([g,rows])=>`<div class="tu-ag"><b>${g}</b>${rows.map(([k,l,mn,mx,st,d])=>`<label class="tu-ar" title="${d}"><span>${l}</span><input type="range" data-tup="${k}" min="${mn}" max="${mx}" step="${st}" value="${P[k]}"><output>${P[k]}</output>${P[k]!==TU_PD[k]?'<small>기본 '+TU_PD[k]+'</small>':''}</label>`).join('')}</div>`).join('')+
-    `<div class="btns left"><button class="ghost sm" data-tupreset="1">기본값으로</button><span class="mt">바꾼 값은 이 기기에 기억 · 마우스를 올리면 설명</span></div>`}
+  e.innerHTML=TU_PM.map(([g,rows])=>`<div class="tu-ag"><b>${g}</b>${rows.map(([k,l,mn,mx,st,lo,hi])=>`<label class="tu-ar"><span class="nm">${l}${TU_SENS[k]?` <i class="sn ${TU_SENS[k]}">${TU_SENS[k]==='d'?'◀ 민감 · 둔감 ▶':'◀ 둔감 · 민감 ▶'}</i>`:''}</span><output>${P[k]}${P[k]!==TU_PD[k]?' <small>(기본 '+TU_PD[k]+')</small>':''}</output><span class="lo">◀ ${lo}</span><input type="range" data-tup="${k}" min="${mn}" max="${mx}" step="${st}" value="${P[k]}"><span class="hi">${hi} ▶</span></label>`).join('')}</div>`).join('')+
+    `<div class="btns left"><button class="ghost sm" data-tupreset="1">기본값으로</button><span class="mt"><b style="background:#ffe2c4;padding:0 4px;border-radius:4px">민감</b> = 빨리 반응 · 작은 소리도 · 대신 흔들리거나 틀린 값이 보일 수 · <b style="background:#d8e6fb;padding:0 4px;border-radius:4px">둔감</b> = 차분 · 확실 · 대신 늦거나 반응 없을 수 · 바꾼 값은 이 기기에 기억</span></div>`}
 function tuDing(){if(!TU.P.ding)return;try{const t=actx.currentTime+0.01,g=actx.createGain();g.connect(gOut());g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.35,t+0.008);g.gain.exponentialRampToValueAtTime(0.0001,t+0.9);
   [[1760,1],[2637,0.45],[3520,0.2]].forEach(([f,a],k)=>{const o=actx.createOscillator(),q=actx.createGain();o.type='sine';o.frequency.value=f;q.gain.value=a;o.connect(q);q.connect(g);o.start(t+k*0.06);o.stop(t+1)})}catch(e){}}   /* 맞음 "띵" (기타 대역 위라 측정에 안 섞임) */
 const tuMidi=i=>TUNE[i]+TUNINGS[TU.tun].o[i];
