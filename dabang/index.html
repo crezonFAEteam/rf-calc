@@ -327,6 +327,8 @@ body.bd-off #boardScroll,body.bd-off .board-bar,body.bd-off .legend{display:none
 @media (max-width:699px){.cs-cards,.blbox .cs-cards{gap:6px;justify-content:stretch}.cs-cards .cs-card,.blbox .vcard{width:calc((100% - 16px)/3)!important;flex:0 0 auto}.cs-card .cs-nm,.blbox .vcard .cs-nm{font-size:1.25rem}.cs-card.cur{transform:none}.sg-cstrip,.blbox{padding:8px 6px 6px}.cs-seg{width:24px}}.tf-hd{display:flex;align-items:center;gap:6px;margin-bottom:2px}.tf-hd b{font-size:1.2rem}
 .tab .tf pre.tf-cur,.tab .tf pre.tf-tick{font-size:15px;line-height:1.45;color:var(--ink)}.tab .tf pre.tf-tick{color:#c46a00;margin:0;line-height:1.1;font-weight:700}
 .tab .tf pre.tf-nx{font-size:12px;line-height:1.3;opacity:.5}.tf-sep{font-size:.8rem;color:var(--muted);border-top:1px dashed var(--line);padding-top:4px;margin-top:6px}
+.sg-cstrip .cs-card{width:118px}.sg-cstrip .cs-card .cs-nm{font-size:1.5rem}.sg-cstrip .cs-card.cur{transform:none}   /* 곡연습 코드 띠: 블루스 운지표 크기 */
+@media (max-width:699px){.sg-cstrip .cs-cards{justify-content:center}.sg-cstrip .cs-cards .cs-card{width:min(96px,calc((100% - 16px)/3))!important}.sg-cstrip .cs-card .cs-nm{font-size:1.15rem}}
 .zz-k{color:#2b63b0;font-weight:600}.zz-h{flex-basis:100%;font-weight:700;font-size:.88rem;margin:0 2px 2px}.zz-mine{background:color-mix(in srgb,#e0a21e 16%,transparent)}.zz-mine .zz-h{color:#a86d00}.zz-rec{background:color-mix(in srgb,#3b7dd8 12%,transparent)}.zz-rec .zz-h{color:#2b63b0}.zz-grp .zz-it{background:var(--surface)}.zz-it.on{border-color:var(--accent);font-weight:700}.zz-q{width:100%;margin-top:6px;padding:6px 8px;font-size:.95rem}.zz-bm{text-decoration:none;cursor:grab}
 .phone-only{display:none}@media (pointer:coarse){.phone-only{display:inline}}
 /* 곡연습: 악보는 늘 전체 폭 — 믹서 · 반복 마디는 악보 위에 (넓으면 여러 칸) */
@@ -1126,7 +1128,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-25 01:40';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-25 01:50';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
