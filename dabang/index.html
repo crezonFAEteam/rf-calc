@@ -176,7 +176,7 @@ textarea{width:100%;background:var(--surface);border:1px solid var(--line);borde
 .drow .go[aria-pressed="true"]{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent);font-weight:600}
 #p-scale .head{align-items:center;margin-top:6px}
 .tab{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;overflow-x:auto;margin-top:14px}
-.tab pre{margin:0;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;letter-spacing:var(--tls,0px);font-size:var(--tabfs,13px);line-height:1.7;color:var(--muted)}
+.tab pre{margin:0;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;letter-spacing:var(--tls,0px);font-size:var(--tabfs,13px);line-height:var(--tlh,1.7);color:var(--muted)}
 #adTab{touch-action:pan-x pan-y}   /* 두 손가락 확대는 스크립트가 악보 글자만 키운다 */
 /* 프렛 숫자: 줄(-)은 흐리게, 숫자는 굵고 크게. 칸 폭은 그대로 두고 그림만 키워 줄 맞춤이 안 깨지게 */
 .tab pre span[data-n]{display:inline-block;color:var(--tabnote);font-weight:800;transform:scale(1.25,1.4);background:var(--surface);border-radius:2px}
@@ -562,7 +562,8 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
   .drow .go{min-height:36px}
   textarea,select,input{font-size:16px}   /* 16px 미만이면 아이폰이 입력할 때 확대한다 */
   select{width:100%}
-  .tab pre{font-size:var(--tabfs,12px)}
+  .tab pre{font-size:var(--tabfs,12px);line-height:var(--tlh,1.3)}
+  .sg-barbox{min-height:calc(42px*var(--sgs,1))}.sg-sheet .sg-c{padding:calc(9px*var(--sgs,1)) 3px calc(2px*var(--sgs,1))}
   /* 폰: 위 버튼 한 줄, 화면 높이에 맞춰 흐름 칸 · 글자 줄임 → 줄 버튼까지 한 화면에 */
   .tu-top{flex-wrap:nowrap;gap:6px;margin-bottom:6px}.tu-top .chips{flex-wrap:nowrap;gap:4px}
   .tu-top .play{min-height:36px;padding:4px 10px;white-space:nowrap;font-size:.9rem}.tu-top .chip{min-height:34px;padding:4px 9px;font-size:.88rem}
@@ -1098,7 +1099,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-24 19:20';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-24 19:40';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -2240,7 +2241,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-sgbig]');i
 let tabFs=+store.get('chordcalc-tabfs')||0;             /* 0 = 기본 (PC 13px, 휴대폰 12px) */
 const tabFsDef=()=>matchMedia('(max-width:640px)').matches?12:13;
 const tabFsNow=()=>tabFs||tabFsDef();
-function setTabFs(v){tabFs=Math.round(Math.max(tabFsDef()*0.3,Math.min(tabFsDef()*2.2,v))*100)/100;   /* 이제 '글자 크기'가 아니라 '간격 배율'(기본 글자 크기 × 배율) — 글자는 그대로, 칸 간격만 */   /* 0.1px 단위 (5% 씩 바꿀 수 있게) */   /* 가장 작게: 4px (예전 최소 8px의 절반) */['adTab','blTab','sgTab'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.setProperty('--tls',tabLs().toFixed(2)+'px')});sgApplyZ()}
+function setTabFs(v){tabFs=Math.round(Math.max(tabFsDef()*0.3,Math.min(tabFsDef()*2.2,v))*100)/100;   /* 이제 '글자 크기'가 아니라 '간격 배율'(기본 글자 크기 × 배율) — 글자는 그대로, 칸 간격만 */   /* 0.1px 단위 (5% 씩 바꿀 수 있게) */   /* 가장 작게: 4px (예전 최소 8px의 절반) */['adTab','blTab','sgTab'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.setProperty('--tls',tabLs().toFixed(2)+'px');e.style.setProperty('--tlh',Math.max(1.05,Math.min(2.4,(tabFsDef()<13?1.3:1.7)*tabZ())).toFixed(2))});sgApplyZ()}   /* 줄 간격(세로)도 같이 */
 const tabZ=()=>tabFsNow()/tabFsDef();
 function tabLs(){const ch=tabFsDef()*0.6;return Math.max(-0.38*ch,Math.min(1.5*ch,(tabZ()-1)*ch))}   /* TAB 글자 사이 간격(px) — 모든 글자에 같게 → 줄 맞춤 그대로 */
 function sgApplyZ(){const e=document.getElementById('p-song');if(e){e.style.setProperty('--sgz','1');e.style.setProperty('--sgs',tabZ().toFixed(3))}try{if(SG.song&&SG.view==='sheet'){cancelAnimationFrame(SG.fitRaf);SG.fitRaf=requestAnimationFrame(sgLyFit)}}catch(e){/* 페이지 시작 중(SG 준비 전)엔 건너뜀 */}}   /* 곡연습 코드 · 가사 · 하모니카 칸 배율 */
