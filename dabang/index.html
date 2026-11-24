@@ -313,6 +313,12 @@ body.bd-off #boardScroll,body.bd-off .board-bar,body.bd-off .legend{display:none
 .ph-wrap{flex:1;min-height:0;display:flex;align-items:flex-start;justify-content:center;width:100%;overflow:auto}
 .ph-dev{border:10px solid #000;border-radius:28px;background:#fff;box-shadow:0 10px 40px rgba(0,0,0,.6);transform-origin:top center}.ph-dev iframe{display:block;border:0;border-radius:18px;background:#fff}
 .tab .tf{display:flex;flex-direction:column;gap:2px}
+.tfb-row{display:flex;gap:8px;align-items:stretch;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;padding:4px 2px 8px;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.tfb{flex:0 0 auto;display:flex;flex-direction:column;gap:6px;scroll-snap-align:start;opacity:.78}.tfb.past{opacity:.4}.tfb.cur{opacity:1}
+.tfb-ch{background:#17191c;border-radius:14px;padding:6px 8px 8px;display:flex;flex-direction:column;gap:4px}.tfb.cur .tfb-ch,.tfb.cur .tfb-tab{box-shadow:0 0 0 3px #ffd400}
+.tfb-tab{background:#17191c;border-radius:14px;padding:8px 8px 6px;flex:1}
+.tab .tf .tfb pre.tf-cur,.tab .tf .tfb pre.tf-tick{color:#e8e8e8;margin:0;letter-spacing:0;line-height:1.4;overflow:hidden}.tab .tf .tfb pre.tf-tick{color:#ffb84d}.tfb pre .ch{display:none}
+.tab .tfb pre [data-n]{background:none!important;color:#8fd0ff;font-weight:700;box-shadow:none}.tab .tfb pre [data-n].now{background:#ffd400!important;color:#111;border-radius:2px}
 .tfc-row{display:flex;gap:6px;align-items:stretch;overflow:hidden}.tfc{flex:1 1 0;min-width:0;background:#17191c;border-radius:12px;padding:6px 6px 4px;display:flex;flex-direction:column;gap:3px;opacity:.6}.tfc.cur{opacity:1;box-shadow:0 0 0 3px #ffd400}
 .tfc-nm{font:800 1.25rem/1.1 system-ui,sans-serif;color:#eee;display:flex;align-items:baseline;gap:4px;white-space:nowrap;overflow:hidden}.tfc-nm small{font-size:.7rem;font-weight:600;color:#bbb}.tfc-b{margin-left:auto;font-size:.7rem;color:#888;font-weight:600}
 .tfc-bx{background:#f1f1f0;border-radius:9px;padding:4px 2px 0;width:100%;max-width:140px;align-self:center}.tfc-bx svg{width:100%;height:auto;display:block}
@@ -1120,7 +1126,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-25 00:30';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-25 01:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -2175,22 +2181,29 @@ function tabBarChord(lk,b,v0){   /* 그 마디 첫 코드 (+ 마디 안에서 �
   if(!c){let p=null;for(const x of lk.segs){if(x.start<b*BAR)p=x;else break}c=p&&p.c}if(!c)return null;
   const name=chName(c),more=[...new Set(sg.slice(1).map(x=>chName(x.c)))].filter(n=>n!==name);
   let v=v0&&v0(b,c,name);if(!v){const cc=blChord(name);v=cc?(BLV[name]||getV(cc)):null}return {name,more,v}}
-function tabFocusHTML(lk,k,b,v0){const BAR=lk.bar||8,bars=Math.max(1,Math.ceil(lk.total/BAR)),C=tabC(),bt=Math.max(1,Math.round(BAR/4));b=Math.max(0,Math.min(bars-1,b));
+function tabFocusHTML(lk,k,b,v0){   /* 블록: 마디마다 [코드 카드] 위 · [TAB 카드] 아래 같은 폭 — 옆으로 줄지어 있고 손가락으로 밀어 봄 · 재생하면 지금 블록이 왼쪽으로 와서 이어짐 */
+  const BAR=lk.bar||8,bars=Math.max(1,Math.ceil(lk.total/BAR)),C=tabC(),bt=Math.max(1,Math.round(BAR/4));b=Math.max(0,Math.min(bars-1,b));
   let tick='  ';for(let j=0;j<BAR;j++)tick+=(j%bt===0?String(j/bt+1):'·').padEnd(C,' ');
-  const W=Math.max(250,(window.innerWidth||400)-90),chars=BAR*C+3,n=Math.max(1,Math.min(3,Math.floor(W/(chars*0.62*8.5)))),cw=(W-(n-1)*6)/n,fs=Math.round(Math.max(8,Math.min(20,(cw-14)/(chars*0.62)))*10)/10;   /* 칸 수: 글자 8.5px 이상으로 들어가는 만큼 (1~3칸) */
-  const sl=tabFocusHTML.last&&tabFocusHTML.last.k===k&&b===tabFocusHTML.last.b+1;tabFocusHTML.last={k,b};
-  const cells=[];for(let j=b;j<Math.min(bars,b+n);j++){const ch=tabBarChord(lk,j,v0),tb=tabRender(lk,k,true,1,[j,j+1]).replace(/\n+$/,'').replace(/^[^\n]*\n/,'');   /* 맨 윗줄(코드 이름)은 칸 머리에 */
-    cells.push(`<div class="tfc${j===b?' cur':''}" data-tfbar="${j}"><div class="tfc-nm">${ch?esc(ch.name):''}${ch&&ch.more.length?'<small> → '+ch.more.map(esc).join(' · ')+'</small>':''}<span class="tfc-b">${j+1}</span></div>${ch&&ch.v?`<div class="tfc-bx">${chordBox(ch.v)}</div>`:'<div class="tfc-bx" style="height:40px"></div>'}<pre class="tf-tick" style="font-size:${fs}px">${tick}</pre><pre class="tf-cur" style="font-size:${fs}px">${tb}</pre></div>`)}
-  while(cells.length<n)cells.push(`<div class="tfc" style="visibility:hidden"></div>`);
+  const fs=12.5,chars=BAR*C+3,bw=Math.round(Math.max(140,chars*0.62*fs+20));
+  const last=tabFocusHTML.last,adv=last&&last.k===k&&b===last.b+1;tabFocusHTML.last={k,b};
+  const a0=Math.max(0,b-1),a1=Math.min(bars,b+7),cells=[];
+  for(let j=a0;j<a1;j++){const ch=tabBarChord(lk,j,v0),tb=tabRender(lk,k,true,1,[j,j+1]).replace(/\n+$/,'').replace(/^[^\n]*\n/,'');
+    cells.push(`<div class="tfb${j===b?' cur':j<b?' past':''}" data-tfbar="${j}" style="width:${bw}px">
+      <div class="tfb-ch"><div class="tfc-nm">${ch?esc(ch.name):'·'}${ch&&ch.more.length?'<small> → '+ch.more.map(esc).join(' · ')+'</small>':''}<span class="tfc-b">${j+1}</span></div>${ch&&ch.v?`<div class="tfc-bx">${chordBox(ch.v)}</div>`:''}</div>
+      <div class="tfb-tab"><pre class="tf-tick" style="font-size:${fs}px">${tick}</pre><pre class="tf-cur" style="font-size:${fs}px">${tb}</pre></div></div>`)}
+  const id='tfr'+(++tabFocusHTML.n);
+  setTimeout(()=>{const r=document.getElementById(id);if(!r)return;const x=(b-a0)*(bw+8);   /* 지금 블록을 왼쪽에 · 한 칸 넘어온 것이면 미끄러지듯 */
+    if(adv&&!r._user){r.scrollLeft=Math.max(0,x-(bw+8));requestAnimationFrame(()=>r.scrollTo({left:x,behavior:'smooth'}))}else r.scrollLeft=x},0);
   return `<div class="tf"><div class="tf-hd"><button class="ghost sm" data-tfgo="-1" aria-label="앞 마디">◀</button><b>${b+1}</b><span class="mt">/ ${bars}마디</span><button class="ghost sm" data-tfgo="1" aria-label="다음 마디">▶</button><button class="ghost sm" data-tfx="0" title="위아래로 전체 보기">전체 보기</button></div>
-    <div class="tfc-row${sl?' cs-slide':''}">${cells.join('')}</div></div>`}
+    <div class="tfb-row" id="${id}">${cells.join('')}</div></div>`}
+tabFocusHTML.n=0;
 document.addEventListener('click',e=>{const b=e.target.closest('[data-tfx],[data-tfgo]');if(!b)return;e.stopPropagation();
   if(b.dataset.tfx!=null){store.set('chordcalc-tabfocus',b.dataset.tfx==='1'?'1':'0')}
   const inBl=!!b.closest('#blTab'),d=b.dataset.tfgo?+b.dataset.tfgo:0;
   if(inBl){if(d){BL.tfb=Math.max(0,(BL.tfb||0)+d)}blTabDraw();if(typeof blMark==='function')blMark();return}
   if(d&&SG.song){const lk=sgLick(SG.view),nb=(SG.tfb||0)+d;if(nb>=0){sgSeek(Math.max(0,sgTime(nb*(lk.bar||16))+0.01));return}}
   if(SG.song)sgTabView()},true);
-['sgTab','blTab'].forEach(id=>{let x0=null,y0=0;document.addEventListener('touchstart',e=>{const t=e.target.closest&&e.target.closest('#'+id);if(t&&e.touches.length===1){x0=e.touches[0].clientX;y0=e.touches[0].clientY}else x0=null},{passive:true});
+['sgTab','blTab'].forEach(id=>{let x0=null,y0=0;document.addEventListener('touchstart',e=>{const t=e.target.closest&&e.target.closest('#'+id);const r=e.target.closest&&e.target.closest('.tfb-row');if(r){r._user=1;clearTimeout(r._ut);r._ut=setTimeout(()=>{r._user=0},4000);x0=null;return}if(t&&e.touches.length===1){x0=e.touches[0].clientX;y0=e.touches[0].clientY}else x0=null},{passive:true});
   document.addEventListener('touchend',e=>{if(x0==null)return;const t=e.changedTouches[0],dx=t.clientX-x0,dy=t.clientY-y0;x0=null;if(Math.abs(dx)<50||Math.abs(dy)>Math.abs(dx)*0.7)return;
     const el=document.getElementById(id);if(!el||!el.querySelector('.tf'))return;const btn=el.querySelector(`[data-tfgo="${dx<0?1:-1}"]`);if(btn&&!(id==='sgTab'&&SG.playing)&&!(id==='blTab'&&BL.playing))btn.click()},{passive:true})});
 function tabFocusBtn(){return (window.innerWidth||1000)<700&&!tabFocusOn()?'<button class="ghost sm" data-tfx="1" style="margin:4px 0">🎯 마디 보기 (지금 마디 크게)</button>':''}
