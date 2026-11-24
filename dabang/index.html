@@ -339,6 +339,17 @@ body.bd-off #boardScroll,body.bd-off .board-bar,body.bd-off .legend{display:none
   .top h1{font-size:1.05rem;flex:0 0 auto}.tops{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;gap:3px;justify-content:flex-start;padding-bottom:1px}.tops::-webkit-scrollbar{display:none}
   .tops>*{flex:0 0 auto}#zoomVal,#uizVal{display:none}.lg-t{display:none}.sm-t{display:inline!important}.tops button,.tops .bd-show{padding:2px 6px;font-size:.7rem;min-height:0}.tops .lbl-tg button,.tops .acc button{padding:2px 6px}}
 .sm-t{display:none}
+.sg-set{margin:4px 0}.sg-set>summary{cursor:pointer;list-style:none;display:flex;gap:8px;align-items:center;padding:6px 10px;border-radius:10px;background:color-mix(in srgb,var(--line) 55%,transparent);font-size:.85rem}
+.sg-set>summary::-webkit-details-marker{display:none}.sg-set>summary::before{content:'▸';transition:transform .15s}.sg-set[open]>summary::before{transform:rotate(90deg)}.sg-set .ss-v{margin-left:auto;color:var(--muted);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sg-set[open]>summary{margin-bottom:6px}
+@media (max-width:699px){
+  #p-song .sg-tr{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;gap:4px}#p-song .sg-tr::-webkit-scrollbar{display:none}
+  #p-song .sg-tr>*{flex:0 0 auto}#p-song .sg-tr button{padding:4px 9px;font-size:.78rem;min-height:30px}#p-song .sg-tr .play{padding:4px 14px}
+  #p-song .sg-time{font-size:.78rem}#p-song .sg-rate{font-size:.75rem}#p-song .sg-rate select{padding:2px 4px;font-size:.78rem;width:auto}#p-song .fol-st{font-size:.7rem;padding:2px 6px}
+  #p-song .sg-seek{margin:2px 0}
+  .sg-cstrip{padding:4px 4px 2px;margin:4px 0 2px}.sg-cstrip .cs-cards .cs-card{width:min(72px,calc((100% - 16px)/3))!important}.sg-cstrip .cs-card .cs-nm{font-size:.95rem;margin-bottom:2px}
+  .sg-cstrip .cs-card .bx{padding:3px 2px 0;border-radius:8px}.sg-cstrip .cs-bar,.sg-cstrip .cs-hide{display:none}
+  #p-song #sgSheet,#p-song #sgTab{margin-top:4px}}
 .zz-k{color:#2b63b0;font-weight:600}.zz-h{flex-basis:100%;font-weight:700;font-size:.88rem;margin:0 2px 2px}.zz-mine{background:color-mix(in srgb,#e0a21e 16%,transparent)}.zz-mine .zz-h{color:#a86d00}.zz-rec{background:color-mix(in srgb,#3b7dd8 12%,transparent)}.zz-rec .zz-h{color:#2b63b0}.zz-grp .zz-it{background:var(--surface)}.zz-it.on{border-color:var(--accent);font-weight:700}.zz-q{width:100%;margin-top:6px;padding:6px 8px;font-size:.95rem}.zz-bm{text-decoration:none;cursor:grab}
 .phone-only{display:none}@media (pointer:coarse){.phone-only{display:inline}}
 /* 곡연습: 악보는 늘 전체 폭 — 믹서 · 반복 마디는 악보 위에 (넓으면 여러 칸) */
@@ -908,10 +919,11 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
     <div id="sgDeep" class="sg-deep" hidden></div>
     <div id="sgHelp" class="sg-help"><p class="sdesc" style="margin:6px 0">곡편집에서 만든 곡 폴더를 고르세요.<span class="phone-only"><br>휴대폰: <b>📂 곡 묶음(zip) 열기</b> = PC 에서 분석한 곡 · <b>🎵 음원 · 영상으로 간이 분석</b> = 폰의 음원 · 영상(소리만)을 바로 (박자 · 코드만, 1~2분)</span></p></div>
     <div id="sgMain" hidden>
+      <details class="sg-set" id="sgSet"><summary><span class="ss-t">⚙ 보기 · 키 · 카포 · 지판</span><span class="ss-v" id="sgSetSum"></span></summary>
       <div class="sg-head"><b id="sgTitle"></b><span id="sgMeta" class="sg-meta"></span></div>
       <div id="sgViews" class="chips"></div>
           <div id="sgKey"></div>
-      <div class="sg-cstrip" id="sgCStrip" hidden></div>
+      </details>
       <div class="sg-ctl"><div class="sg-tr">
         <button id="sgPlay" class="play">재생</button>
         <button id="sgBack" class="ghost sm" title="5초 뒤로">⏪ 5초</button>
@@ -922,8 +934,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
         <label class="sg-rate">속도 <select id="sgRate"><option value="0.3">30%</option><option value="0.4">40%</option><option value="0.5">50%</option><option value="0.6">60%</option><option value="0.7">70%</option><option value="0.75">75%</option><option value="0.8">80%</option><option value="0.9">90%</option><option value="1">100%</option></select></label>
       </div>
       <input type="range" id="sgSeek" class="sg-seek" min="0" max="1000" value="0" aria-label="재생 위치"></div>
-      
-
+      <div class="sg-cstrip" id="sgCStrip" hidden></div>
       <div class="sg-grid">
         <div class="sg-side">
           <span class="flabel">트랙 (믹서) — 기타를 끄면 반주에 맞춰 직접 치기 · 100% = 원곡 속 실제 크기 <button class="ghost sm" data-sgv0="1" title="모든 트랙을 100%로 — 원곡과 같은 악기 비율">원음 비율로</button></span>
@@ -1139,7 +1150,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-25 04:30';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-25 05:05';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -3482,6 +3493,10 @@ function csNarrow(){return (window.innerWidth||1000)<700}   /* 폰: 코드 띠�
     b.addEventListener('click',async()=>{if(ev){ev.prompt();try{await ev.userChoice}catch(e){}ev=null;b.hidden=true;return}
       if(ios)alert('아이폰 · 아이패드: 사파리 아래(아이패드는 위) [공유 ⬆] → [홈 화면에 추가] 를 누르면 쎄이기타 앱 아이콘이 생깁니다.')})});
 })();
+(function(){const k='chordcalc-sgset';document.addEventListener('DOMContentLoaded',()=>{const d=document.getElementById('sgSet');if(!d)return;const v=store.get(k);d.open=v?v==='1':!((window.innerWidth||1000)<700);
+  d.addEventListener('toggle',()=>store.set(k,d.open?'1':'0'))})})();
+function sgSetSum(){const e=document.getElementById('sgSetSum');if(!e||!SG.song)return;const b=document.querySelector('#sgViews [aria-pressed="true"]'),k0=sgKey0(),T=SG.kc.t,C=SG.kc.c;
+  e.textContent=[b?b.textContent.replace(/^[^0-9A-Za-z가-힣]+/,'').trim():'',nn(mod(k0+T))+' 키'+(T?` (${T>0?'+':''}${T})`:''),C?'카포 '+C:''].filter(Boolean).join(' · ')}
 function sgChordAt(sl){const cs=sgCh();let c=null;for(const x of cs){if(x.s<=sl)c=x;else break}return c}
 /* ---------- 곡편집: 곡 폴더(saygita\songAnalyze\곡명) — 입력 모으기 · 곡 분석 · 최종악보 · 휴대폰 공유 ----------
    모든 동작은 PC 분석 도우미(127.0.0.1:52525)로. 목록은 도우미가 폴더를 훑어 만든 목록.json */
@@ -4851,6 +4866,7 @@ function sgFix(song,fx){   /* 곡편집에서 악보 기준으로 고친 코드(
     song.chords=fx.chords;song.fixed=(fx.changes||[]).length||0}
 }
 function sgRender(){
+  setTimeout(()=>{try{sgSetSum()}catch(e){}},0);
   const s=SG.song;sgEl('sgMain').hidden=!s;sgEl('sgHelp').hidden=!!s;{const x=document.getElementById('sgCStrip');if(x)x.dataset.k=''}try{sgCStrip()}catch(e){}if(!s)return;
   sgEl('sgTitle').textContent=s.title;
   const chs=[...new Set(sgCh().map(c=>c.name))];
