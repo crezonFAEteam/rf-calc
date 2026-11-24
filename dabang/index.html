@@ -335,6 +335,9 @@ body.bd-off #boardScroll,body.bd-off .board-bar,body.bd-off .legend{display:none
 @media (max-width:699px){.sg-cstrip .cs-cards{justify-content:center}.sg-cstrip .cs-cards .cs-card{width:min(96px,calc((100% - 16px)/3))!important}.sg-cstrip .cs-card .cs-nm{font-size:1.15rem}}
 .fol-st{font-size:.8rem;font-weight:700;padding:3px 10px;border-radius:999px;background:#d8f0dd;color:#1f6b3a}.fol-st[data-st=pause]{background:#fff1a8;color:#7a5b00}.fol-st[data-st=off]{background:var(--line);color:var(--muted)}
 #p-song #sgSheet.fol-on,#p-song #sgTab.fol-on{box-shadow:0 0 0 2px #2e9d5b}#p-song #sgSheet.fol-pause,#p-song #sgTab.fol-pause{box-shadow:0 0 0 2px #e0a21e}
+@media (max-width:699px){   /* 폰: 위 버튼 줄은 한 줄 (넘치면 옆으로 밀어 봄) */
+  .top h1{font-size:1.05rem;flex:0 0 auto}.tops{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;gap:3px;justify-content:flex-start;padding-bottom:1px}.tops::-webkit-scrollbar{display:none}
+  .tops>*{flex:0 0 auto}.tops button,.tops .bd-show{padding:2px 6px;font-size:.7rem;min-height:0}.tops .lbl-tg button,.tops .acc button{padding:2px 6px}}
 .zz-k{color:#2b63b0;font-weight:600}.zz-h{flex-basis:100%;font-weight:700;font-size:.88rem;margin:0 2px 2px}.zz-mine{background:color-mix(in srgb,#e0a21e 16%,transparent)}.zz-mine .zz-h{color:#a86d00}.zz-rec{background:color-mix(in srgb,#3b7dd8 12%,transparent)}.zz-rec .zz-h{color:#2b63b0}.zz-grp .zz-it{background:var(--surface)}.zz-it.on{border-color:var(--accent);font-weight:700}.zz-q{width:100%;margin-top:6px;padding:6px 8px;font-size:.95rem}.zz-bm{text-decoration:none;cursor:grab}
 .phone-only{display:none}@media (pointer:coarse){.phone-only{display:inline}}
 /* 곡연습: 악보는 늘 전체 폭 — 믹서 · 반복 마디는 악보 위에 (넓으면 여러 칸) */
@@ -1135,7 +1138,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-25 04:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-25 04:10';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
