@@ -284,7 +284,8 @@ input[type=range]{width:100%;accent-color:var(--accent-fill)}
 .al-ft .k{white-space:nowrap;color:var(--muted)}.al-ft .ly{color:var(--muted);font-size:.85rem}.fc{display:inline-block;margin:1px 2px;padding:1px 6px;border-radius:6px;font-weight:700;line-height:1.35}.fc small{display:block;font-weight:500;font-size:.75rem;opacity:.8}.fT{background:#d8f0dd;color:#1f6b3a}.fS{background:#dbe7fb;color:#2b4f99}.fD{background:#fbdcd8;color:#a33224}.fX{background:#eee2f7;color:#6a3d99}
 .al-old>summary{cursor:pointer;color:var(--muted);font-size:.9rem;margin:6px 0}
 .sc-play{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.sc-bpm{display:flex;align-items:center;gap:6px;font-size:.9rem}.sc-bpm input{width:140px}#scPlayCap{margin:6px 0 0;font-size:.85rem}
-#board .vo-ring,#board2 .vo-ring{fill:none;stroke:#ff8a00;stroke-width:2;stroke-dasharray:4 3;pointer-events:none}#board .hot-ring,#board2 .hot-ring{fill:rgba(255,138,0,.18);stroke:#ff8a00;stroke-width:5;pointer-events:none}.zz-k{color:#2b63b0;font-weight:600}.zz-h{flex-basis:100%;font-weight:700;font-size:.88rem;margin:0 2px 2px}.zz-mine{background:color-mix(in srgb,#e0a21e 16%,transparent)}.zz-mine .zz-h{color:#a86d00}.zz-rec{background:color-mix(in srgb,#3b7dd8 12%,transparent)}.zz-rec .zz-h{color:#2b63b0}.zz-grp .zz-it{background:var(--surface)}.zz-it.on{border-color:var(--accent);font-weight:700}.zz-q{width:100%;margin-top:6px;padding:6px 8px;font-size:.95rem}.zz-bm{text-decoration:none;cursor:grab}
+#board .vo-ring,#board2 .vo-ring{fill:none;stroke:#ff8a00;stroke-width:2;stroke-dasharray:4 3;pointer-events:none}#board .hot-ring,#board2 .hot-ring{fill:rgba(255,138,0,.18);stroke:#ff8a00;stroke-width:5;pointer-events:none}.tu-advd{margin:8px 0}.tu-advd>summary{cursor:pointer;color:var(--muted)}#tuAdv{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;margin-top:8px}.tu-ag{display:flex;flex-direction:column;gap:4px;padding:8px;border-radius:10px;background:color-mix(in srgb,var(--line) 40%,transparent)}.tu-ar{display:grid;grid-template-columns:1fr 110px 44px;gap:6px;align-items:center;font-size:.85rem}.tu-ar small{grid-column:1/-1;color:#c46a00;font-size:.75rem;margin-top:-4px}.tu-ar output{text-align:right;font-weight:700}#tuAdv .btns{grid-column:1/-1}
+.zz-k{color:#2b63b0;font-weight:600}.zz-h{flex-basis:100%;font-weight:700;font-size:.88rem;margin:0 2px 2px}.zz-mine{background:color-mix(in srgb,#e0a21e 16%,transparent)}.zz-mine .zz-h{color:#a86d00}.zz-rec{background:color-mix(in srgb,#3b7dd8 12%,transparent)}.zz-rec .zz-h{color:#2b63b0}.zz-grp .zz-it{background:var(--surface)}.zz-it.on{border-color:var(--accent);font-weight:700}.zz-q{width:100%;margin-top:6px;padding:6px 8px;font-size:.95rem}.zz-bm{text-decoration:none;cursor:grab}
 .phone-only{display:none}@media (pointer:coarse){.phone-only{display:inline}}
 /* 곡연습: 악보는 늘 전체 폭 — 믹서 · 반복 마디는 악보 위에 (넓으면 여러 칸) */
 #p-song .sg-grid{grid-template-columns:minmax(0,1fr)}#p-song .sg-view{order:-1}#p-song .sg-side{margin-top:6px}
@@ -881,6 +882,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
         <button id="tuMic" class="play">🎤 <span class="tu-mtx">마이크 </span>켜기</button>
         <div class="chips"><button class="chip" data-tumode="auto" aria-pressed="true">자동</button><button class="chip" data-tumode="manual" aria-pressed="false">수동</button></div>
         <div class="chips" role="group" aria-label="판정" title="맞음 판정 범위 — 보통 ±5센트 (통기타에 충분) · 정밀 ±3센트"><button class="chip" data-tuprec="norm" aria-pressed="true">보통 ±5</button><button class="chip" data-tuprec="fine" aria-pressed="false">정밀 ±3</button></div>
+        <button class="ghost sm" id="tuDingB" aria-pressed="true" title="맞으면 띵 소리">🔔 맞음 소리</button>
         <div class="chips" role="group" aria-label="보기"><button class="chip" data-tuview="trail" aria-pressed="true">흐름</button><button class="chip" data-tuview="needle" aria-pressed="false">바늘</button></div>
       </div>
       <div class="tu-meter">
@@ -894,6 +896,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
         <div id="tuHz" class="tu-hz"></div>
       </div>
       <div id="tuHelp" class="tu-help" hidden></div>
+      <details class="tu-advd"><summary>⚙ 세부 조정 (측정 · 판정 값)</summary><div id="tuAdv"></div></details>
       <div class="tu-strings" id="tuStrings"></div>
       <div class="tu-opts">
         <div class="field"><label class="flabel" for="tuTun">조율 방식</label><select id="tuTun"></select></div>
@@ -1070,7 +1073,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-17 03:30';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-24 10:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -2492,7 +2495,26 @@ const TUNINGS={std:{n:'표준 (E A D G B E)',o:[0,0,0,0,0,0]},half:{n:'반음 �
 const TU={view:'trail',trail:[],mode:'auto',sel:0,tun:'std',a4:440,on:false,stream:null,src:null,an:null,buf:null,raf:0,hist:[],last:0,cur:null,sc:null,okSince:0,locked:false};
 (function(){try{const u=JSON.parse(store.get('chordcalc-tuner')||'{}');if(u.mode)TU.mode=u.mode;if(TUNINGS[u.tun])TU.tun=u.tun;if(u.a4>=430&&u.a4<=450)TU.a4=u.a4;if(u.sel>=0&&u.sel<6)TU.sel=u.sel;if(u.view==='needle'||u.view==='trail')TU.view=u.view;if(u.prec==='fine'||u.prec==='norm')TU.prec=u.prec}catch(e){}})();
 function tuPrecBtns(){document.querySelectorAll('[data-tuprec]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.tuprec===(TU.prec==='fine'?'fine':'norm')))}
+document.addEventListener('input',e=>{const k=e.target&&e.target.dataset&&e.target.dataset.tup;if(!k)return;TU.P[k]=+e.target.value;tuPSave();const o=e.target.nextElementSibling;if(o)o.textContent=TU.P[k]});
+document.addEventListener('change',e=>{if(e.target&&e.target.dataset&&e.target.dataset.tup)tuAdv()});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-tupreset],#tuDingB');if(!b)return;if(b.id==='tuDingB'){TU.P.ding=TU.P.ding?0:1;tuPSave();b.setAttribute('aria-pressed',!!TU.P.ding);if(TU.P.ding){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)()}catch(x){}tuDing()}return}
+  TU.P=Object.assign({},TU_PD,{ding:TU.P.ding});tuPSave();tuAdv()});
+document.addEventListener('DOMContentLoaded',()=>{tuAdv();const b=document.getElementById('tuDingB');if(b)b.setAttribute('aria-pressed',!!TU.P.ding)});
 function tuSave(){store.set('chordcalc-tuner',JSON.stringify({mode:TU.mode,tun:TU.tun,a4:TU.a4,sel:TU.sel,view:TU.view,prec:TU.prec}))}
+/* 조율기 세부 조정값 (채점 · 실험용) — 기본값은 지금까지 쓰던 값 */
+const TU_PD={ding:1,okN:5,okF:3,hyst:2,lockMs:600,smooth:0.4,fast:0.08,clar:0.5,clarW:0.6,loud:1.8,atkN:3,atkJ:1.8,firstN:8,firstC:30,newN:12,newC:20,tail:0.15,late:0.3,clear:1.5,strN:8};
+const TU_PM=[
+ ['맞음 판정',[['okN','맞음 범위 · 보통 (±센트)',1,10,1,'이 안이면 "거의 맞음"'],['okF','맞음 범위 · 정밀 (±센트)',1,10,1,''],['hyst','맞은 뒤 여유 (센트)',0,5,1,'한 번 맞은 뒤엔 이만큼 더 넓게 봐서 깜빡임 막기'],['lockMs','맞음 고정까지 (ms)',100,2000,50,'이 시간 동안 맞으면 ✓ 고정 · 소리']]],
+ ['표시 안정',[['smooth','떨림 줄이기 (초)',0.05,1.5,0.05,'클수록 바늘이 천천히 · 덜 흔들림'],['fast','줄감개 돌릴 때 따라가기 (초)',0.02,0.5,0.01,'한쪽으로 계속 움직이면 이 빠르기로'],['firstN','첫 표시 확인 개수',3,20,1,'튕긴 뒤 이만큼 같은 음이 이어져야 표시 (작을수록 빨리 뜸)'],['firstC','첫 표시 허용 흔들림 (센트)',5,60,1,''],['clear','소리 없으면 지우기 (초)',0.5,5,0.1,'']]],
+ ['소리 잡기',[['loud','측정 시작 크기 (바탕 잡음의 배)',1.1,5,0.1,'작을수록 작은 소리도 잼 · 잡음도 잡힐 수 있음'],['atkN','새로 튕김 크기 (바탕 잡음의 배)',1.5,8,0.1,''],['atkJ','새로 튕김 갑자기 커짐 (배)',1.2,4,0.1,'앞 소리보다 이만큼 커지면 새로 튕긴 것'],['clar','선명도 기준 · 정밀',0.2,0.95,0.05,'낮을수록 잡음 속에서도 잼 · 틀린 값 위험'],['clarW','선명도 기준 · 줄 찾기',0.2,0.95,0.05,'']]],
+ ['줄 · 새 음',[['strN','줄 정하기 확인 횟수',2,20,1,'자동 모드에서 같은 줄이 이만큼 이어져야 그 줄로'],['newN','새 음 확인 개수',3,30,1,'지금 음과 많이 다른 값이 이만큼 이어지면 새 음'],['newC','새 음 차이 (센트)',5,60,1,''],['tail','꼬리 끊기 (최고 음량의 비)',0.05,0.5,0.01,'이보다 작아지면 새 값 안 받음'],['late','늦은 부분 (최고 음량의 비)',0.1,0.8,0.01,'이보다 작아지면 대표값 유지']]]];
+TU.P=Object.assign({},TU_PD);try{Object.assign(TU.P,JSON.parse(store.get('chordcalc-tunerP')||'{}'))}catch(e){}
+function tuPSave(){store.set('chordcalc-tunerP',JSON.stringify(TU.P))}
+function tuAdv(){const e=document.getElementById('tuAdv');if(!e)return;const P=TU.P;
+  e.innerHTML=TU_PM.map(([g,rows])=>`<div class="tu-ag"><b>${g}</b>${rows.map(([k,l,mn,mx,st,d])=>`<label class="tu-ar" title="${d}"><span>${l}</span><input type="range" data-tup="${k}" min="${mn}" max="${mx}" step="${st}" value="${P[k]}"><output>${P[k]}</output>${P[k]!==TU_PD[k]?'<small>기본 '+TU_PD[k]+'</small>':''}</label>`).join('')}</div>`).join('')+
+    `<div class="btns left"><button class="ghost sm" data-tupreset="1">기본값으로</button><span class="mt">바꾼 값은 이 기기에 기억 · 마우스를 올리면 설명</span></div>`}
+function tuDing(){if(!TU.P.ding)return;try{const t=actx.currentTime+0.01,g=actx.createGain();g.connect(gOut());g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.35,t+0.008);g.gain.exponentialRampToValueAtTime(0.0001,t+0.9);
+  [[1760,1],[2637,0.45],[3520,0.2]].forEach(([f,a],k)=>{const o=actx.createOscillator(),q=actx.createGain();o.type='sine';o.frequency.value=f;q.gain.value=a;o.connect(q);q.connect(g);o.start(t+k*0.06);o.stop(t+1)})}catch(e){}}   /* 맞음 "띵" (기타 대역 위라 측정에 안 섞임) */
 const tuMidi=i=>TUNE[i]+TUNINGS[TU.tun].o[i];
 const tuHz=m=>TU.a4*Math.pow(2,(m-69)/12);
 const tuName=m=>nn(m)+(Math.floor(m/12)-1);
@@ -2586,15 +2608,15 @@ function tuTick0(){
   /* 바탕 잡음: 조용해지면 빨리, 커지면 천천히(약 8초) 따라감 → 계속 나는 잡음에는 적응, 튕긴 소리는 잡음보다 커서 구분됨 */
   TU.nf=TU.nf==null?e:e<TU.nf?TU.nf*0.8+e*0.2:TU.nf*0.998+e*0.002;
   /* 새로 튕김: 앞 음이 울리는 중이어도 음량이 갑자기 1.8배 넘게 커지면 새 음 → 이전 측정값을 버리고 새로 잡음 */
-  if(e>Math.max(0.006,TU.nf*3)&&e>(TU.lvl||0)*1.8){
+  if(e>Math.max(0.006,TU.nf*TU.P.atkN)&&e>(TU.lvl||0)*TU.P.atkJ){
     if(!manual&&now-(TU.atk||0)>200)TU.pre=tuSpec(tuDec(TU.buf.subarray(0,7168)));   /* 튕기기 직전 스펙트럼 */
     TU.atk=now;TU.peak=e;TU.body=[];TU.tailDone=false;TU.rep=null;TU.lateN=0;TU.noFz=false;TU.hist2=[];TU.cand=[];TU.shown=false;TU.wc=null;TU.fl=false;if(!manual)TU.pend=true}
   TU.lvl=TU.lvl?TU.lvl*0.8+e*0.2:e;TU.peak=Math.max((TU.peak||0)*0.998,e);
-  const loud=e>Math.max(0.003,TU.nf*1.8),atk=now-(TU.atk||0)<80,atkP=now-(TU.atk||0)<250;   /* 정밀 측정은 튕긴 뒤 0.25초부터 (줄은 처음에 조금 높게 울림) */
+  const loud=e>Math.max(0.003,TU.nf*TU.P.loud),atk=now-(TU.atk||0)<80,atkP=now-(TU.atk||0)<250;   /* 정밀 측정은 튕긴 뒤 0.25초부터 (줄은 처음에 조금 높게 울림) */
   /* 측정 창: 튕긴 뒤(또는 필터 바뀐 뒤) 신호만 씀 → 앞 음이 섞이지 않아 새 음을 바로 잡음 (최소 0.064초, 최대 0.17초) */
   const wlen=t=>Math.max(3072,Math.min(8192,Math.round((now-t)*sr/1000)))&~1;
   /* 소리 꼬리: 튕긴 최고 음량의 12% 아래면 새 값을 받지 않고 마지막 값 유지 (거의 사라진 소리는 잡음과 섞여 음이 틀어져 보임) */
-  const tail=e<TU.peak*0.15,late=e<TU.peak*0.3;   /* 늦은 부분(30% 아래)은 음이 잘 흔들림 → 대표값 유지(한쪽으로 계속 움직이면 따라감) · 꼬리(15% 아래)는 새 값 안 받음 */   /* 튕긴 직후 0.1초는 어택 잡음이라 건너뜀 */
+  const tail=e<TU.peak*TU.P.tail,late=e<TU.peak*TU.P.late;   /* 늦은 부분(30% 아래)은 음이 잘 흔들림 → 대표값 유지(한쪽으로 계속 움직이면 따라감) · 꼬리(15% 아래)는 새 값 안 받음 */   /* 튕긴 직후 0.1초는 어택 잡음이라 건너뜀 */
   /* 자동: 넓게(0.17초 창, 2:1로 줄여) 재서 가장 가까운 줄 → 같은 줄이 8번 이어져야 그 줄로 정함 */
   if(TU.pend&&now-(TU.atk||0)>500)TU.pend=false;   /* 0.5초 안에 못 정하면 아래 넓은 측정으로 */
   if(!manual&&loud&&!atk&&TU.pend&&TU.pre){
@@ -2604,22 +2626,22 @@ function tuTick0(){
   }else if(!manual&&loud&&!atk&&!TU.fl&&!(TU.lockSi!=null&&TU.shown&&now-(TU.gotAt||0)<300)){   /* 정해진 줄이 잘 재지는 동안은 새로 튕기기 전까지 줄 안 바꿈 */
     let bLo=1e9,bHi=0;for(let i=0;i<6;i++){const h=tuHz(tuMidi(i));bLo=Math.min(bLo,h/1.414);bHi=Math.max(bHi,h*1.414)}bLo=Math.max(55,bLo);
     const r=tuPitch(tuDec(TU.buf.subarray(8192-wlen((TU.atk||0)+20))),sr/2,bLo,bHi);
-    if(r&&r.clar>0.6&&r.f>=bLo&&r.f<=bHi){const s=tuTarget(r.f);
+    if(r&&r.clar>TU.P.clarW&&r.f>=bLo&&r.f<=bHi){const s=tuTarget(r.f);
       if(TU.wc&&TU.wc.si===s&&now-TU.wc.t<150)TU.wc.n++;else TU.wc={si:s,n:1};TU.wc.t=now;TU.last=now;
-      if(TU.wc.n>=(TU.pend?5:8)){TU.lockSi=s;TU.pend=false}}   /* 새로 튕긴 뒤엔 앞 음이 안 섞여 5번이면 충분 */
+      if(TU.wc.n>=(TU.pend?Math.max(2,TU.P.strN-3):TU.P.strN)){TU.lockSi=s;TU.pend=false}}   /* 새로 튕긴 뒤엔 앞 음이 안 섞여 5번이면 충분 */
   }
   const si=manual?TU.sel:TU.lockSi;tuSetBand(si,now);
   /* 정밀: 목표 줄 대역 신호에서 측정 (자동에서 새로 튕긴 줄이 아직 확인 전이면 앞 줄 대역으로 재지 않음) */
   let got=false;
   if(si!=null&&loud&&!atkP&&!tail&&!(TU.pend&&!manual)&&now-TU.fcAt>60){   /* 필터가 자리 잡은 뒤 */
     TU.an2.getFloatTimeDomainData(TU.buf2);const tg=tuHz(tuMidi(si)),bw=manual?1.414:1.155,r2=tuPitchBand(TU.buf2.subarray(8192-wlen(Math.max((TU.atk||0)+250,TU.fcAt||0))),sr,tg/bw,tg*bw);   /* 자동은 ±250센트만 (옆 줄 음이 섞여도 안 잡힘) */
-    if(r2&&r2.clar>0.5){got=true;TU.gotAt=now;if(!late)(TU.body=TU.body||[]).push(r2.f);   /* 잡음이 섞이면 선명도가 낮아지므로 기준을 낮추고, 대신 아래 지속성 확인으로 거름 */TU.last=now;
-      if(TU.shown&&Math.abs(tuCt(r2.f,tuTM(TU.hist2)))>20){   /* 지금 음과 20센트 넘게 다른 값: 12번 이어질 때만 새 음 (줄감개를 많이 돌린 경우) */
+    if(r2&&r2.clar>TU.P.clar){got=true;TU.gotAt=now;if(!late)(TU.body=TU.body||[]).push(r2.f);   /* 잡음이 섞이면 선명도가 낮아지므로 기준을 낮추고, 대신 아래 지속성 확인으로 거름 */TU.last=now;
+      if(TU.shown&&Math.abs(tuCt(r2.f,tuTM(TU.hist2)))>TU.P.newC){   /* 지금 음과 20센트 넘게 다른 값: 12번 이어질 때만 새 음 (줄감개를 많이 돌린 경우) */
         const cd=TU.cand;if(cd.length&&Math.abs(tuCt(r2.f,cd[cd.length-1]))>30)cd.length=0;cd.push(r2.f);
-        if(cd.length>=12){TU.hist2=cd.slice(-12);TU.cand=[];TU.newNote=true}
+        if(cd.length>=TU.P.newN){TU.hist2=cd.slice(-TU.P.newN);TU.cand=[];TU.newNote=true}
       }else{TU.cand=[];TU.hist2.push(r2.f);if(TU.hist2.length>30)TU.hist2.shift()}
       /* 처음 보여줄 때: 최근 8개(약 0.13초)가 ±30센트 안에 모여야 (지속음 확인) */
-      if(!TU.shown&&TU.hist2.length>=8){const l=TU.hist2.slice(-8),m=tuTM(l);if(l.every(f=>Math.abs(tuCt(f,m))<30)){TU.hist2=l;TU.shown=true;TU.newNote=true}else TU.hist2.shift()}
+      if(!TU.shown&&TU.hist2.length>=TU.P.firstN){const l=TU.hist2.slice(-TU.P.firstN),m=tuTM(l);if(l.every(f=>Math.abs(tuCt(f,m))<TU.P.firstC)){TU.hist2=l;TU.shown=true;TU.newNote=true}else TU.hist2.shift()}
     }
   }
   const repOf=()=>tuTM(TU.body.slice(TU.body.length>>1));   /* 이번 튕김 대표값: 몸통(0.25초 뒤 ~ 30%)의 뒤쪽 절반 */
@@ -2632,7 +2654,7 @@ function tuTick0(){
     tuShow(v,now);if(fz)repLbl()}
   else if(tail&&TU.shown&&!TU.tailDone&&!TU.noFz&&TU.body&&TU.body.length>=10){
     TU.tailDone=true;if(TU.rep==null){TU.rep=repOf();TU.newNote=true}tuShow(TU.rep,now);repLbl();TU.last=now+1500}
-  else if(!atk&&now-(TU.last||0)>1500&&(TU.cur||TU.shown||TU.lockSi!=null)){TU.hist2=[];TU.cand=[];TU.shown=false;TU.wc=null;TU.pend=false;TU.fl=false;if(!manual){TU.lockSi=null;tuSetBand(null,now)}tuShow(null,now)}   /* 1.5초 동안 소리 없으면 비움 */
+  else if(!atk&&now-(TU.last||0)>TU.P.clear*1000&&(TU.cur||TU.shown||TU.lockSi!=null)){TU.hist2=[];TU.cand=[];TU.shown=false;TU.wc=null;TU.pend=false;TU.fl=false;if(!manual){TU.lockSi=null;tuSetBand(null,now)}tuShow(null,now)}   /* 1.5초 동안 소리 없으면 비움 */
   tuStrobe(now);tuTrail(now);
 }
 /* 화면: 음 이름 · 센트 바늘 · ±10센트 확대 막대 · 스트로브 · 맞음 고정 */
@@ -2647,11 +2669,11 @@ function tuShow(f,now){
   /* 바늘 떨림 줄이기: 항상 시간 기준 지수 평활(τ 0.12초). 새 음으로 확정됐을 때만 바로 그 값으로 */
   const dt=TU.scAt?Math.min(0.2,(now-TU.scAt)/1000):0;TU.scAt=now;
   if(TU.sc==null||!TU.cur||TU.cur.si!==si||TU.newNote){TU.sc=raw;TU.newNote=false}else{const dv=raw-TU.sc,sg=Math.sign(dv);if(Math.abs(dv)>3){if(TU.trS===sg)TU.trN++;else{TU.trS=sg;TU.trN=1}}else TU.trN=0;
-    TU.sc+=(1-Math.exp(-dt/(TU.trN>=6?0.08:0.4)))*(raw-TU.sc)}
-  const c=TU.sc,near=Math.round(69+12*Math.log2(f/TU.a4)),far=Math.abs(c)>100,thIn=TU.prec==='fine'?3:5,ok=Math.abs(c)<=(TU.okSince||TU.locked?thIn+2:thIn);
+    TU.sc+=(1-Math.exp(-dt/(TU.trN>=6?TU.P.fast:TU.P.smooth)))*(raw-TU.sc)}
+  const c=TU.sc,near=Math.round(69+12*Math.log2(f/TU.a4)),far=Math.abs(c)>100,thIn=TU.prec==='fine'?TU.P.okF:TU.P.okN,ok=Math.abs(c)<=(TU.okSince||TU.locked?thIn+TU.P.hyst:thIn);
   if(ok&&!far){if(!TU.okSince)TU.okSince=now}else{TU.okSince=0;TU.locked=false}
-  const lock=ok&&!far&&now-TU.okSince>600;
-  if(lock&&!TU.locked){TU.locked=true;try{if(navigator.vibrate&&(!navigator.userActivation||navigator.userActivation.hasBeenActive))navigator.vibrate(40)}catch(e){}}
+  const lock=ok&&!far&&now-TU.okSince>TU.P.lockMs;
+  if(lock&&!TU.locked){TU.locked=true;tuDing();try{if(navigator.vibrate&&(!navigator.userActivation||navigator.userActivation.hasBeenActive))navigator.vibrate(40)}catch(e){}}
   g('tuNote').textContent=nn(near);g('tuOct').textContent=String(Math.floor(near/12)-1);
   g('tuHz').textContent=f.toFixed(2)+' Hz  ·  목표 '+(6-si)+'번 줄 '+tuName(target)+' '+tuHz(target).toFixed(2)+' Hz';
   g('tuCents').textContent=far?'':((Math.round(c)>0?'+':Math.round(c)<0?'−':'')+Math.abs(Math.round(c))+' 센트');
