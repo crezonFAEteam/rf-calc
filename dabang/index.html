@@ -1135,7 +1135,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-25 03:45';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-25 04:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -1344,6 +1344,7 @@ if(window.ResizeObserver)new ResizeObserver(()=>{clearTimeout(pinFit.t);pinFit.t
 /* ---------- 화면 전체 크기 (50~130%): 휴대폰은 페이지가 화면 폭에 맞으면 두 손가락으로 더 줄여지지 않아 앱에서 직접 ---------- */
 function uizApply(){
   document.body.style.zoom=uiz===1?'':String(uiz);
+  document.querySelectorAll('header .tops').forEach(t=>t.style.zoom=uiz<1?String(Math.round(1/uiz*1000)/1000):'');   /* 화면 전체를 줄여도 위 버튼(－ ＋ 등)은 원래 크기 — 누를 수 있게 */
   const v=document.getElementById('uizVal');if(v)v.textContent=Math.round(uiz*100)+'%';
 }
 function setUiz(z){
