@@ -308,6 +308,10 @@ body.bd-off #boardScroll,body.bd-off .board-bar,body.bd-off .legend{display:none
 #p-song #sgSheet,#p-song #sgTab{max-height:calc(100vh - 150px);max-height:calc(100dvh - 150px);overflow:auto;overscroll-behavior:contain;border-radius:10px}
 #p-song .sg-ctl{padding:4px 0 2px}
 .fol-pause{position:sticky;top:0;float:right;z-index:3;font-size:.75rem;background:#ffd400;color:#222;padding:2px 8px;border-radius:8px;margin:4px}
+.ph-ov{position:fixed;inset:0;z-index:9999;background:rgba(10,12,14,.88);display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px}
+.ph-bar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center;color:#eee;font-size:.9rem}.ph-bar .chip{background:#2a2d31;color:#eee;border-color:#444}.ph-bar .chip[aria-pressed=true]{background:#ffd400;color:#222}
+.ph-wrap{flex:1;min-height:0;display:flex;align-items:flex-start;justify-content:center;width:100%;overflow:auto}
+.ph-dev{border:10px solid #000;border-radius:28px;background:#fff;box-shadow:0 10px 40px rgba(0,0,0,.6);transform-origin:top center}.ph-dev iframe{display:block;border:0;border-radius:18px;background:#fff}
 .zz-k{color:#2b63b0;font-weight:600}.zz-h{flex-basis:100%;font-weight:700;font-size:.88rem;margin:0 2px 2px}.zz-mine{background:color-mix(in srgb,#e0a21e 16%,transparent)}.zz-mine .zz-h{color:#a86d00}.zz-rec{background:color-mix(in srgb,#3b7dd8 12%,transparent)}.zz-rec .zz-h{color:#2b63b0}.zz-grp .zz-it{background:var(--surface)}.zz-it.on{border-color:var(--accent);font-weight:700}.zz-q{width:100%;margin-top:6px;padding:6px 8px;font-size:.95rem}.zz-bm{text-decoration:none;cursor:grab}
 .phone-only{display:none}@media (pointer:coarse){.phone-only{display:inline}}
 /* 곡연습: 악보는 늘 전체 폭 — 믹서 · 반복 마디는 악보 위에 (넓으면 여러 칸) */
@@ -625,6 +629,7 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
   <header class="top">
     <h1>쎄이기타</h1>
     <div class="tops">
+    <button id="phPrev" class="ghost sm pc-only" title="PC 에서 휴대폰 · 태블릿 화면으로 미리 보기 (PC 곡 목록 그대로)">📱 폰 보기</button>
     <div class="lbl-tg" role="group" aria-label="화면 폭"><button id="sgBig" data-sgbig="1" aria-pressed="false" title="화면 폭 전체 사용 — 지판 · 악보 모두 넓게 · 애드립 · 블루스는 악보를 위로 (다시 누르면 원래대로)">⛶ 넓게</button></div>
     <div class="lbl-tg" role="group" aria-label="지판 보기 방식" hidden>
       <button data-view="1" aria-pressed="true" title="한 줄로 보기 (옆으로 밀어서)">1줄</button>
@@ -1106,7 +1111,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-24 22:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-24 22:20';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -3380,6 +3385,20 @@ function sgCStrip(){
 document.addEventListener('click',e=>{const b=e.target.closest('[data-cs]');if(!b)return;SG.cstrip=b.dataset.cs==='1';store.set('chordcalc-cstrip',SG.cstrip?'1':'0');const x=document.getElementById('sgCStrip');if(x)x.dataset.k='';sgCStrip()});
 (function(){const off=store.get('chordcalc-boardshow')==='0';const apply=v=>{document.body.classList.toggle('bd-off',!v);const c=document.getElementById('boardShow');if(c)c.checked=v};
   document.addEventListener('DOMContentLoaded',()=>apply(!off));document.addEventListener('change',e=>{if(e.target&&e.target.id==='boardShow'){store.set('chordcalc-boardshow',e.target.checked?'1':'0');apply(e.target.checked)}})})();
+/* ---------- 📱 폰 보기: PC 에서 같은 앱을 휴대폰 · 태블릿 폭으로 (화면에 맞춰 축소) — PC 곡 목록 · 도우미 그대로 ---------- */
+const PH_DEV=[['iphone','아이폰 (390×844)',390,844],['small','작은 폰 (360×780)',360,780],['galaxy','갤럭시 (412×915)',412,915],['ipad','아이패드 (820×1180)',820,1180],['land','폰 가로 (844×390)',844,390]];
+function phOpen(dev){
+  let ov=document.getElementById('phOv');const d=PH_DEV.find(x=>x[0]===dev)||PH_DEV[0];store.set('chordcalc-phdev',d[0]);
+  if(!ov){ov=document.createElement('div');ov.id='phOv';ov.className='ph-ov';document.body.appendChild(ov);
+    ov.addEventListener('click',e=>{const b=e.target.closest('[data-phdev],[data-phx]');if(!b)return;if(b.dataset.phx){ov.remove();document.body.style.overflow='';return}phOpen(b.dataset.phdev)})}
+  ov.innerHTML=`<div class="ph-bar">📱 폰 보기 ${PH_DEV.map(x=>`<button class="chip" data-phdev="${x[0]}" aria-pressed="${x[0]===d[0]}">${x[1]}</button>`).join('')}<button class="chip" data-phx="1">닫기 ✕</button></div>
+    <div class="ph-wrap"><div class="ph-dev"><iframe title="폰 보기" src="${esc(location.href.split('#')[0])}" width="${d[2]}" height="${d[3]}"></iframe></div></div>`;
+  document.body.style.overflow='hidden';
+  const fit=()=>{const w=ov.querySelector('.ph-wrap'),dv=ov.querySelector('.ph-dev');if(!w||!dv)return;const k=Math.min(1,(w.clientHeight-10)/(d[3]+20),(w.clientWidth-10)/(d[2]+20));dv.style.transform=`scale(${k.toFixed(3)})`};
+  requestAnimationFrame(fit);window.addEventListener('resize',fit,{once:true})}
+document.addEventListener('click',e=>{if(e.target.closest('#phPrev'))phOpen(store.get('chordcalc-phdev')||'iphone')});
+if(window.self!==window.top)document.addEventListener('DOMContentLoaded',()=>{const b=document.getElementById('phPrev');if(b)b.remove()});   /* 미리 보기 안에서는 버튼 없음 */
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){const o=document.getElementById('phOv');if(o){o.remove();document.body.style.overflow=''}}});
 function sgChordAt(sl){const cs=sgCh();let c=null;for(const x of cs){if(x.s<=sl)c=x;else break}return c}
 /* ---------- 곡편집: 곡 폴더(saygita\songAnalyze\곡명) — 입력 모으기 · 곡 분석 · 최종악보 · 휴대폰 공유 ----------
    모든 동작은 PC 분석 도우미(127.0.0.1:52525)로. 목록은 도우미가 폴더를 훑어 만든 목록.json */
