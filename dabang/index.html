@@ -1160,7 +1160,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-26 06:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-26 06:40';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -5562,7 +5562,7 @@ async function sgAnalyze(file){
   let t=0;for(let i=Math.max(0,nf-2*per);i<nf;i++)if(sc[i]>sc[t])t=i;
   let bf=[];while(t>=0){bf.push(t);t=bp[t]}bf.reverse();
   let bt=bf.map(f=>(f*H+N/2)/SR);if(bt.length<8){bt=[];for(let s=0;s<dur;s+=per/fps)bt.push(s)}
-  const pS=per/fps;while(bt[0]>pS*0.5)bt.unshift(bt[0]-pS);while(bt[bt.length-1]<dur)bt.push(bt[bt.length-1]+pS);
+  let pS=per/fps;while(bt[0]>pS*0.5)bt.unshift(bt[0]-pS);while(bt[bt.length-1]<dur)bt.push(bt[bt.length-1]+pS);
   /* 4) 박마다 코드 (PC 분석기와 같은 틀 · 비터비) */
   const fr0=s=>Math.max(0,Math.min(nf,Math.round((s*SR-N/2)/H)));
   const nb=bt.length-1,cs=[],bsq=[],eb=[],lb=[];
@@ -5585,6 +5585,11 @@ async function sgAnalyze(file){
   const es=[...eb].sort((a,b)=>a-b),thr=(es[Math.floor(es.length*0.9)]||0)*0.08;
   const names=path.map((k,b)=>eb[b]<thr?'N':NOTE[L[k][0]]+L[k][1]);
   for(let b=1;b<names.length-1;b++)if(names[b]!==names[b-1]&&names[b]!==names[b+1])names[b]=names[b-1];
+  /* 템포를 2배(8분음표 박)로 잡은 곡 바로잡기 (PC 분석기와 같은 기준): 115 BPM 넘고 · 2박 이하 코드 25% 미만 · 8박 이상 코드 15% 이상 → 박 하나 건너 하나 */
+  {const runs=[];let r=1;for(let i=1;i<names.length;i++){if(names[i]===names[i-1])r++;else{runs.push(r);r=1}}runs.push(r);
+    const sh2=runs.filter(x=>x<=2).length/runs.length,lg8=runs.filter(x=>x>=8).length/runs.length;
+    if(60/pS>115&&sh2<0.25&&lg8>=0.15&&bt.length>16){const cnt=o=>{let c=0;for(let i=1;i<names.length;i++)if((i-o)%2===0&&names[i]!==names[i-1]&&names[i]!=='N')c++;return c},o=cnt(1)>cnt(0)?1:0;
+      bt=bt.filter((_,i)=>i%2===o);const keep=(a)=>a.filter((_,i)=>i%2===o).slice(0,Math.max(1,bt.length-1));names.splice(0,names.length,...keep(names));const l2=keep(lb);lb.splice(0,lb.length,...l2);pS*=2}}
   /* 5) 마디 첫 박 = 코드가 바뀌는 박이 가장 많이 모이는 위상 */
   const lm=Math.max(...lb,1e-9),ph=[0,1,2,3].map(p=>{let c=0;for(let b=1;b<names.length;b++)if(b%4===p&&names[b]!==names[b-1]&&names[b]!=='N')c++;
     const v=lb.filter((_,i)=>i%4===p);return c+0.3*(v.length?mean(v):0)/lm});
