@@ -342,7 +342,9 @@ body.bd-off #boardScroll,body.bd-off .board-bar,body.bd-off .legend{display:none
 .sg-set{margin:4px 0}.sg-set .sg-top.in-set{padding-bottom:6px;margin-bottom:6px;border-bottom:1px dashed var(--line)}.sg-set>summary{cursor:pointer;list-style:none;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;padding:2px 0}
 .sg-set>summary::-webkit-details-marker{display:none}.sg-set .ss-v{color:var(--muted);font-weight:600;font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}.sg-set[open] .ss-v{display:none}
 .sg-set .ss-tg{margin-left:auto;align-self:center;flex:0 0 auto;font-size:.8rem;font-weight:700;padding:3px 10px;border-radius:999px;border:1.5px solid var(--accent,#c98a1a);color:var(--accent,#c98a1a)}.sg-set .ss-tg::after{content:'▲ 설정 접기'}.sg-set:not([open]) .ss-tg{background:var(--accent-fill);color:var(--on-accent);border-color:var(--accent-fill)}.sg-set:not([open]) .ss-tg::after{content:'▼ 설정 펼치기'}
-.sg-set[open]>summary{margin-bottom:6px}.sg-set:not([open])>summary{padding:4px 8px;border-radius:10px;border:1.5px dashed var(--accent,#c98a1a)}
+.sg-set[open]>summary{margin-bottom:6px}
+.sg-set>summary #sgTitle{order:1;flex:1 1 auto;min-width:0}.sg-set>summary .ss-tg{order:2}.sg-set>summary #sgMeta{order:3;flex-basis:100%}.sg-set>summary .ss-v{order:4;flex-basis:100%}
+.sg-set>summary #sgTitle::before{content:'▸';display:inline-block;width:1.1em;color:var(--accent,#c98a1a);transition:transform .15s}.sg-set[open]>summary #sgTitle::before{transform:rotate(90deg)}.sg-set:not([open])>summary{padding:4px 8px;border-radius:10px;border:1.5px dashed var(--accent,#c98a1a)}
 @media (max-width:699px){
   #p-song .sg-tr{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;gap:4px}#p-song .sg-tr::-webkit-scrollbar{display:none}
   #p-song .sg-tr>*{flex:0 0 auto}#p-song .sg-tr button{padding:4px 9px;font-size:.78rem;min-height:30px}#p-song .sg-tr .play{padding:4px 14px}
@@ -1160,7 +1162,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-26 06:40';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-26 07:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -5031,7 +5033,7 @@ function sgRender(){
   const s=SG.song;sgEl('sgMain').hidden=!s;sgEl('sgHelp').hidden=!!s;{const x=document.getElementById('sgCStrip');if(x)x.dataset.k=''}try{sgCStrip()}catch(e){}if(!s)return;
   sgEl('sgTitle').textContent=s.title;
   const chs=[...new Set(sgCh().map(c=>c.name))];
-  sgEl('sgMeta').textContent=` · 템포 약 ${s.tempo} BPM · ${s.bars}마디 · 코드 ${chs.slice(0,10).join(' ')}${chs.length>10?' …':''}`+(s.quick?' · 간이 분석(박자 · 코드). 가사 · 트랙 분리 · TAB은 PC 분석에서':'')+(s.fixed?` · 🎼 악보 기준 보정 코드(${s.fixed}곳)`:'');
+  sgEl('sgMeta').textContent=`템포 약 ${s.tempo} BPM · ${s.bars}마디 · 코드 ${chs.slice(0,10).join(' ')}${chs.length>10?' …':''}`+(s.quick?' · 간이 분석(박자 · 코드). 가사 · 트랙 분리 · TAB은 PC 분석에서':'')+(s.fixed?` · 🎼 악보 기준 보정 코드(${s.fixed}곳)`:'');
   /* 믹서 */
   sgEl('sgMix').innerHTML=SG.ids.map(i=>{const st=s.stems.find(x=>x.id===i),x=SG.mix[i];
     return `<div class="sg-mx"><span class="sg-mxn">${esc(st.name)}</span><button class="ghost sm" data-sgm="${i}" aria-pressed="${!x.mute}" title="켜기/끄기">${x.mute?'끔':'켬'}</button><button class="ghost sm" data-sgs="${i}" aria-pressed="${x.solo}" title="이 트랙만 듣기">혼자</button><input type="range" min="0" max="200" value="${Math.round(x.vol*100)}" list="sgv100" data-sgv="${i}" aria-label="${esc(st.name)} 음량" title="${Math.round(x.vol*100)}% (100% = 원음 크기)"><span class="sg-mxv">${Math.round(x.vol*100)}%</span></div>`}).join('')+'<datalist id="sgv100"><option value="100"></option></datalist>';
