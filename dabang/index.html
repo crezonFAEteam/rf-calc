@@ -1151,7 +1151,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-25 07:40';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-25 07:50';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -2227,9 +2227,9 @@ function vnPinch(el){let pz=null;const dist=t=>Math.hypot(t[0].clientX-t[1].clie
   el.addEventListener('touchend',e=>{if(e.touches.length<2)pz=null},{capture:true});
   el.addEventListener('wheel',e=>{if(!e.ctrlKey)return;e.preventDefault();e.stopImmediatePropagation();const n=performance.now();if(n-(el._wt||0)<250)return;el._wt=n;vnStep(el,e.deltaY>0?1:-1)},{passive:false,capture:true})}
 function vnFit(root){if(!root)return;root.querySelectorAll('pre.vnfit').forEach(p=>{const w=p.parentElement&&p.parentElement.clientWidth-6;if(!(w>0))return;
-  p.style.letterSpacing='0';let fs=parseFloat(getComputedStyle(p).fontSize)||12;for(let i=0;i<3;i++){const sw=p.scrollWidth,cw=Math.min(w,p.clientWidth||w)-2;if(!sw)return;if(i&&sw<=cw)break;fs=Math.max(4.5,Math.min(20,fs*cw/sw*0.985));p.style.fontSize=fs.toFixed(1)+'px'}})}
+  p.style.letterSpacing='0';let fs=parseFloat(getComputedStyle(p).fontSize)||12;for(let i=0;i<3;i++){const sw=p.scrollWidth,cw=Math.min(w,p.clientWidth||w)-2;if(!sw)return;if(i&&sw<=cw)break;fs=Math.max(4.5,Math.min(30,fs*cw/sw*0.985));p.style.fontSize=fs.toFixed(1)+'px'}})}
 document.addEventListener('DOMContentLoaded',()=>{['sgSheet','sgTab','blTab','adTab','ceBox'].forEach(id=>{const e=document.getElementById(id);if(e)vnPinch(e)});
-  ['sgTab','adTab','ceBox'].forEach(id=>{const e=document.getElementById(id);if(e)new MutationObserver(()=>{if(VN.tab)requestAnimationFrame(()=>vnFit(e))}).observe(e,{childList:true,subtree:true})})});
+  ['sgTab','adTab','ceBox','blTab'].forEach(id=>{const e=document.getElementById(id);if(e)new MutationObserver(()=>{if(VN.tab)requestAnimationFrame(()=>vnFit(e))}).observe(e,{childList:true,subtree:true})})});
 function tabFocusHTML(lk,k,b,v0){   /* 블록: 마디마다 [코드 카드] 위 · [TAB 카드] 아래 같은 폭 — 한 화면에 VN.blk 칸 · 옆으로 밀어 봄 · 재생하면 지금 블록이 가운데 */
   const BAR=lk.bar||8,bars=Math.max(1,Math.ceil(lk.total/BAR));const bt=Math.max(1,Math.round(BAR/4));b=Math.max(0,Math.min(bars-1,b));
   const N=Math.max(1,Math.min(5,VN.blk||3)),W=Math.max(220,((window.innerWidth||400)-64)),bw=Math.floor((W-(N-1)*8)/N),fit=c=>(bw-14)/((BAR*c+3)*0.61);
@@ -2258,8 +2258,8 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-tfx],[data
     const el=document.getElementById(id);if(!el||!el.querySelector('.tf'))return;const btn=el.querySelector(`[data-tfgo="${dx<0?1:-1}"]`);if(btn&&!(id==='sgTab'&&SG.playing)&&!(id==='blTab'&&BL.playing))btn.click()},{passive:true})});
 function tabFullPre(lk,k,id){const el=document.getElementById(id),BAR=lk.bar||8,C=tabC();let per=VN.tab||tabPer(BAR,id);
   if(!VN.tab)return `<pre>${tabRender(lk,k,true,per)}</pre>`;
-  const w=Math.max(200,(el&&el.clientWidth||((window.innerWidth||400)-40))-30),fs=Math.round(Math.max(4.5,Math.min(20,w/((per*(BAR*C+1)+3)*0.61)))*10)/10;
-  return `<pre style="font-size:${fs}px;letter-spacing:0">${tabRender(lk,k,true,per)}</pre>`}
+  const w=Math.max(200,(el&&el.clientWidth||((window.innerWidth||400)-40))-30),fs=Math.round(Math.max(4.5,Math.min(30,w/((per*(BAR*C+1)+3)*0.61)))*10)/10;
+  return `<pre class="vnfit" style="font-size:${fs}px;letter-spacing:0">${tabRender(lk,k,true,per)}</pre>`}
 function tabFocusBtn(){return (window.innerWidth||1000)<700&&!tabFocusOn()?'<button class="ghost sm" data-tfx="1" style="margin:4px 0">🎯 마디 보기 (지금 마디 크게)</button>':''}
 function tabC(){return tabC.force||((window.innerWidth||1000)<700?2:3)}
 function tabRender(lk,k,html,perIn,rg){
