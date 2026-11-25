@@ -1160,7 +1160,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-26 01:10';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-26 05:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -2224,7 +2224,7 @@ function vnKind(el){return el&&el.querySelector('.tf')?'blk':el&&el.id==='sgShee
 function vnNow(kind,el){if(VN[kind])return VN[kind];
   if(kind==='sheet'){const sh=document.getElementById('sgSheet');return sh?getComputedStyle(sh).gridTemplateColumns.split(' ').length:4}
   if(kind==='tab'){const p=el&&el.querySelector('pre');return (p&&p._per)||4}return 3}
-function vnToast(t){let x=document.getElementById('uizToast');if(!x){x=document.createElement('div');x.id='uizToast';document.body.appendChild(x)}x.textContent=t;x.classList.add('on');clearTimeout(vnToast.t);vnToast.t=setTimeout(()=>x.classList.remove('on'),900)}
+function vnToast(t,ms){let x=document.getElementById('uizToast');if(!x){x=document.createElement('div');x.id='uizToast';document.body.appendChild(x)}x.textContent=t;x.classList.add('on');clearTimeout(vnToast.t);vnToast.t=setTimeout(()=>x.classList.remove('on'),ms||900)}
 function vnStep(el,d){const kind=vnKind(el),n=Math.max(1,Math.min(VN_MAX[kind],vnNow(kind,el)+d));if(n===VN[kind]&&VN[kind])return;VN[kind]=n;store.set('chordcalc-vn-'+kind,String(n));
   vnToast(kind==='blk'?`한 화면 ${n}칸`:`한 줄 ${n}마디`);
   if(el&&el.id==='ceBox'){ceRender();return}if(el&&el.id==='adTab'){renderAdTab();return}
@@ -3565,7 +3565,7 @@ function edState(msg){   /* 도우미가 없거나 예전 버전: 안내 + 뼈�
   const dis=!!msg;['edSong','edOpenSong','edOpenDir','edImpFile','edImpLink','edImpRec'].forEach(i=>sgEl(i).disabled=dis);
   sgEl('p-edit').classList.toggle('ed-dis',dis);
 }
-const SG_HELPER_BUILD=20261128;   /* 이 앱에 맞는 도우미 설치본 판 — 도우미가 더 낮으면 새 설치 안내 */
+const SG_HELPER_BUILD=20261129;   /* 이 앱에 맞는 도우미 설치본 판 — 도우미가 더 낮으면 새 설치 안내 */
 function edTab(t){ED.tab=t||ED.tab||'in';store.set('chordcalc-edtab',ED.tab);
   document.querySelectorAll('[data-edtab]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.edtab===ED.tab));
   document.querySelectorAll('#edBody .ed-pane').forEach(x=>x.hidden=x.dataset.pane!==ED.tab)}
@@ -4452,6 +4452,8 @@ async function ceOpen(title,fresh){
     CE.wl=(song.lines||[]).map(l=>({s:l.s,t:l.t,text:l.text}));CE.ww=(song.lyrics||[]).map(w=>({s:w.s,w:w.w}));   /* 받아 적기 줄 · 낱말 */   /* 원음 받아 적기 가사 줄: 리듬악보 가사 줄 자리 잡기의 기준 (같은 글자로 시작하는 줄) */
     lySnap(song);CE.song=song;CE.rec=await (await fetch(ceUrl('출력','최종악보','기타반주보정','반주보정.json'),{cache:'no-store'})).json().catch(()=>null);
     if(CE.rec&&CE.rec.kind!=='saygita-backing')CE.rec=null;
+    if(CE.rec){const g=CE.rec.grid,ds=(CE.rec.chords&&CE.rec.chords.decisions)||[],mx=ds.reduce((a,x)=>Math.max(a,x.s||0),0);   /* 곡을 다시 분석해 박 · 마디가 바뀌었으면 (예: 템포 2배 바로잡기) 예전 저장값은 자리가 안 맞음 → 쓰지 않음 */
+      if((g&&(Math.abs((g.tempo||0)-(song.tempo||0))>1||g.bars!==song.bars))||(!g&&song.bars&&mx>song.bars*16+16)){CE.rec=null;CE.gridReset=true;try{vnToast('곡을 다시 분석해 마디가 바뀌어서 예전에 저장한 코드 결정 · 리듬악보 자리는 쓰지 않습니다 — 다시 확인 후 저장하세요',7000)}catch(e){}}}
     if(fresh)CE.rec=null;CE.savedAt=null;CE.fresh=!!fresh;   /* [초기화]: 저장된 결정 무시 (저장 전까지 파일은 그대로) */
     CE.beats0=(song.beats||[]).slice();CE.off=+(CE.rec&&CE.rec.syncOff)||0;CE.lyShift={...((CE.rec&&CE.rec.lyShift)||{})};lyTune(song,CE.rec);
     const srcs=await ceGetScores(title,say);
@@ -4762,7 +4764,7 @@ sgEl('ceAudio').addEventListener('play',()=>{ceSynthStop();CE.fkey='';if(!CE.fra
 sgEl('ceAudio').addEventListener('pause',()=>document.querySelectorAll('#ceBox .ce-rplay.playing').forEach(x=>x.classList.remove('playing')));
 async function ceSave(markDone){
   const D=CE.D,rec=CE.rec&&CE.rec.kind==='saygita-backing'?CE.rec:{kind:'saygita-backing',version:1,done:{}};
-  rec.title=CE.title;rec.step=CE.step;rec.made=new Date().toISOString();rec.done=rec.done||{};
+  rec.title=CE.title;rec.step=CE.step;rec.made=new Date().toISOString();rec.done=rec.done||{};rec.grid={tempo:CE.song.tempo,bars:CE.song.bars};   /* 저장할 때의 박 · 마디 (다시 분석해 바뀌면 알아챔) */
   if(markDone)rec.done[markDone]=new Date().toISOString();
   if(CE.rhy){const d=document.createElement('div');d.innerHTML=ceRhyHtml(true);   /* 곡연습 📜 리듬악보 보기용 */
     rec.rhythm={file:CE.rhy.file,blocks:[...d.querySelectorAll('.ce-rtx')].map(b=>{const r=b.querySelector('[data-cerange]'),[s0,e0]=(r?r.dataset.cerange:'0,0').split(',').map(Number),hd=b.querySelector('.ce-rth').cloneNode(true);
