@@ -1160,7 +1160,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-25 16:50';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-25 18:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -4166,21 +4166,22 @@ function ceRhyPlace(){
   R.kBpm=0;if(R.meta&&R.meta.bpm>0&&CE.song&&CE.song.tempo>0){const kb=2*CE.song.tempo/R.meta.bpm,c=[1,2,4].map(k=>[k,Math.abs(Math.log2(kb/k))]).sort((a,b)=>a[1]-b[1])[0];
     if(c[1]<0.32){R.kBpm=c[0];const r=R.units*c[0]/16/NB;if(r>=0.5&&r<=1.5)KS=[c[0]]}}   /* 리듬악보 BPM 과 음원 분석 템포로 숫자가 2배로 적혔는지 정함 (숫자 = 8분음표 수 · BPM = 4분음표 기준 · 길이가 크게 어긋나면 안 씀) */
   if(R.kForce)KS=[R.kForce];
-  const BAp=new Float32Array(NB+1);if(BA)for(let b=0;b<NB;b++)BAp[b+1]=BAp[b]+(BA[b]>0.3?1:0);const sungIn=(a,b)=>b>a?BAp[Math.min(NB,b)]-BAp[Math.max(0,Math.min(NB,a))]:0,GSUNG=5;   /* 노래 줄 사이 틈에 노래 소리가 있으면 = 음원에 없는 틈 → 큰 감점 (줄을 붙여 놓음) */
+  const BAp=new Float32Array(NB+1);if(BA)for(let b=0;b<NB;b++)BAp[b+1]=BAp[b]+(BA[b]>0.3?1:0);const SST=(R.struct||[]).filter(x=>x.sing&&x.s>0).map(x=>x.s),SSW=4,sungIn=(a,b)=>b>a?BAp[Math.min(NB,b)]-BAp[Math.max(0,Math.min(NB,a))]:0,GSUNG=5;   /* 노래 줄 사이 틈에 노래 소리가 있으면 = 음원에 없는 틈 → 큰 감점 (줄을 붙여 놓음) */
   for(const k of KS){
     const lines=R.lines.map(L=>{let cu=0;const cs=L.chords.map(c=>{const o={n:c.n,u:cu,len:c.len};cu+=c.len;return o});return {cs,lb:Math.max(1,Math.round(cu*k/16)),ly:!!L.ly,hum:ceHumLine(L.ly)}});
     const score=(i,b)=>{let s=0,n=0;for(const c of lines[i].cs){const sl=b*16+c.u*k+Math.floor(c.len*k/2);if(sl>=tot)break;const j=atI(sl);if(j<0)continue;n++;s+=simOf(D[j].name,c.n)}
       const an=ANC[i].length?ANCW*Math.max(0,...ANC[i].map(w=>1-Math.abs(w.s-b*16-w.off*k)/12)):0;   /* 받아 적기에서 같은 가사가 시작된 자리 근처면 큰 가산점 */
-      let va=0;if(BA){let m=0,c=0,si=0;for(let q=b;q<Math.min(NB,b+lines[i].lb);q++){m+=BA[q];si+=SG_[q]?1:0;c++}const f=c?si/c:0;
+      let va=0;if(BA){let m=0,c=0,si=0,s1=0,c1=0;const h1=Math.max(1,Math.ceil(lines[i].lb/2));for(let q=b;q<Math.min(NB,b+lines[i].lb);q++){m+=BA[q];si+=SG_[q]?1:0;c++;if(q<b+h1){s1+=SG_[q]?1:0;c1++}}const f=Math.max(c?si/c:0,c1?s1/c1:0);   /* 가사가 짧은 줄(눈물 나누나 + 연주)은 앞 절반만 노래여도 됨 */
         if(lines[i].hum)va=0;else if(lines[i].ly)va=VACT*((c?m/c:0)-0.4)-(f<0.4?15:0);   /* 가사 줄: 노래 있는 곳 + · 대부분 연주 구간이면 거의 불가 (이 녹음에서 안 부른 줄 → 건너뜀) */
         else va=f>0.6?-6:0}   /* 전주 · 간주 · 후주 줄이 노래 구간에 놓이면 감점 */
-      const x=(lines[i].ly&&PH.length&&phAt(b*16-4,b*16+4*k*3)?VOX:0)+an+va;return {s:s+x,n,x}};   /* 가사 줄 앞부분(첫 3박 안)에 실제 노래 시작이 있으면 가산점 */
+      const ssb=lines[i].ly&&!lines[i].hum&&SST.length?Math.max(0,...SST.map(z=>z===b?SSW:Math.abs(z-b)===1?SSW*0.4:0)):0;   /* 연주 뒤 노래가 다시 시작되는 마디 = 노래 줄 시작 */
+      const x=(lines[i].ly&&PH.length&&phAt(b*16-4,b*16+4*k*3)?VOX:0)+an+va+ssb;return {s:s+x,n,x}};   /* 가사 줄 앞부분(첫 3박 안)에 실제 노래 시작이 있으면 가산점 */
     const N=lines.length,dp=[],bk=[],skc=[];
     for(let i=0;i<N;i++){dp.push(new Float64Array(NB).fill(-1e9));bk.push(new Int32Array(NB).fill(-1));skc.push(new Uint8Array(NB));
       for(let b=0;b<NB;b++){const {s}=score(i,b);
-        if(i===0){dp[0][b]=s;continue}
+        if(i===0){dp[0][b]=s-(lines[0].ly&&!lines[0].hum?GSUNG*sungIn(0,b):0);continue}   /* 첫 줄이 노래 줄이면: 그 앞에 노래 소리가 있는 마디 = 놓친 노래 → 감점 */
         let bv=-1e9,bb=-1;const L0=lines[i-1].lb,fx=!lines[i-1].ly;   /* 가사 없는 줄(전주 · 간주 · 후주)은 리듬악보에 길이가 대략 적힌 경우가 많아 짧게 · 길게 모두 허용 (가사 줄은 그대로) */
-        for(let q=0;q+(fx?1:L0)<=b;q++){if(dp[i-1][q]<-1e8)continue;const v=dp[i-1][q]-(fx?0.15*Math.abs(b-q-L0):GAP*(b-q-L0)+(lines[i].ly?GSUNG*sungIn(q+L0,b):0));if(v>bv){bv=v;bb=q}}
+        for(let q=0;q+(fx?1:L0)<=b;q++){if(dp[i-1][q]<-1e8)continue;const v=dp[i-1][q]-(fx?0.15*Math.abs(b-q-L0):GAP*(b-q-L0))-(lines[i].ly?GSUNG*sungIn(q+L0,b):0);if(v>bv){bv=v;bb=q}}
         let bsk=0;if(BA)for(let sk=1;sk<=2;sk++){const j=i-1-sk;if(j<0)break;let okk=true;for(let t=j+1;t<i;t++)if(!lines[t].ly){okk=false;break}if(!okk)break;   /* 노래 트랙이 있을 때만 */
           const Lj=lines[j].lb,fj=!lines[j].ly;for(let q=0;q+(fj?1:Lj)<=b;q++){if(dp[j][q]<-1e8)continue;const v=dp[j][q]-SKP*sk-(fj?0.15*Math.abs(b-q-Lj):GAP*(b-q-Lj)+(lines[i].ly?GSUNG*sungIn(q+Lj,b):0));if(v>bv){bv=v;bb=q;bsk=sk}}}
         if(bb>=0){dp[i][b]=bv+s;bk[i][b]=bb;skc[i][b]=bsk}}}
@@ -4269,7 +4270,7 @@ function ceRhySheet(R,fmt,cls){
   /* 2. 리듬악보가 덮지 않는 노래 없는 구간 → 음원 분석 코드로 (4마디씩) */
   const cov=new Set();R.lines.forEach(L=>{for(let b=Math.floor(Math.max(0,L.s)/16);b<Math.ceil(Math.min(tot,L.e)/16);b++)cov.add(b)});
   let run=null;const flush=()=>{if(!run)return;const a=run.a*16,e=(run.b+1)*16,pts=[];const c0=at(a);if(c0)pts.push({s:a,name:c0.name});
-    D.filter(x=>x.s>a&&x.s<e).forEach(x=>{if(!pts.length||pts[pts.length-1].name!==x.name)pts.push({s:x.s,name:x.name})});   /* 같은 코드가 이어지면 하나로 */
+    D.filter(x=>x.s>a&&x.s<e).forEach(x=>{const q=Math.round(x.s/2)*2,l=pts[pts.length-1];if(l&&l.name===x.name)return;if(l&&q<=l.s){if(q>=e)return;l.name=x.name;return}if(q<e)pts.push({s:q,name:x.name})});   /* 8분음표 칸에 맞춤 (숫자가 4.5 처럼 나오지 않게) · 같은 코드가 이어지면 하나로 */   /* 같은 코드가 이어지면 하나로 */
     if(pts.length&&pts[0].s>a)pts[0].s=a;   /* 곡 맨 앞처럼 코드가 없는 자리는 첫 코드로 채움 (길이 숫자가 묶음 길이와 맞게) */
     blocks.push({s:a,e,gen:true,label:run.k,chords:pts.map((x,j)=>({n:x.name,s:x.s,e:j+1<pts.length?pts[j+1].s:e}))});run=null};
   rows.forEach(r=>{if(!r.kind)return;r.bars.forEach(b=>{if(cov.has(b)){flush();return}
