@@ -26,13 +26,13 @@
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
-    --bg:#111915; --surface:#18231D; --ink:#E4EBE5; --muted:#93A399; --line:#2C3B33; --tabnote:#8CC4FF;
+    --bg:#111915; --surface:#18231D; --ink:#E4EBE5; --muted:#93A399; --line:#2C3B33; --tabnote:#FFFFFF;
     --accent:#E3AE45; --accent-fill:#D49A2A; --on-accent:#1E1406; --chip:#1F2C25; --focus:#7CC2A2;
     color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#111915; --surface:#18231D; --ink:#E4EBE5; --muted:#93A399; --line:#2C3B33; --tabnote:#8CC4FF;
+  --bg:#111915; --surface:#18231D; --ink:#E4EBE5; --muted:#93A399; --line:#2C3B33; --tabnote:#FFFFFF;
   --accent:#E3AE45; --accent-fill:#D49A2A; --on-accent:#1E1406; --chip:#1F2C25; --focus:#7CC2A2;
   color-scheme:dark;
 }
@@ -363,7 +363,7 @@ body.sg-big #p-adlib .al-old>.grid>div:last-child,body.sg-big #p-blues>.grid>div
 #p-blues>.grid{grid-template-columns:minmax(0,1fr)!important;gap:10px}#p-blues>.grid>div{display:contents}
 #p-blues .songbar{order:1}#p-blues #blPwRow{order:2}#p-blues #blBoxField{order:3;margin-top:0!important}
 #p-blues .grid>div>.btns{order:4}#p-blues #blTab{order:5}#p-blues .blctl{order:6}#p-blues #blInfo{order:7}#p-blues .grid>div>.sdesc{order:8}
-#p-blues #blBoxField>.flabel{display:none}   /* 블루스: 넓게 · 보통 모두 한 줄 — 예제 고르기 → 운지표(코드 띠) → 재생 → 악보 → 반복 · 리듬 · 템포 → 설명 */
+#p-blues #blBoxField{display:none!important}#p-blues #blBoxField>.flabel{display:none}   /* 블루스: 넓게 · 보통 모두 한 줄 — 예제 고르기 → 운지표(코드 띠) → 재생 → 악보 → 반복 · 리듬 · 템포 → 설명 */
 /* 조율기: 위에 고정된 지판 · 지판 안내를 숨겨 한 화면에 (줄 버튼이 따로 있음) */
 body[data-page="edit"] #boardScroll,body[data-page="edit"] .board-bar,body[data-page="edit"] .legend,body[data-page="edit"] .lbl-tg,body[data-page="edit"] #cap{display:none}
 .ed-top{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
@@ -1151,7 +1151,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-25 05:40';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-25 06:10';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
