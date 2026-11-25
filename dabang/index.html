@@ -1154,7 +1154,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-25 11:50';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-25 12:20';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -3559,7 +3559,7 @@ function edState(msg){   /* 도우미가 없거나 예전 버전: 안내 + 뼈�
   const dis=!!msg;['edSong','edOpenSong','edOpenDir','edImpFile','edImpLink','edImpRec'].forEach(i=>sgEl(i).disabled=dis);
   sgEl('p-edit').classList.toggle('ed-dis',dis);
 }
-const SG_HELPER_BUILD=20261127;   /* 이 앱에 맞는 도우미 설치본 판 — 도우미가 더 낮으면 새 설치 안내 */
+const SG_HELPER_BUILD=20261128;   /* 이 앱에 맞는 도우미 설치본 판 — 도우미가 더 낮으면 새 설치 안내 */
 function edTab(t){ED.tab=t||ED.tab||'in';store.set('chordcalc-edtab',ED.tab);
   document.querySelectorAll('[data-edtab]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.edtab===ED.tab));
   document.querySelectorAll('#edBody .ed-pane').forEach(x=>x.hidden=x.dataset.pane!==ED.tab)}
@@ -3586,6 +3586,7 @@ async function edLoad(song){
   if(ED.song!==song){const o=sgEl('edScoreOut');o.hidden=true;o.innerHTML='';sgEl('ceBox').hidden=true;try{sgEl('ceAudio').pause()}catch(e){}}
   ED.song=song;store.set('chordcalc-edsong',song);
   try{ED.list=(await edApi('/song-new',{song},'')).list}catch(e){sgEl('edIn').innerHTML=`<p class="ed-rule">${esc(e.message||e)}</p>`;return}
+  if(!ED.busy[song]){try{const j=await (await fetch(SG_HELPER+'/job/'+encodeURIComponent(song),{cache:'no-store'})).json();if(j&&j.state==='running'){ED.busy[song]=`곡 분석: ${Math.round(j.pct||0)}% — ${j.msg||''}`;edPoll(song,song,'곡 분석')}}catch(e){}}
   edRender();
 }
 function edRender(){
@@ -3600,7 +3601,7 @@ function edRender(){
   const grp=n=>(m.final||[]).find(g=>g.folder===n)||{folder:n,files:[]};
   sgEl('edOut').innerHTML=`<div class="ed-row"><div class="ed-k">음원분석</div>
       <div class="ed-files">${anFiles}<div class="ed-rule">매체: ${m.media?esc(m.media):'<span class="ed-warn">입력에 음원 · 영상 · 링크 · 녹음이 필요</span>'}</div>
-        ${busy?`<div class="ed-prog" id="edProg">${esc(busy)}</div>`:''}</div>
+        ${busy?`<div class="ed-prog"><span id="edProg">${esc(busy)}</span> <button class="ghost sm" data-edstop="1" title="분석을 멈춤 — 다시 분석하던 중이면 예전 분석 결과는 그대로">⏹ 분석 중단</button></div>`:''}</div>
       <div class="ed-act"><button class="play sm" data-edan="1" ${m.media&&!busy?'':'disabled'}>${an.length?'다시 분석':'곡 분석'}</button></div></div>`;
   sgEl('edEd').innerHTML=`<div class="ed-row"><div class="ed-k">기타반주보정</div><div class="ed-files">${fl(grp('기타반주보정'))||'<span class="ed-none">· 아직 없음</span>'}</div>
       <div class="ed-act"><button class="play sm" data-edce="1" title="코드 → 가사 → 타이밍 → 리듬악보 → 주법 → 전주 · 간주 · 후주 차례로 검토">✏️ 편집</button></div></div>
@@ -3623,12 +3624,13 @@ function edSum(m){   /* 한눈에: 입력 7종 · 출력 폴더 상태 */
     <span class="lb">출력</span><div class="ed-chips">${c(an.some(x=>/song\.json$/.test(x.file)),'음원분석'+(stale?' ⚠ 다시':''),stale)}${c(fin('기타반주보정')>0,'기타반주보정')}${c(fin('기타솔로')>0,'기타솔로')}${c(ph['상태']==='최신','휴대폰 묶음'+(ph['상태']&&ph['상태']!=='최신'&&ph['상태']!=='아직 없음'?' ⚠ 다시':''),ph['상태']&&ph['상태']!=='최신'&&ph['상태']!=='아직 없음')}${c(/^복사됨/.test(ph['공유']||''),'공유폴더')}</div>`;
 }
 async function edPoll(id,song,label){
+  ED.polls=ED.polls||{};if(ED.polls[id])return;ED.polls[id]=1;try{
   for(;;){
     let j;try{j=await (await fetch(SG_HELPER+'/job/'+encodeURIComponent(id),{cache:'no-store'})).json()}catch(e){ED.busy[song]=null;edRender();return}
-    if(j.state==='done'||j.state==='error'){ED.busy[song]=null;if(ED.song===song)await edLoad(song);if(j.state==='error')alert(label+' 실패: '+(j.msg||''));return}
+    if(j.state==='done'||j.state==='error'||j.state==='stopped'){ED.busy[song]=null;if(ED.song===song)await edLoad(song);if(j.state==='error')alert(label+' 실패: '+(j.msg||''));else if(j.state==='done'&&ED.song!==song)try{vnToast('✔ '+song+' 분석 끝')}catch(e){}return}
     ED.busy[song]=`${label}: ${Math.round(j.pct||0)}% — ${j.msg||''}`;const e=sgEl('edProg');if(e&&ED.song===song)e.textContent=ED.busy[song];else if(ED.song===song)edRender();
     await new Promise(r=>setTimeout(r,1000));
-  }
+  }}finally{delete ED.polls[id]}
 }
 function edPickPages(blob,name,song){   /* → {a,b} (1부터) · 통째면 {a:1,b:N} · 취소면 null */
   return new Promise(async res=>{
@@ -3904,7 +3906,8 @@ sgEl('p-edit').addEventListener('click',async e=>{
     edRender();return}
   if(b.dataset.eddel!==undefined){if(!confirm(`입력에서 뺄까요? (파일을 지웁니다)\n${b.dataset.edurl||b.dataset.eddel}`))return;
     try{ED.list=(await edApi('/song-del',{song,file:b.dataset.eddel,url:b.dataset.edurl},'')).list;edRender()}catch(er){alert(er.message||er)}return}
-  if(b.dataset.edan){const again=(ED.list.analysis||[]).length>0;if(again&&!confirm('음원분석을 지우고 다시 분석할까요? (몇 분 걸립니다)'))return;
+  if(b.dataset.edstop){b.disabled=true;b.textContent='멈추는 중…';try{await edApi('/analyze-stop',{song},'')}catch(er){alert(er.message||er)}return}
+  if(b.dataset.edan){const again=(ED.list.analysis||[]).length>0;if(again&&!confirm('다시 분석할까요? (몇 분 걸립니다)\n\n분석은 도우미가 뒤에서 하므로 그동안 다른 곡 · 다른 탭을 써도 됩니다. 끝날 때까지 예전 분석 결과로 연습 · 편집할 수 있고, 중간에 멈추면 예전 결과가 그대로 남습니다.'))return;
     try{const j=await edApi('/analyze-song',{song,fresh:again?'1':''},'');ED.busy[song]='곡 분석 시작 — '+(j.media||'');edRender();edPoll(j.id,song,'곡 분석')}catch(er){alert(er.message||er)}return}
   if(b.dataset.edshare){   /* 📤 공유폴더로 복사: 끝날 때까지 기다림 (진행 초 표시 · 1분 넘으면 그만 기다림) */
     b.disabled=true;const t0=Date.now(),tick=setInterval(()=>{b.textContent=`묶어서 복사하는 중… ${Math.round((Date.now()-t0)/1000)}초`},250);b.textContent='묶어서 복사하는 중… 0초';
