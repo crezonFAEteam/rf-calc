@@ -1160,7 +1160,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-25 15:40';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-25 16:20';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -4131,6 +4131,8 @@ function ceLyOff(L,col){
   let u=0;const us=L.chords.map(x=>{const a=u;u+=x.len;return a});let j=0;while(j+1<idx.length&&idx[j+1]<=c)j++;
   const c0=idx[j],c1=j+1<idx.length?idx[j+1]:Math.max(L.cl.length,raw.length)+2;return us[j]+Math.max(0,Math.min(1,(c-c0)/Math.max(1,c1-c0)))*(L.chords[j]?L.chords[j].len:0);
 }
+/* 휘파람 · 허밍 · 스캣 줄 (씁 뚜르르 · 라라라 · 음음) — 노래 트랙에 잘 안 잡혀서 '노래 있는 곳' 조건을 빼고 코드로만 자리 잡음 */
+function ceHumLine(t){t=String(t||'').replace(/[\s~\-–.,!·'"()]/g,'');return t.length>=2&&/^[씁쓰뚜두루르라랄나날빠바밤음흠우오아예휘파]+$/.test(t)}
 function ceRhyPlace(){
   const R=CE.rhy;if(!R)return;
   if(R.auto){   /* 자동 생성: 자리는 이미 박 위치 그대로 — 저장해 둔 고침만 */
@@ -4166,11 +4168,11 @@ function ceRhyPlace(){
   if(R.kForce)KS=[R.kForce];
   const BAp=new Float32Array(NB+1);if(BA)for(let b=0;b<NB;b++)BAp[b+1]=BAp[b]+(BA[b]>0.3?1:0);const sungIn=(a,b)=>b>a?BAp[Math.min(NB,b)]-BAp[Math.max(0,Math.min(NB,a))]:0,GSUNG=5;   /* 노래 줄 사이 틈에 노래 소리가 있으면 = 음원에 없는 틈 → 큰 감점 (줄을 붙여 놓음) */
   for(const k of KS){
-    const lines=R.lines.map(L=>{let cu=0;const cs=L.chords.map(c=>{const o={n:c.n,u:cu,len:c.len};cu+=c.len;return o});return {cs,lb:Math.max(1,Math.round(cu*k/16)),ly:!!L.ly}});
+    const lines=R.lines.map(L=>{let cu=0;const cs=L.chords.map(c=>{const o={n:c.n,u:cu,len:c.len};cu+=c.len;return o});return {cs,lb:Math.max(1,Math.round(cu*k/16)),ly:!!L.ly,hum:ceHumLine(L.ly)}});
     const score=(i,b)=>{let s=0,n=0;for(const c of lines[i].cs){const sl=b*16+c.u*k+Math.floor(c.len*k/2);if(sl>=tot)break;const j=atI(sl);if(j<0)continue;n++;s+=simOf(D[j].name,c.n)}
       const an=ANC[i].length?ANCW*Math.max(0,...ANC[i].map(w=>1-Math.abs(w.s-b*16-w.off*k)/12)):0;   /* 받아 적기에서 같은 가사가 시작된 자리 근처면 큰 가산점 */
       let va=0;if(BA){let m=0,c=0,si=0;for(let q=b;q<Math.min(NB,b+lines[i].lb);q++){m+=BA[q];si+=SG_[q]?1:0;c++}const f=c?si/c:0;
-        if(lines[i].ly)va=VACT*((c?m/c:0)-0.4)-(f<0.4?15:0);   /* 가사 줄: 노래 있는 곳 + · 대부분 연주 구간이면 거의 불가 (이 녹음에서 안 부른 줄 → 건너뜀) */
+        if(lines[i].hum)va=0;else if(lines[i].ly)va=VACT*((c?m/c:0)-0.4)-(f<0.4?15:0);   /* 가사 줄: 노래 있는 곳 + · 대부분 연주 구간이면 거의 불가 (이 녹음에서 안 부른 줄 → 건너뜀) */
         else va=f>0.6?-6:0}   /* 전주 · 간주 · 후주 줄이 노래 구간에 놓이면 감점 */
       const x=(lines[i].ly&&PH.length&&phAt(b*16-4,b*16+4*k*3)?VOX:0)+an+va;return {s:s+x,n,x}};   /* 가사 줄 앞부분(첫 3박 안)에 실제 노래 시작이 있으면 가산점 */
     const N=lines.length,dp=[],bk=[],skc=[];
