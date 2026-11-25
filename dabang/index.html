@@ -961,8 +961,8 @@ button,.chip,.sug,.vcard,select,input,textarea{touch-action:manipulation;-webkit
       <div class="tu-top">
         <button id="tuMic" class="play">🎤 <span class="tu-mtx">마이크 </span>켜기</button>
         <div class="chips"><button class="chip" data-tumode="auto" aria-pressed="true">자동</button><button class="chip" data-tumode="manual" aria-pressed="false">수동</button></div>
-        <div class="chips" role="group" aria-label="판정" title="맞음 판정 범위 — 보통 ±5센트 (통기타에 충분) · 정밀 ±3센트"><button class="chip" data-tuprec="norm" aria-pressed="true">보통 ±5</button><button class="chip" data-tuprec="fine" aria-pressed="false">정밀 ±3</button></div>
-        <button class="ghost sm" id="tuDingB" aria-pressed="true" title="맞으면 띵 소리">🔔 맞음 소리</button>
+        <div class="chips" hidden role="group" aria-label="판정" title="맞음 판정 범위 — 보통 ±5센트 (통기타에 충분) · 정밀 ±3센트"><button class="chip" data-tuprec="norm" aria-pressed="true">보통 ±5</button><button class="chip" data-tuprec="fine" aria-pressed="false">정밀 ±3</button></div>
+        <button class="ghost sm" id="tuDingB" hidden aria-pressed="true" title="맞으면 띵 소리">🔔 맞음 소리</button>
         <div class="chips" role="group" aria-label="보기"><button class="chip" data-tuview="trail" aria-pressed="true">흐름</button><button class="chip" data-tuview="needle" aria-pressed="false">바늘</button></div>
       </div>
       <div class="tu-meter">
@@ -1154,7 +1154,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-25 09:10';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-25 09:20';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -2726,7 +2726,7 @@ function tuPSave(){store.set('chordcalc-tunerP',JSON.stringify(TU.P))}
 function tuAdv(){tuPreBtns();const e=document.getElementById('tuAdv');if(!e)return;const P=TU.P;
   e.innerHTML=TU_PM.map(([g,rows])=>`<div class="tu-ag"><b>${g}</b>${rows.map(([k,l,mn,mx,st,lo,hi])=>`<label class="tu-ar"><span class="nm">${l}${TU_SENS[k]?` <i class="sn ${TU_SENS[k]}">${TU_SENS[k]==='d'?'◀ 민감 · 둔감 ▶':'◀ 둔감 · 민감 ▶'}</i>`:''}</span><output>${P[k]}${P[k]!==TU_PD[k]?' <small>(기본 '+TU_PD[k]+')</small>':''}</output><span class="lo">◀ ${lo}</span><input type="range" data-tup="${k}" min="${mn}" max="${mx}" step="${st}" value="${P[k]}"><span class="hi">${hi} ▶</span></label>`).join('')}</div>`).join('')+
     `<div class="btns left"><button class="ghost sm" data-tupreset="1">기본값으로</button><span class="mt"><b style="background:#ffe2c4;padding:0 4px;border-radius:4px">민감</b> = 빨리 반응 · 작은 소리도 · 대신 흔들리거나 틀린 값이 보일 수 · <b style="background:#d8e6fb;padding:0 4px;border-radius:4px">둔감</b> = 차분 · 확실 · 대신 늦거나 반응 없을 수 · 바꾼 값은 이 기기에 기억</span></div>`}
-function tuDing(){if(!TU.P.ding)return;try{const t=actx.currentTime+0.01,g=actx.createGain();g.connect(gOut());g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.35,t+0.008);g.gain.exponentialRampToValueAtTime(0.0001,t+0.9);
+function tuDing(){try{const t=actx.currentTime+0.01,g=actx.createGain();g.connect(gOut());g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.35,t+0.008);g.gain.exponentialRampToValueAtTime(0.0001,t+0.9);
   [[1760,1],[2637,0.45],[3520,0.2]].forEach(([f,a],k)=>{const o=actx.createOscillator(),q=actx.createGain();o.type='sine';o.frequency.value=f;q.gain.value=a;o.connect(q);q.connect(g);o.start(t+k*0.06);o.stop(t+1)})}catch(e){}}   /* 맞음 "띵" (기타 대역 위라 측정에 안 섞임) */
 const tuMidi=i=>TUNE[i]+TUNINGS[TU.tun].o[i];
 const tuHz=m=>TU.a4*Math.pow(2,(m-69)/12);
@@ -2788,6 +2788,7 @@ function tuNewString(cur,pre,hz){
 const tuCt=(a,b)=>1200*Math.log2(a/b);
 /* 위아래 1/4을 버린 평균 (6개 미만이면 중앙값) */
 const tuTM=a=>{const s=[...a].sort((p,q)=>p-q);if(s.length<6)return s[s.length>>1];const k=s.length>>2,m=s.slice(k,s.length-k);return m.reduce((p,q)=>p+q,0)/m.length};
+function tuSoftReset(){TU.srAt=performance.now();tuReset();TU.nf=null;TU.lvl=0;TU.lvh=0;TU.peak=0;TU.atk=0;TU.okSince=0;TU.locked=false;TU.sc=null;TU.cur=null;try{if(actx&&actx.state!=='running')actx.resume()}catch(e){}}   /* 멈춘 듯할 때: 마이크는 두고 측정 상태만 처음처럼 */
 function tuReset(){TU.body=[];TU.tailDone=false;TU.rep=null;TU.lateN=0;TU.noFz=false;TU.hist2=[];TU.cand=[];TU.wc=null;TU.lockSi=null;TU.shown=false;TU.pend=false;TU.fl=false}
 /* 정밀 측정 대역 통과: 목표 줄 기본음 ×0.7 아래(저음 잡음)와 6배음 위만 자름.
    기타 소리의 힘은 기본음보다 2·3배음에 많아서 배음은 살려야 잡음 속에서도 또렷함 (줄이 정해지지 않으면 50~900Hz) */
@@ -2802,7 +2803,8 @@ function tuSetBand(si,now){
    3) 같은 음높이가 이어질 때만 표시 (잡음 · 말소리는 음높이가 계속 바뀌거나 금방 끊김) */
 function tuTick(){
   TU.raf=0;if(!TU.on)return;
-  try{tuTick0()}catch(err){try{console.warn('tuner',err)}catch(_){}}
+  try{tuTick0()}catch(err){try{console.warn('tuner',err)}catch(_){}const n=performance.now();TU.errs=(TU.errs||[]).filter(t=>n-t<3000);TU.errs.push(n);if(TU.errs.length>20){TU.errs=[];tuSoftReset()}}
+  try{const n=performance.now();if(TU.loudAt&&n-TU.loudAt<400&&n-Math.max(TU.showAt||0,TU.srAt||0,TU.onAt||0)>6000){tuSoftReset()}}catch(e){}
   if(!TU.on)return;
   try{const now=performance.now();let mx=0;const b=TU.buf;if(b)for(let i=b.length-2048;i<b.length;i++){const v=b[i]<0?-b[i]:b[i];if(v>mx)mx=v}
     if(mx===0){if(!TU.zero)TU.zero=now;else if(now-TU.zero>1500&&!TU.rst)tuRestart('마이크 입력이 끊겨 다시 켭니다…')}else TU.zero=0;
@@ -2820,6 +2822,7 @@ function tuTick0(){
   let e=0;for(let i=TU.buf.length-1024;i<TU.buf.length;i++)e+=TU.buf[i]*TU.buf[i];e=Math.sqrt(e/1024);
   /* 바탕 잡음: 조용해지면 빨리, 커지면 천천히(약 8초) 따라감 → 계속 나는 잡음에는 적응, 튕긴 소리는 잡음보다 커서 구분됨 */
   /* 고음 쪽 에너지(차분): 튕기는 순간의 '착' 소리가 뚜렷 → 울리는 중에 다시 튕겨도 앎 */
+  if(e>Math.max(0.01,(TU.nf||0)*3))TU.loudAt=now;
   let eh=0;for(let i=TU.buf.length-1024;i<TU.buf.length;i++){const d=TU.buf[i]-TU.buf[i-1];eh+=d*d}eh=Math.sqrt(eh/1024);
   /* 바탕 잡음: 줄이 울리는 동안(튕긴 뒤 3초 · 음을 보여 주는 중)에는 올리지 않음 → 오래 조율해도 귀가 먹지 않음 */
   const busy=now-(TU.atk||0)<3000||TU.shown;
@@ -2827,7 +2830,7 @@ function tuTick0(){
   /* 새로 튕김: 앞 음이 울리는 중이어도 음량이 갑자기 1.8배 넘게 커지면 새 음 → 이전 측정값을 버리고 새로 잡음 */
   if(e>Math.max(0.006,TU.nf*TU.P.atkN)&&(e>(TU.lvl||0)*TU.P.atkJ||(TU.lvh&&eh>TU.lvh*2.5&&now-(TU.atk||0)>250))){   /* 음량이 크게 뛰거나 · '착' 소리(고음 쪽)가 뛰면 새로 튕김 */
     if(!manual&&now-(TU.atk||0)>200)TU.pre=tuSpec(tuDec(TU.buf.subarray(0,7168)));   /* 튕기기 직전 스펙트럼 */
-    TU.atk=now;TU.peak=e;TU.body=[];TU.tailDone=false;TU.rep=null;TU.lateN=0;TU.noFz=false;TU.hist2=[];TU.cand=[];TU.shown=false;TU.wc=null;TU.fl=false;if(!manual)TU.pend=true}
+    TU.atk=now;TU.locked=false;TU.okSince=0;TU.peak=e;TU.body=[];TU.tailDone=false;TU.rep=null;TU.lateN=0;TU.noFz=false;TU.hist2=[];TU.cand=[];TU.shown=false;TU.wc=null;TU.fl=false;if(!manual)TU.pend=true}
   TU.lvl=TU.lvl?TU.lvl*0.8+e*0.2:e;TU.lvh=TU.lvh?TU.lvh*0.8+eh*0.2:eh;TU.peak=Math.max((TU.peak||0)*0.995,e);   /* 최고 음량은 약 3초에 걸쳐 내려옴 (예전 8초 — 약하게 다시 튕기면 '꼬리'로 보고 무시하던 것) */
   const loud=e>Math.max(0.003,TU.nf*TU.P.loud),atk=now-(TU.atk||0)<80,atkP=now-(TU.atk||0)<250;   /* 정밀 측정은 튕긴 뒤 0.25초부터 (줄은 처음에 조금 높게 울림) */
   /* 측정 창: 튕긴 뒤(또는 필터 바뀐 뒤) 신호만 씀 → 앞 음이 섞이지 않아 새 음을 바로 잡음 (최소 0.064초, 최대 0.17초) */
@@ -2880,7 +2883,7 @@ function tuShow(f,now){
   if(!f){g('tuNote').textContent='–';g('tuOct').textContent='';g('tuCents').textContent='';g('tuHz').textContent='';
     g('tuMsg').textContent=TU.on?'줄을 하나 튕기세요.':'마이크를 켜고 줄을 하나씩 튕기세요.';g('tuMsg').className='tu-msg';
     tuNeedle(0,false);tuFine(null);TU.cur=null;TU.sc=null;TU.okSince=0;TU.locked=false;tuStrings();return}
-  let si=TU.sel;
+  TU.showAt=now;let si=TU.sel;
   if(TU.mode==='auto'){let best=1e9;for(let i=0;i<6;i++){const c=Math.abs(1200*Math.log2(f/tuHz(tuMidi(i))));if(c<best){best=c;si=i}}}
   const target=tuMidi(si),raw=1200*Math.log2(f/tuHz(target));
   /* 바늘 떨림 줄이기: 항상 시간 기준 지수 평활(τ 0.12초). 새 음으로 확정됐을 때만 바로 그 값으로 */
@@ -3022,7 +3025,7 @@ async function tuStart(){
     TU.n1=actx.createBiquadFilter();TU.n2=actx.createBiquadFilter();[TU.n1,TU.n2].forEach(f=>{f.type='lowpass';f.frequency.value=900;f.Q.value=0.6});
     TU.hp=actx.createBiquadFilter();TU.hp.type='highpass';TU.hp.frequency.value=50;TU.hp.Q.value=0.6;
     TU.an2=actx.createAnalyser();TU.an2.fftSize=8192;TU.buf2=new Float32Array(8192);TU.src.connect(TU.hp);TU.hp.connect(TU.n1);TU.n1.connect(TU.n2);TU.n2.connect(TU.an2);TU.bandSi=undefined;TU.nf=null;TU.fcAt=0;tuReset();
-    TU.on=true;TU.hist=[];TU.last=performance.now();tuRender();TU.raf=requestAnimationFrame(tuTick);
+    TU.on=true;TU.onAt=performance.now();TU.hist=[];TU.last=performance.now();tuRender();TU.raf=requestAnimationFrame(tuTick);
   }catch(e){TU.on=false;tuRender();const n=e&&e.name;
     const kind=n==='NotAllowedError'||n==='SecurityError'||n==='PermissionDeniedError'?'denied':n==='NotFoundError'||n==='OverconstrainedError'?'nomic':n==='NotReadableError'||n==='AbortError'?'busy':'denied';
     document.getElementById('tuMsg').textContent=kind==='denied'?'마이크가 막혀 있습니다. 아래 순서대로 허용해 주세요.':kind==='busy'?'마이크를 열지 못했습니다 (다른 앱 사용 중).':'마이크를 찾지 못했습니다.';
