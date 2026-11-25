@@ -1160,7 +1160,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-26 00:30';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-26 01:10';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -4233,7 +4233,7 @@ function ceRhyPlace(){
   /* 구간 따로 맞추기: 전주 · 간주 · 후주(가사 없는 줄)가 원곡 그 구간과 길이가 달라 다음 줄(노래)과 반 마디 넘게 겹치면
      → 리듬악보의 그 줄을 원곡에 맞게 고침: 원곡 구간(앞 줄 끝 ~ 다음 줄 시작) 그대로 · 코드와 박 수는 원곡(음원 분석)에서 */
   R.secDiff=[];if(R.pos&&R.lines.length>1){const k=R.k||2,lenOf=L=>L.chords.reduce((a,c)=>a+c.len,0)*k;
-    for(let i=0;i<R.lines.length-1;i++){const L=R.lines[i];if(L.ly)continue;const e=R.pos[i]*16+lenOf(L),sn=R.pos[i+1]*16;if(e-sn<8&&sn-e<16)continue;
+    for(let i=0;i<R.lines.length-1;i++){const L=R.lines[i];if(L.ly)continue;const e=R.pos[i]*16+lenOf(L),sn=R.pos[i+1]*16;if(e-sn<8&&sn-e<16&&!(i===0&&R.pos[0]>=1))continue;   /* 첫 줄(전주)이 곡 처음보다 늦게 시작해도 */
       const st=i===0?0:Math.min(sn-16,Math.ceil((R.pos[i-1]*16+lenOf(R.lines[i-1]))/16)*16);if(!(sn-st>=16))continue;
       const segs=[];for(let q=0;q<D.length;q++){const a=Math.max(st,D[q].s),b=Math.min(sn,q+1<D.length?D[q+1].s:tot);if(b>a){const l=segs[segs.length-1];if(l&&l.n===D[q].name&&l.b===a)l.b=b;else segs.push({n:D[q].name,a,b})}}
       if(!segs.length)continue;let acc=0;const tu=Math.round((sn-st)/k),cs=segs.map((x,m)=>{let u=m===segs.length-1?tu-acc:Math.max(1,Math.round((x.b-x.a)/k));acc+=u;return {n:x.n,len:Math.max(1,u),ly:''}});
