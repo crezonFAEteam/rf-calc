@@ -1154,7 +1154,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-25 09:20';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-25 09:30';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -2717,7 +2717,9 @@ const TU_SENS={hyst:'d',lockMs:'d',smooth:'d',fast:'d',firstN:'d',firstC:'s',lou
 const TU_PRE=[['fast','⚡ 빠름','조용한 방 · 빨리 맞출 때 — 빨리 뜨고 빨리 따라감',{smooth:0.2,fast:0.05,firstN:5,firstC:40,lockMs:400,strN:6}],
   ['norm','보통','기본값',{}],
   ['fine','🎯 정밀','화음까지 깨끗하게 — ±3센트 · 오래 맞아야 ✓ · 차분',{okN:3,okF:2,lockMs:900,smooth:0.35,firstN:10,firstC:20}],
-  ['noisy','🔊 시끄러운 곳','말소리 · 선풍기 · 야외 — 큰 소리 · 선명한 소리만',{loud:2.5,atkN:4,atkJ:2.2,clar:0.65,clarW:0.7,firstN:10,firstC:25,smooth:0.5,strN:10}]];
+  ['noisy','🔊 잡음','말소리 · 선풍기 · 야외 — 큰 소리 · 선명한 소리만',{loud:2.5,atkN:4,atkJ:2.2,clar:0.65,clarW:0.7,firstN:10,firstC:25,smooth:0.5,strN:10}],
+  ['noisy2','🔊 잡음 강','TV · 음악 · 여러 사람 · 차 안 — 잡음보다 더 크고 또렷한 소리만 · 조금 늦게 뜸',{loud:3.2,atkN:5,atkJ:2.6,clar:0.72,clarW:0.78,firstN:12,firstC:22,smooth:0.6,strN:12,lockMs:700}],
+  ['noisyF','🔊🎯 잡음+정밀','잡음 있는 곳에서 화음까지 깨끗하게 — 잡음 걸러냄 + ±3센트 · 오래 맞아야 ✓',{loud:2.5,atkN:4,atkJ:2.2,clar:0.65,clarW:0.7,firstN:12,firstC:20,smooth:0.5,strN:10,okN:3,okF:2,lockMs:900}]];
 function tuPreOf(){const P=TU.P;return (TU_PRE.find(([k,,,v])=>Object.keys(TU_PD).every(x=>x==='ding'||P[x]===(x in v?v[x]:TU_PD[x])))||[''])[0]}
 function tuPreBtns(){const e=document.getElementById('tuPre');if(!e)return;const cur=tuPreOf();
   e.innerHTML='<span class="sc-lb">반응</span>'+TU_PRE.map(([k,l,d])=>`<button class="chip" data-tupre="${k}" aria-pressed="${cur===k}" title="${d}">${l}</button>`).join('')+(cur?'':'<span class="mt">직접 조정함</span>')}
