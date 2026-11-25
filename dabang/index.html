@@ -1162,7 +1162,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-26 09:30';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-26 10:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -2221,14 +2221,14 @@ function tabBarChord(lk,b,v0){   /* 그 마디 첫 코드 (+ 마디 안에서 �
 /* ---------- 악보 크기 = 한 화면(한 줄)에 보이는 마디 수: 블록 1~5칸 · 전체 TAB 한 줄 1~8마디 · 코드·가사 한 줄 1~12마디
    두 손가락 벌리면 칸 수 −1(크게) · 오므리면 +1(작게) · 가−/가+ · Ctrl+휠도 같음. 글자는 칸 폭에 맞춰 자동 ---------- */
 const VN={blk:+store.get('chordcalc-vn-blk')||3,tab:+store.get('chordcalc-vn-tab')||0,sheet:+store.get('chordcalc-vn-sheet')||0};
-const VN_MAX={blk:5,tab:8,sheet:12};
-function vnKind(el){return el&&el.querySelector('.tf')?'blk':el&&el.id==='sgSheet'?'sheet':'tab'}
+const VN_MAX={blk:5,tab:8,sheet:12,rz:9};VN.rz=+store.get('chordcalc-vn-rz')||5;const VN_RZ=[1.8,1.55,1.35,1.18,1,0.88,0.77,0.68,0.6];   /* 리듬악보 보기: 크기 단계 (5 = 100%) */
+function vnKind(el){return el&&el.querySelector('.tf')?'blk':el&&el.id==='sgSheet'?'sheet':el&&el.id==='sgTab'&&st.tab==='song'&&SG.view==='rhythm'?'rz':'tab'}
 function vnNow(kind,el){if(VN[kind])return VN[kind];
   if(kind==='sheet'){const sh=document.getElementById('sgSheet');return sh?getComputedStyle(sh).gridTemplateColumns.split(' ').length:4}
   if(kind==='tab'){const p=el&&el.querySelector('pre');return (p&&p._per)||4}return 3}
 function vnToast(t,ms){let x=document.getElementById('uizToast');if(!x){x=document.createElement('div');x.id='uizToast';document.body.appendChild(x)}x.textContent=t;x.classList.add('on');clearTimeout(vnToast.t);vnToast.t=setTimeout(()=>x.classList.remove('on'),ms||900)}
 function vnStep(el,d){const kind=vnKind(el),n=Math.max(1,Math.min(VN_MAX[kind],vnNow(kind,el)+d));if(n===VN[kind]&&VN[kind])return;VN[kind]=n;store.set('chordcalc-vn-'+kind,String(n));
-  vnToast(kind==='blk'?`한 화면 ${n}칸`:`한 줄 ${n}마디`);
+  vnToast(kind==='blk'?`한 화면 ${n}칸`:kind==='rz'?`크기 ${Math.round(VN_RZ[n-1]*100)}%`:`한 줄 ${n}마디`);
   if(el&&el.id==='ceBox'){ceRender();return}if(el&&el.id==='adTab'){renderAdTab();return}
   if(st.tab==='blues')blRender();else if(st.tab==='song'&&SG.song){if(SG.view==='sheet'){sgApplyZ();}else sgTabView()}}
 function vnPinch(el){let pz=null;const dist=t=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);
@@ -5291,14 +5291,14 @@ function sgRhyFlow(mode){
     const beats=Math.max(1,Math.round((g.e-g.s)/4)),len=Math.round((g.e-g.s)/2);
     const ly=sec[i]?`<span class="rz-sec">${sec[i]}</span>`:ws[i].map(k=>`<i data-w="${k}">${esc(W[k].w)}</i>`).join(' ');
     rows[rows.length-1].push(`<span class="rz-t" data-rs="${g.s}" data-re="${g.e}" style="min-width:calc(var(--bw)*${Math.min(beats,8)})"><i class="rz-n">${len}</i><b class="rz-c">${esc(g.n||'·')}</b><span class="rz-d">${'<i></i>'.repeat(Math.min(beats,16))}</span><span class="rz-l">${ly||'&nbsp;'}</span></span>`)});
-  el.innerHTML=`<div class="tabttl" style="cursor:default">${mode==='sheet'?'코드 · 가사':'📜 리듬악보'} <span class="chips" style="display:inline-flex;margin-left:8px"><button class="chip" data-sgrz="flow" data-m="${mode}" aria-pressed="true">흐름 보기</button><button class="chip" data-sgrz="box" data-m="${mode}" aria-pressed="false">${mode==='sheet'?'칸 보기':'묶음 보기'}</button></span> <button class="ghost sm" data-sgrzbr="1" aria-pressed="${br}" title="가사 줄마다 줄 바꿈 (끄면 이어서)">소절 줄바꿈 ${br?'ON':'OFF'}</button> <span class="mt">숫자 = 길이 (8 = 한 마디) · 막대 하나 = 한 박</span></div><div class="rz sg-rhy">`+rows.map(r=>`<div class="rz-row">${r.join('')}</div>`).join('')+'</div>';
+  el.innerHTML=`<div class="tabttl" style="cursor:default">${mode==='sheet'?'코드 · 가사':'📜 리듬악보'} <span class="chips" style="display:inline-flex;margin-left:8px"><button class="chip" data-sgrz="flow" data-m="${mode}" aria-pressed="true">흐름 보기</button><button class="chip" data-sgrz="box" data-m="${mode}" aria-pressed="false">${mode==='sheet'?'칸 보기':'묶음 보기'}</button></span> <button class="ghost sm" data-sgrzbr="1" aria-pressed="${br}" title="가사 줄마다 줄 바꿈 (끄면 이어서)">소절 줄바꿈 ${br?'ON':'OFF'}</button> <span class="mt">숫자 = 길이 (8 = 한 마디) · 막대 하나 = 한 박</span></div><div class="rz sg-rhy"${mode==='rhythm'?` style="--sgz:${VN_RZ[(VN.rz||5)-1]};--sgs:${VN_RZ[(VN.rz||5)-1]}"`:''}>`+rows.map(r=>`<div class="rz-row">${r.join('')}</div>`).join('')+'</div>';
 }
 function sgRhyView(){   /* 곡편집에서 저장한 완성 리듬악보 — 없으면 분석 결과로 자동 */
   if(SG.rz.flow!==false)return sgRhyFlow();
   const R=(SG.song.backing&&SG.song.backing.rhythm&&SG.song.backing.rhythm.blocks)?SG.song.backing.rhythm:sgRhyAuto(),el=sgEl('sgTab');
   if(!R){el.innerHTML='<p class="sdesc">리듬악보를 만들지 못했습니다 (코드가 없음).</p>';return}
   el.innerHTML=`<div class="tabttl" style="cursor:default">📜 리듬악보 <span class="chips" style="display:inline-flex;margin-left:8px"><button class="chip" data-sgrz="flow" data-m="rhythm" aria-pressed="false">흐름 보기</button><button class="chip" data-sgrz="box" data-m="rhythm" aria-pressed="true">묶음 보기</button></span> — ${esc(R.file||'')}${(SG.kc.t||SG.kc.c)?' (조옮김 · 카포는 이 보기에 적용되지 않음)':''}</div><div class="ce-rtxs ce-rsheet sg-rhy">`+
-    R.blocks.map((b,i)=>`<div class="ce-rtx${b.gen?' gen':''}" data-sgrb="${i}" data-s="${b.s}" data-e="${b.e}"><pre>${b.pre}</pre></div>`).join('')+'</div>';
+    R.blocks.map((b,i)=>`<div class="ce-rtx${b.gen?' gen':''}" data-sgrb="${i}" data-s="${b.s}" data-e="${b.e}"><pre style="font-size:${(13*VN_RZ[(VN.rz||5)-1]).toFixed(1)}px">${b.pre}</pre></div>`).join('')+'</div>';
 }
 function sgTabView(){if(SG.view==='final')return sgFinalView();if(SG.view==='rhythm')return sgRhyView();if(SG.song.parts[SG.view]&&SG.song.parts[SG.view].kind==='harmonica')return sgHarpView(SG.view);const lk=sgLick(SG.view);
   if(tabFocusOn()){SG.tfb=Math.floor(Math.max(0,SG.slot)/(lk.bar||16));sgEl('sgTab').innerHTML=`<div class="tabttl" style="cursor:default">${esc(lk.name)}</div>${tabFocusHTML(lk,'g',SG.tfb)}`;return}
