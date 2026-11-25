@@ -1154,7 +1154,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-25 12:20';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-25 13:10';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -4182,6 +4182,15 @@ function ceRhyPlace(){
   if(!best)best={k:2,pos:R.lines.map((L,i)=>Math.round((v0-u1*2)/16)+Math.round(L.u0*2/16)),r:0,q:0,st:0,d:0,n:0};
   Object.assign(R,best);
   R.skipped=[];if(R.pos&&R.pos.some(x=>x==null)){R.skipped=R.lines.filter((L,i)=>R.pos[i]==null).map(L=>(L.ly||L.label||'').slice(0,24));R.lines=R.lines.filter((L,i)=>R.pos[i]!=null);R.pos=R.pos.filter(x=>x!=null)}   /* 리듬악보에는 있지만 이 녹음에서 안 부른 줄 */
+  /* 구간 따로 맞추기: 전주 · 간주 · 후주(가사 없는 줄)가 원곡 그 구간과 길이가 달라 다음 줄(노래)과 반 마디 넘게 겹치면
+     → 리듬악보의 그 줄을 원곡에 맞게 고침: 원곡 구간(앞 줄 끝 ~ 다음 줄 시작) 그대로 · 코드와 박 수는 원곡(음원 분석)에서 */
+  R.secDiff=[];if(R.pos&&R.lines.length>1){const k=R.k||2,lenOf=L=>L.chords.reduce((a,c)=>a+c.len,0)*k;
+    for(let i=0;i<R.lines.length-1;i++){const L=R.lines[i];if(L.ly)continue;const e=R.pos[i]*16+lenOf(L),sn=R.pos[i+1]*16;if(e-sn<8)continue;
+      const st=i===0?0:Math.min(sn-16,Math.ceil((R.pos[i-1]*16+lenOf(R.lines[i-1]))/16)*16);if(!(sn-st>=16))continue;
+      const segs=[];for(let q=0;q<D.length;q++){const a=Math.max(st,D[q].s),b=Math.min(sn,q+1<D.length?D[q+1].s:tot);if(b>a){const l=segs[segs.length-1];if(l&&l.n===D[q].name&&l.b===a)l.b=b;else segs.push({n:D[q].name,a,b})}}
+      if(!segs.length)continue;let acc=0;const tu=Math.round((sn-st)/k),cs=segs.map((x,m)=>{let u=m===segs.length-1?tu-acc:Math.max(1,Math.round((x.b-x.a)/k));acc+=u;return {n:x.n,len:Math.max(1,u),ly:''}});
+      const was=L.chords.map(c=>c.n).join(' ');L.chords=cs;{const w=cs.map(c=>Math.max(c.n.length,String(c.len).length)+3);L.cl=cs.map((c,m)=>c.n.padEnd(w[m])).join('');L.nl=cs.map((c,m)=>String(c.len).padEnd(w[m])).join('')}L.src='원곡(음원 분석)';L.was=was;R.pos[i]=st/16;
+      R.secDiff.push(((L.label||'').replace(/[\[\]]/g,'').trim()||(i===0?'전주':'간주'))+' '+(st/16+1)+'~'+(sn/16)+'마디')}}
   const same=CE.rec&&(CE.rec.rhyFile?CE.rec.rhyFile===R.file&&(R.auto||CE.rec.rhyPos===(R.k+':'+(R.pos||[R.st]).join(','))):false),sv=(same&&CE.rec.rhyLy)||null,sc=(same&&CE.rec.rhyCh)||null;   /* 같은 리듬악보일 때만 */
   R.lines.forEach((L,i)=>{L.s=(R.pos?R.pos[i]*16:R.st+L.u0*R.k);L.e=L.s+L.chords.reduce((a,c)=>a+c.len,0)*R.k;
     let p=L.s;L.chords.forEach(c=>{c.s=p;c.e=p+c.len*R.k;const a=at(Math.max(0,Math.min(tot-1,p+Math.floor(c.len*R.k/2))));c.audio=a?a.name:'';c.sim=a?scSim(ceRK(a.name),chAlias(c.n)):-1;p=c.e})});
@@ -4275,7 +4284,7 @@ function ceRhySheet(R,fmt,cls){
         B.grid=`<div class="ce-gl ce-ruler" aria-hidden="true">${ru}</div><div class="ce-gl ce-ln" contenteditable="plaintext-only" spellcheck="false" data-li="${li}" data-gk="ch" title="코드 줄 — 띄어쓰기로 옮기면 그 칸(16분음표)에서 코드가 바뀜 · 이름도 고칠 수 있음">${clH||' '}</div><div class="ce-gl ce-ln" contenteditable="plaintext-only" spellcheck="false" data-li="${li}" data-gk="ly" title="가사 줄 — 띄어쓰기로 옮기면 그 칸(16분음표)이 가사 시작">${esc(ly)||' '}</div><div class="ce-gl ce-ln ce-num">${esc(L.chords.map(c=>c.len).join(' '))}</div>`;
       }
     }
-    return `<div class="ce-rtx${B.gen?' gen':''}"><div class="ce-rth"><button class="ghost sm ce-rplay" data-cerange="${B.s},${B.e}" title="이 묶음을 원곡으로 듣기">▶</button> ${Math.floor(Math.max(0,B.s)/16)+1}~${Math.ceil(B.e/16)}마디 · ${sgFmt(Math.max(0,t0))}${B.gen?' · <i>리듬악보에 없음 — 음원 분석 코드</i>':''}${B.L&&B.L.src?` · <i>코드 · 길이 = ${esc(B.L.src)} 기준</i>`:''}${B.grid?' · <i>✏️ 코드 · 가사 줄을 눌러 띄어쓰기로 위치 조정 (1칸 = 16분음표)</i>':''}</div>${B.grid?`<div class="ce-grid">${B.grid}</div>`:`<pre>${lines.join('\n')}</pre>`}</div>`}).join('')+`</div>`;
+    return `<div class="ce-rtx${B.gen?' gen':''}"><div class="ce-rth"><button class="ghost sm ce-rplay" data-cerange="${B.s},${B.e}" title="이 묶음을 원곡으로 듣기">▶</button> ${Math.floor(Math.max(0,B.s)/16)+1}~${Math.ceil(B.e/16)}마디 · ${sgFmt(Math.max(0,t0))}${B.gen?' · <i>리듬악보에 없음 — 음원 분석 코드</i>':''}${B.L&&B.L.src?` · <i>코드 · 길이 = ${esc(B.L.src)} 기준</i>`:''}${B.L&&B.L.was?` · <i style="color:#b35c00">리듬악보와 달라 원곡에 맞춰 고침 (리듬악보: ${esc(B.L.was)})</i>`:''}${B.grid?' · <i>✏️ 코드 · 가사 줄을 눌러 띄어쓰기로 위치 조정 (1칸 = 16분음표)</i>':''}</div>${B.grid?`<div class="ce-grid">${B.grid}</div>`:`<pre>${lines.join('\n')}</pre>`}</div>`}).join('')+`</div>`;
 }
 function ceRhyText(){if(!CE.rhy)return '';const d=document.createElement('div');d.innerHTML=ceRhyHtml(true);
   return [...d.querySelectorAll('.ce-rtx')].map(b=>{const g=b.querySelector('.ce-grid');const ls=g?[...g.querySelectorAll('.ce-ln')].map(x=>x.textContent):b.querySelector('pre').textContent.split('\n');
@@ -4304,7 +4313,7 @@ function ceRhyHtml(sheet){
     return `<br><span class="mt">리듬악보 정리(우리 규칙): ${Object.entries(c).map(([k,v])=>esc(k)+' '+v+'곳').join(' · ')||'바꿀 곳 없음'}${R.norm.issues.length?' · <b>⚠ '+R.norm.issues.map(esc).join(' / ')+'</b>':''} — 리듬악보는 참고용 (코드 이름 · 가사 · 순서만, 자리와 길이는 원음)</span>`})():'';
   return `<div class="ce-sum">④ 리듬악보 확인 — <b>${esc(R.file)}</b> · ${R.lines.length}줄 · ${fmt(R.units*R.k)}. 박자 읽기: ${why}.
     ${R.shift?`리듬악보는 음원보다 <b>반음 ${Math.abs(R.shift)}개 ${R.shift>0?'높은':'낮은'} 키</b> — 키를 맞춰 비교합니다(코드 결정에는 음원 키로). `:''}첫 가사 줄을 <b>${Math.floor(fl.s/16)+1}마디</b>에 맞췄을 때 음원 코드와 <b>${Math.round(R.r*100)}%</b> 일치${R.r<0.5?' <span class="ed-warn">— 많이 다릅니다. 이 곡의 리듬악보가 맞는지, 노래 시작 위치가 맞는지 확인하세요.</span>':''}.
-    아래 <b>📜 리듬악보</b> 탭에서 묶음마다 ▶로 원곡을 들으며 확인하세요.${R.meta?`<br><span class="mt">${R.meta.src?'잔잔 ':''}곡 정보: ${[R.meta.key?'원래 키 <b>'+esc(R.meta.key)+'</b>'+(R.meta.easy&&R.meta.easy!==R.meta.key?' (권장 '+esc(R.meta.easy)+')':''):'',R.meta.bpm?'BPM <b>'+R.meta.bpm+'</b>'+(CE.song&&CE.song.tempo?' (음원 분석 '+Math.round(CE.song.tempo)+')':''):'',R.meta.made?'발매 '+esc(R.meta.made):''].filter(Boolean).join(' · ')}</span>`:''}${nmI}${R.struct&&R.struct.length>1?`<br><span class="mt">곡 구조(노래 트랙): ${R.struct.map(x=>x.name+' '+(x.s+1)+'~'+x.e+'마디').join(' · ')}</span>`:''}${R.skipped&&R.skipped.length?`<br><span class="mt">리듬악보에 있지만 이 녹음에서는 부르지 않은 줄 <b>${R.skipped.length}개</b> — 빼고 맞춤: ${R.skipped.map(esc).join(' · ')}</span>`:''}${ratioLine} 코드 색: 초록 = 음원과 같음 · 노랑 = 종류만 다름 · 빨강 = 다름 (코드에 마우스를 올리면 음원 코드).</div>`;
+    아래 <b>📜 리듬악보</b> 탭에서 묶음마다 ▶로 원곡을 들으며 확인하세요.${R.meta?`<br><span class="mt">${R.meta.src?'잔잔 ':''}곡 정보: ${[R.meta.key?'원래 키 <b>'+esc(R.meta.key)+'</b>'+(R.meta.easy&&R.meta.easy!==R.meta.key?' (권장 '+esc(R.meta.easy)+')':''):'',R.meta.bpm?'BPM <b>'+R.meta.bpm+'</b>'+(CE.song&&CE.song.tempo?' (음원 분석 '+Math.round(CE.song.tempo)+')':''):'',R.meta.made?'발매 '+esc(R.meta.made):''].filter(Boolean).join(' · ')}</span>`:''}${nmI}${R.struct&&R.struct.length>1?`<br><span class="mt">곡 구조(노래 트랙): ${R.struct.map(x=>x.name+' '+(x.s+1)+'~'+x.e+'마디').join(' · ')}</span>`:''}${R.secDiff&&R.secDiff.length?`<br><span class="mt">리듬악보와 원곡이 다른 전주 · 간주 <b>${R.secDiff.length}곳</b> — 리듬악보를 원곡 길이 · 코드로 고침: ${R.secDiff.map(esc).join(' · ')}</span>`:''}${R.skipped&&R.skipped.length?`<br><span class="mt">리듬악보에 있지만 이 녹음에서는 부르지 않은 줄 <b>${R.skipped.length}개</b> — 빼고 맞춤: ${R.skipped.map(esc).join(' · ')}</span>`:''}${ratioLine} 코드 색: 초록 = 음원과 같음 · 노랑 = 종류만 다름 · 빨강 = 다름 (코드에 마우스를 올리면 음원 코드).</div>`;
 }
 /* 악보 가사(글자 인식) 고치기: 줄마다 참고 가사(원음 받아 적기 · 리듬악보)에서 가장 닮은 곳을 찾아 그 글자로.
    닮음: 같은 글자 2 · 초성 · 중성 · 종성 중 2개 같음(잎/있, 년/닌) 1 · 다름 -1 · 빠짐/더함 -1 */
