@@ -1160,7 +1160,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-25 14:30';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-25 15:40';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -4164,6 +4164,7 @@ function ceRhyPlace(){
   R.kBpm=0;if(R.meta&&R.meta.bpm>0&&CE.song&&CE.song.tempo>0){const kb=2*CE.song.tempo/R.meta.bpm,c=[1,2,4].map(k=>[k,Math.abs(Math.log2(kb/k))]).sort((a,b)=>a[1]-b[1])[0];
     if(c[1]<0.32){R.kBpm=c[0];const r=R.units*c[0]/16/NB;if(r>=0.5&&r<=1.5)KS=[c[0]]}}   /* 리듬악보 BPM 과 음원 분석 템포로 숫자가 2배로 적혔는지 정함 (숫자 = 8분음표 수 · BPM = 4분음표 기준 · 길이가 크게 어긋나면 안 씀) */
   if(R.kForce)KS=[R.kForce];
+  const BAp=new Float32Array(NB+1);if(BA)for(let b=0;b<NB;b++)BAp[b+1]=BAp[b]+(BA[b]>0.3?1:0);const sungIn=(a,b)=>b>a?BAp[Math.min(NB,b)]-BAp[Math.max(0,Math.min(NB,a))]:0,GSUNG=5;   /* 노래 줄 사이 틈에 노래 소리가 있으면 = 음원에 없는 틈 → 큰 감점 (줄을 붙여 놓음) */
   for(const k of KS){
     const lines=R.lines.map(L=>{let cu=0;const cs=L.chords.map(c=>{const o={n:c.n,u:cu,len:c.len};cu+=c.len;return o});return {cs,lb:Math.max(1,Math.round(cu*k/16)),ly:!!L.ly}});
     const score=(i,b)=>{let s=0,n=0;for(const c of lines[i].cs){const sl=b*16+c.u*k+Math.floor(c.len*k/2);if(sl>=tot)break;const j=atI(sl);if(j<0)continue;n++;s+=simOf(D[j].name,c.n)}
@@ -4177,9 +4178,9 @@ function ceRhyPlace(){
       for(let b=0;b<NB;b++){const {s}=score(i,b);
         if(i===0){dp[0][b]=s;continue}
         let bv=-1e9,bb=-1;const L0=lines[i-1].lb,fx=!lines[i-1].ly;   /* 가사 없는 줄(전주 · 간주 · 후주)은 리듬악보에 길이가 대략 적힌 경우가 많아 짧게 · 길게 모두 허용 (가사 줄은 그대로) */
-        for(let q=0;q+(fx?1:L0)<=b;q++){if(dp[i-1][q]<-1e8)continue;const v=dp[i-1][q]-(fx?0.15*Math.abs(b-q-L0):GAP*(b-q-L0));if(v>bv){bv=v;bb=q}}
+        for(let q=0;q+(fx?1:L0)<=b;q++){if(dp[i-1][q]<-1e8)continue;const v=dp[i-1][q]-(fx?0.15*Math.abs(b-q-L0):GAP*(b-q-L0)+(lines[i].ly?GSUNG*sungIn(q+L0,b):0));if(v>bv){bv=v;bb=q}}
         let bsk=0;if(BA)for(let sk=1;sk<=2;sk++){const j=i-1-sk;if(j<0)break;let okk=true;for(let t=j+1;t<i;t++)if(!lines[t].ly){okk=false;break}if(!okk)break;   /* 노래 트랙이 있을 때만 */
-          const Lj=lines[j].lb,fj=!lines[j].ly;for(let q=0;q+(fj?1:Lj)<=b;q++){if(dp[j][q]<-1e8)continue;const v=dp[j][q]-SKP*sk-(fj?0.15*Math.abs(b-q-Lj):GAP*(b-q-Lj));if(v>bv){bv=v;bb=q;bsk=sk}}}
+          const Lj=lines[j].lb,fj=!lines[j].ly;for(let q=0;q+(fj?1:Lj)<=b;q++){if(dp[j][q]<-1e8)continue;const v=dp[j][q]-SKP*sk-(fj?0.15*Math.abs(b-q-Lj):GAP*(b-q-Lj)+(lines[i].ly?GSUNG*sungIn(q+Lj,b):0));if(v>bv){bv=v;bb=q;bsk=sk}}}
         if(bb>=0){dp[i][b]=bv+s;bk[i][b]=bb;skc[i][b]=bsk}}}
     let eb=-1,ev=-1e9;for(let b=0;b<NB;b++)if(dp[N-1][b]>ev){ev=dp[N-1][b];eb=b}
     if(eb<0)continue;const pos=new Array(N).fill(null);for(let i=N-1,b=eb;i>=0;){pos[i]=b;const sk=skc[i][b],pb=bk[i][b];i-=1+sk;b=pb}
@@ -4293,7 +4294,7 @@ function ceRhySheet(R,fmt,cls){
         B.grid=`<div class="ce-gl ce-ruler" aria-hidden="true">${ru}</div><div class="ce-gl ce-ln" contenteditable="plaintext-only" spellcheck="false" data-li="${li}" data-gk="ch" title="코드 줄 — 띄어쓰기로 옮기면 그 칸(16분음표)에서 코드가 바뀜 · 이름도 고칠 수 있음">${clH||' '}</div><div class="ce-gl ce-ln" contenteditable="plaintext-only" spellcheck="false" data-li="${li}" data-gk="ly" title="가사 줄 — 띄어쓰기로 옮기면 그 칸(16분음표)이 가사 시작">${esc(ly)||' '}</div><div class="ce-gl ce-ln ce-num">${esc(L.chords.map(c=>c.len).join(' '))}</div>`;
       }
     }
-    return `<div class="ce-rtx${B.gen?' gen':''}"><div class="ce-rth"><button class="ghost sm ce-rplay" data-cerange="${B.s},${B.e}" title="이 묶음을 원곡으로 듣기">▶</button> ${Math.floor(Math.max(0,B.s)/16)+1}~${Math.ceil(B.e/16)}마디 · ${sgFmt(Math.max(0,t0))}${B.gen?' · <i>리듬악보에 없음 — 음원 분석 코드</i>':''}${B.L&&B.L.src?` · <i>코드 · 길이 = ${esc(B.L.src)} 기준</i>`:''}${B.L&&B.L.was?` · <i style="color:#b35c00">리듬악보와 달라 원곡에 맞춰 고침 (리듬악보: ${esc(B.L.was)})</i>`:''}${B.grid?' · <i>✏️ 코드 · 가사 줄을 눌러 띄어쓰기로 위치 조정 (1칸 = 16분음표)</i>':''}</div>${B.grid?`<div class="ce-grid">${B.grid}</div>`:`<pre>${lines.join('\n')}</pre>`}</div>`})()).join('')+`</div>`;
+    return `<div class="ce-rtx${B.gen?' gen':''}"><div class="ce-rth"><button class="ghost sm ce-rplay" data-cerange="${B.s},${B.e}" title="이 묶음을 원곡으로 듣기">▶</button> ${Math.floor(Math.max(0,B.s)/16)+1}~${Math.ceil(B.e/16)}마디 · ${sgFmt(Math.max(0,t0))}${B.gen?' · <i>리듬악보에 없음 — 음원 분석 코드</i>':''}${(()=>{const N=blocks[bi+1];return B.gen&&N&&N.L&&N.L.ly&&N.s-B.e<4&&N.s>B.s?` <button class="ghost sm" data-cemv="${R.lines.indexOf(N.L)}" data-d="${-(N.s-B.s)}" title="음원에 없는 칸 — 빼고 뒤 노래 줄을 당김">✕ 이 칸 빼기</button>`:''})()}${B.L&&B.L.src?` · <i>코드 · 길이 = ${esc(B.L.src)} 기준</i>`:''}${B.L&&B.L.was?` · <i style="color:#b35c00">리듬악보와 달라 원곡에 맞춰 고침 (리듬악보: ${esc(B.L.was)})</i>`:''}${B.grid?' · <i>✏️ 코드 · 가사 줄을 눌러 띄어쓰기로 위치 조정 (1칸 = 16분음표)</i>':''}</div>${B.grid?`<div class="ce-grid">${B.grid}</div>`:`<pre>${lines.join('\n')}</pre>`}</div>`})()).join('')+`</div>`;
 }
 /* 경계 자세히: 전주 · 간주 끝 → 노래 시작 자리를 8분음표 칸으로 — 노래 트랙 소리 크기 · 음원 코드 · 리듬악보 줄 시작 · 소리 시작 · 칸 누르면 거기부터 듣기 · 노래 줄 옮기기 */
 function ceBdHTML(blocks,bi){const B=blocks[bi],A=blocks[bi-1],R=CE.rhy,s=CE.song;if(!R||!B||B.gen||B.label||!B.L||!B.L.ly)return '';
