@@ -351,6 +351,12 @@ body.bd-off #boardScroll,body.bd-off .board-bar,body.bd-off .legend{display:none
   .sg-cstrip{padding:4px 4px 2px;margin:4px 0 2px}.sg-cstrip .cs-cards .cs-card{width:min(72px,calc((100% - 16px)/3))!important}.sg-cstrip .cs-card .cs-nm{font-size:.95rem;margin-bottom:2px}
   .sg-cstrip .cs-card .bx{padding:3px 2px 0;border-radius:8px}.sg-cstrip .cs-bar{display:none}.sg-cstrip{position:relative}.sg-cstrip .cs-hide{top:2px;right:4px;font-size:.72rem;padding:2px 4px;z-index:2}
   #p-song #sgSheet,#p-song #sgTab{margin-top:4px}}
+.ce-bd{margin:2px 0 10px;border:1.5px dashed #d98a1c;border-radius:10px;padding:4px 8px;background:color-mix(in srgb,#ffb84d 8%,transparent)}.ce-bd>summary{cursor:pointer;font-size:.85rem;padding:3px 0}
+.ce-bdw{overflow-x:auto;overflow-y:hidden;margin:6px 0 4px;padding-bottom:2px}.ce-bdg{display:grid;grid-template-columns:repeat(32,minmax(13px,1fr));gap:1px;min-width:440px}
+.ce-bdg>span{font-size:.68rem;white-space:nowrap;overflow:visible;line-height:1.3;min-height:1.1em}.ce-bdt>span{color:var(--muted)}.ce-bdch>span{font-weight:700;color:#2a6fb0}
+.ce-bdc{height:52px;padding:0;border:0;border-radius:2px;background:color-mix(in srgb,var(--line) 60%,transparent);display:flex;align-items:flex-end;cursor:pointer;min-width:0}
+.ce-bdc i{display:block;width:100%;background:#9aa3a8;border-radius:2px 2px 0 0}.ce-bdc.on i{background:#2e9e5b}.ce-bdc.bar{box-shadow:inset 2px 0 0 var(--fg,#333)}.ce-bdc.st{box-shadow:inset 3px 0 0 #1a73e8}
+.ce-bdc.now{outline:2px solid #ffd400;outline-offset:-1px;background:#fff3b0}.ce-bdb{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:4px 0}
 .zz-k{color:#2b63b0;font-weight:600}.zz-h{flex-basis:100%;font-weight:700;font-size:.88rem;margin:0 2px 2px}.zz-mine{background:color-mix(in srgb,#e0a21e 16%,transparent)}.zz-mine .zz-h{color:#a86d00}.zz-rec{background:color-mix(in srgb,#3b7dd8 12%,transparent)}.zz-rec .zz-h{color:#2b63b0}.zz-grp .zz-it{background:var(--surface)}.zz-it.on{border-color:var(--accent);font-weight:700}.zz-q{width:100%;margin-top:6px;padding:6px 8px;font-size:.95rem}.zz-bm{text-decoration:none;cursor:grab}
 .phone-only{display:none}@media (pointer:coarse){.phone-only{display:inline}}
 /* 곡연습: 악보는 늘 전체 폭 — 믹서 · 반복 마디는 악보 위에 (넓으면 여러 칸) */
@@ -1154,7 +1160,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-25 13:10';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-25 14:30';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -3149,7 +3155,7 @@ async function ceVocalPhrases(){
   const close=(a,k)=>{const o=a.slice();for(let i=0;i<a.length;i++)if(!a[i]){let L=i;while(L>0&&!a[L-1]&&i-L<k)L--;let R=i;while(R<a.length-1&&!a[R+1]&&R-i<k)R++;if(L>0&&R<a.length-1&&a[L-1]&&a[R+1]&&R-L+1<=k)o[i]=true}return o};
   v=close(v,8);for(let i=0;i<n;){if(!v[i]){i++;continue}let e=i;while(e+1<n&&v[e+1])e++;if(e-i+1<6)for(let k=i;k<=e;k++)v[k]=false;i=e+1}   /* 0.16초 틈 메우기 · 0.12초보다 짧은 소리 지우기 */
   const ph=[];let off=-9;for(let i=1;i<n;i++){if(v[i-1]&&!v[i])off=i*0.02;if(v[i]&&!v[i-1]&&i*0.02-off>0.35)ph.push(i*0.02)}
-  CE.vact=v;return CE.ph=ph;
+  CE.vrms=r;CE.vref=srt[Math.floor(n*0.95)]||1;CE.vact=v;return CE.ph=ph;
 }
 /* 가사 줄마다 가장 가까운 구절 시작으로 (±1.5초 안 · 순서 지킴 · 한 구절에 한 줄) → 줄 옮김(¼박 단위) */
 async function ceLyAuto(){
@@ -4191,6 +4197,9 @@ function ceRhyPlace(){
       if(!segs.length)continue;let acc=0;const tu=Math.round((sn-st)/k),cs=segs.map((x,m)=>{let u=m===segs.length-1?tu-acc:Math.max(1,Math.round((x.b-x.a)/k));acc+=u;return {n:x.n,len:Math.max(1,u),ly:''}});
       const was=L.chords.map(c=>c.n).join(' ');L.chords=cs;{const w=cs.map(c=>Math.max(c.n.length,String(c.len).length)+3);L.cl=cs.map((c,m)=>c.n.padEnd(w[m])).join('');L.nl=cs.map((c,m)=>String(c.len).padEnd(w[m])).join('')}L.src='원곡(음원 분석)';L.was=was;R.pos[i]=st/16;
       R.secDiff.push(((L.label||'').replace(/[\[\]]/g,'').trim()||(i===0?'전주':'간주'))+' '+(st/16+1)+'~'+(sn/16)+'마디')}}
+  R.mv=null;{const m=(CE.mvMem&&CE.mvMem.file===R.file&&CE.mvMem.m)||(CE.rec&&CE.rec.rhyFile===R.file&&CE.rec.rhyMv)||null;   /* 경계 자세히에서 옮긴 노래 줄 */
+    if(m&&R.pos){R.mv={};Object.keys(m).map(Number).sort((a,b)=>a-b).forEach(li=>{const d=+m[li];if(!d||!R.lines[li])return;R.mv[li]=d;const k=R.k||2,len=L=>L.chords.reduce((a,c)=>a+c.len,0)*k;
+      let e=R.pos[li]*16+len(R.lines[li]);for(let j=li;j<R.lines.length;j++){if(j>li&&(!R.lines[j].ly||R.pos[j]*16-e>=4))break;e=R.pos[j]*16+len(R.lines[j]);R.pos[j]+=d/16}})}}
   const same=CE.rec&&(CE.rec.rhyFile?CE.rec.rhyFile===R.file&&(R.auto||CE.rec.rhyPos===(R.k+':'+(R.pos||[R.st]).join(','))):false),sv=(same&&CE.rec.rhyLy)||null,sc=(same&&CE.rec.rhyCh)||null;   /* 같은 리듬악보일 때만 */
   R.lines.forEach((L,i)=>{L.s=(R.pos?R.pos[i]*16:R.st+L.u0*R.k);L.e=L.s+L.chords.reduce((a,c)=>a+c.len,0)*R.k;
     let p=L.s;L.chords.forEach(c=>{c.s=p;c.e=p+c.len*R.k;const a=at(Math.max(0,Math.min(tot-1,p+Math.floor(c.len*R.k/2))));c.audio=a?a.name:'';c.sim=a?scSim(ceRK(a.name),chAlias(c.n)):-1;p=c.e})});
@@ -4264,7 +4273,7 @@ function ceRhySheet(R,fmt,cls){
     if(run&&(run.k!==r.label||run.b!==b-1||run.b-run.a>=3))flush();if(!run)run={k:r.label,a:b,b};else run.b=b})});
   flush();
   blocks.sort((x,y)=>x.s-y.s);
-  return `<div class="ce-rtxs ce-rsheet">`+blocks.map(B=>{const t0=scTime(s,Math.max(0,B.s));let lines;
+  return `<div class="ce-rtxs ce-rsheet">`+blocks.map((B,bi)=>ceBdHTML(blocks,bi)+(()=>{const t0=scTime(s,Math.max(0,B.s));let lines;
     if(B.gen){const w=B.chords.map(c=>Math.max(c.n.length,holes(c.s,c.e).length,String((c.e-c.s)/2).length)+3),cols=[];let x=0;w.forEach(v=>{cols.push(x);x+=v});
       let gj=0;lines=[esc(place(cols,B.chords.map(c=>c.n))).replace(/[^\s]+/g,m=>{const c=B.chords[gj++]||{};return `<span class="ce-rt gen" data-rs="${c.s}" data-re="${c.e}" title="음원 분석 코드">${m}</span>`}),'['+esc(B.label)+']'];
       const hl=place(cols,B.chords.map(c=>holes(c.s,c.e)));if(hl.trim())lines.push(`<span class="ce-hp">${esc(hl.startsWith('  ')?'♪ '+hl.slice(2):'♪ '+hl)}</span>`);
@@ -4284,8 +4293,39 @@ function ceRhySheet(R,fmt,cls){
         B.grid=`<div class="ce-gl ce-ruler" aria-hidden="true">${ru}</div><div class="ce-gl ce-ln" contenteditable="plaintext-only" spellcheck="false" data-li="${li}" data-gk="ch" title="코드 줄 — 띄어쓰기로 옮기면 그 칸(16분음표)에서 코드가 바뀜 · 이름도 고칠 수 있음">${clH||' '}</div><div class="ce-gl ce-ln" contenteditable="plaintext-only" spellcheck="false" data-li="${li}" data-gk="ly" title="가사 줄 — 띄어쓰기로 옮기면 그 칸(16분음표)이 가사 시작">${esc(ly)||' '}</div><div class="ce-gl ce-ln ce-num">${esc(L.chords.map(c=>c.len).join(' '))}</div>`;
       }
     }
-    return `<div class="ce-rtx${B.gen?' gen':''}"><div class="ce-rth"><button class="ghost sm ce-rplay" data-cerange="${B.s},${B.e}" title="이 묶음을 원곡으로 듣기">▶</button> ${Math.floor(Math.max(0,B.s)/16)+1}~${Math.ceil(B.e/16)}마디 · ${sgFmt(Math.max(0,t0))}${B.gen?' · <i>리듬악보에 없음 — 음원 분석 코드</i>':''}${B.L&&B.L.src?` · <i>코드 · 길이 = ${esc(B.L.src)} 기준</i>`:''}${B.L&&B.L.was?` · <i style="color:#b35c00">리듬악보와 달라 원곡에 맞춰 고침 (리듬악보: ${esc(B.L.was)})</i>`:''}${B.grid?' · <i>✏️ 코드 · 가사 줄을 눌러 띄어쓰기로 위치 조정 (1칸 = 16분음표)</i>':''}</div>${B.grid?`<div class="ce-grid">${B.grid}</div>`:`<pre>${lines.join('\n')}</pre>`}</div>`}).join('')+`</div>`;
+    return `<div class="ce-rtx${B.gen?' gen':''}"><div class="ce-rth"><button class="ghost sm ce-rplay" data-cerange="${B.s},${B.e}" title="이 묶음을 원곡으로 듣기">▶</button> ${Math.floor(Math.max(0,B.s)/16)+1}~${Math.ceil(B.e/16)}마디 · ${sgFmt(Math.max(0,t0))}${B.gen?' · <i>리듬악보에 없음 — 음원 분석 코드</i>':''}${B.L&&B.L.src?` · <i>코드 · 길이 = ${esc(B.L.src)} 기준</i>`:''}${B.L&&B.L.was?` · <i style="color:#b35c00">리듬악보와 달라 원곡에 맞춰 고침 (리듬악보: ${esc(B.L.was)})</i>`:''}${B.grid?' · <i>✏️ 코드 · 가사 줄을 눌러 띄어쓰기로 위치 조정 (1칸 = 16분음표)</i>':''}</div>${B.grid?`<div class="ce-grid">${B.grid}</div>`:`<pre>${lines.join('\n')}</pre>`}</div>`})()).join('')+`</div>`;
 }
+/* 경계 자세히: 전주 · 간주 끝 → 노래 시작 자리를 8분음표 칸으로 — 노래 트랙 소리 크기 · 음원 코드 · 리듬악보 줄 시작 · 소리 시작 · 칸 누르면 거기부터 듣기 · 노래 줄 옮기기 */
+function ceBdHTML(blocks,bi){const B=blocks[bi],A=blocks[bi-1],R=CE.rhy,s=CE.song;if(!R||!B||B.gen||B.label||!B.L||!B.L.ly)return '';
+  const b0=B.s,inst=A&&(A.gen||A.label),gap=!A||b0-A.e>=4,vs=(R.struct||[]).some(x=>x.sing&&x.s>0&&Math.abs(x.s*16-b0)<=32);
+  if(!(inst||gap||vs))return '';
+  const li=R.lines.indexOf(B.L),N=32,w0=Math.max(0,b0-32),w1=w0+N*2;
+  const fr=(a,b)=>{const v=CE.vact,r=CE.vrms;if(!v)return [0,0];const t0=scTime(s,a),t1=scTime(s,b);let n=0,m=0,e=0;
+    for(let f=Math.max(0,Math.floor(t0/0.02));f<Math.min(v.length,Math.ceil(t1/0.02));f++){n++;if(v[f])m++;if(r)e+=r[f]}return n?[m/n,r?Math.min(1,e/n/(CE.vref||1)*1.6):m/n]:[0,0]};
+  const at=sl=>{let c=null;for(const x of CE.D){if(x.s<=sl)c=x;else break}return c};
+  const pos=sl=>`${Math.floor(sl/16)+1}마디 ${(sl%16)/4+1}박`;
+  const PHs=(CE.ph||[]).map(t=>ceSlotAt(t)),PH=PHs.filter(x=>x>=w0&&x<w1);
+  let top='',mid='',chs='',mk='',pc='';
+  for(let k=0;k<N;k++){const sl=w0+k*2,[on,lv]=fr(sl,sl+2),c=at(sl),cn=c?c.name:'',ph=PH.some(x=>x>=sl&&x<sl+2),st=b0>=sl&&b0<sl+2;
+    top+=`<span>${sl%16===0?(sl/16+1)+'마디':sl%4===0?'·':''}</span>`;mk+=`<span>${st?'🎵':''}${ph?'🎤':''}</span>`;
+    mid+=`<button class="ce-bdc${on>0.5?' on':''}${sl%16===0?' bar':''}${st?' st':''}" data-cerange="${sl},${w1}" title="${pos(sl)}부터 듣기"><i style="height:${Math.round(6+lv*94)}%"></i></button>`;
+    chs+=`<span>${cn!==pc?esc(cn):''}</span>`;pc=cn}
+  const near=PHs.filter(x=>Math.abs(x-b0)<=16).sort((a,b)=>Math.abs(a-b0)-Math.abs(b-b0))[0],dB=near==null?null:Math.round((near-b0)/2)/2;
+  const nm=inst?(A.label||'연주'):'앞 줄',mv=R.mv&&R.mv[li];
+  const sum=near==null?'근처에서 노래 소리 시작을 못 찾음':dB===0?'노래 소리 시작과 맞음':`노래 소리는 ${Math.abs(dB)}박 ${dB<0?'먼저':'늦게'} 시작`;
+  const op=CE.bdOpen&&CE.bdOpen.has(li);
+  return `<details class="ce-bd" data-bdli="${li}"${op?' open':''}><summary>🔍 ${esc(nm)} 끝 → 노래 시작 · ${pos(b0)} · <b>${sum}</b>${mv?` · 옮김 ${mv>0?'+':''}${mv%16===0?mv/16+'마디':mv/4+'박'}`:''}</summary>
+  <div class="ce-bdw"><div class="ce-bdg ce-bdt">${top}</div><div class="ce-bdg ce-bdm">${mk}</div><div class="ce-bdg ce-bdv">${mid}</div><div class="ce-bdg ce-bdch">${chs}</div></div>
+  <div class="ce-bdb"><button class="ghost sm" data-cerange="${w0},${w1}">▶ 앞뒤 2마디</button><button class="ghost sm" data-cerange="${Math.max(0,b0-8)},${b0+32}">▶ 노래 시작 2박 앞부터</button>
+  <span class="mt">노래 줄 옮기기</span>${[[-16,'◀ 1마디'],[-4,'◀ 1박'],[-2,'◀ ½박'],[2,'½박 ▶'],[4,'1박 ▶'],[16,'1마디 ▶']].map(([d,t])=>`<button class="ghost sm" data-cemv="${li}" data-d="${d}">${t}</button>`).join('')}${near!=null&&dB?`<button class="ghost sm" data-cemv="${li}" data-d="${Math.round((near-b0)/2)*2}">🎤 소리 시작에 맞춤</button>`:''}${mv?`<button class="ghost sm" data-cemv="${li}" data-d="${-mv}">되돌리기</button>`:''}</div>
+  <div class="mt">칸 = 8분음표 · 막대 = 노래 트랙 소리(초록 = 노래) · 🎵 리듬악보 줄 시작 · 🎤 노래 소리 시작 · 칸을 누르면 거기부터 들림</div></details>`}
+/* 노래 줄 옮기기: 이 줄 + 바로 붙어 이어지는 노래 줄들 (사이가 떨어진 줄 · 전주 · 간주는 그대로) */
+function ceRhyMove(li,d){const R=CE.rhy;if(!R||!d||!R.lines[li])return;R.mv=R.mv||{};
+  let e=R.lines[li].e;for(let j=li;j<R.lines.length;j++){const L=R.lines[j];if(j>li&&(!L.ly||L.s-e>=4))break;e=L.e;
+    L.s+=d;L.e+=d;L.chords.forEach(c=>{c.s+=d;c.e+=d});if(L.lw)L.lw.forEach(w=>w.s+=d);if(R.pos)R.pos[j]+=d/16;try{ceRhyEval(L)}catch(er){}}
+  R.mv[li]=(R.mv[li]||0)+d;if(!R.mv[li])delete R.mv[li];CE.mvMem={file:R.file,m:{...R.mv}};(CE.bdOpen=CE.bdOpen||new Set()).add(li);
+  ceApplyRhyLyrics();const y=window.scrollY;ceRender();window.scrollTo(0,y)}
+document.addEventListener('toggle',e=>{const d=e.target;if(!d.classList||!d.classList.contains('ce-bd'))return;CE.bdOpen=CE.bdOpen||new Set();const li=+d.dataset.bdli;if(d.open)CE.bdOpen.add(li);else CE.bdOpen.delete(li)},true);
 function ceRhyText(){if(!CE.rhy)return '';const d=document.createElement('div');d.innerHTML=ceRhyHtml(true);
   return [...d.querySelectorAll('.ce-rtx')].map(b=>{const g=b.querySelector('.ce-grid');const ls=g?[...g.querySelectorAll('.ce-ln')].map(x=>x.textContent):b.querySelector('pre').textContent.split('\n');
     return ls.map(l=>l.replace(/\s+$/,'')).join('\r\n')}).join('\r\n\r\n')+'\r\n'}
@@ -4378,7 +4418,7 @@ async function ceOpen(title,fresh){
         else if(x.add&&!byS.has(x.s)){const nd={s:x.s,audio:x.audio||'',sug:{},k:x.k||'extra',pick:'custom',name:x.name,add:true};D.push(nd);byS.set(x.s,nd)}});
       D.sort((a,b)=>a.s-b.s)}
     CE.D=D;CE.step=(CE.rec&&CE.rec.step)||'chords';CE.cur=-1;
-    CE.ph=null;CE.lyAuto=null;if(!(CE.rec&&CE.rec.lyAuto)){say('가사를 노래 트랙에 맞추는 중…');try{await ceLyAuto()}catch(e){}}   /* 아직 맞춘 적 없는 곡: 가사 줄을 실제 노래 시작에 */
+    CE.ph=null;CE.lyAuto=null;CE.mvMem=null;CE.bdOpen=null;if(!(CE.rec&&CE.rec.lyAuto)){say('가사를 노래 트랙에 맞추는 중…');try{await ceLyAuto()}catch(e){}}   /* 아직 맞춘 적 없는 곡: 가사 줄을 실제 노래 시작에 */
     if(!CE.rhy){   /* 리듬악보 입력이 없으면 만듦 */
       const enough=(song.lyrics||[]).length>=10,sc=(CE.srcs||[]).find(S=>(S.match||0)>=0.3&&/[가-힣]/.test(S.text||''));
       if(enough)CE.rhy=ceRhyGen();
@@ -4630,7 +4670,7 @@ function ceFollow(){
     if(R){el=box.querySelectorAll('.ce-sheet .ce-row')[R.ri];key='r'+R.ri;
       const rel=(sl-R.st)*(R.lk.bar||16)/16;let mt=-1;R.lk.notes.forEach(n=>{if(n.t<=rel+1e-6&&n.t>mt)mt=n.t});
       if(mt>=0&&rel-mt<(R.lk.bar||16)/4)R.lk.notes.forEach((n,ni)=>{if(n.t===mt){const x=box.querySelector(`[data-n="ce${R.ri}-${ni}"]`);if(x){x.classList.add('now');note=note||x}}})}}
-  else if(CE.view==='rhythm'){box.querySelectorAll('.ce-rt.now').forEach(x=>x.classList.remove('now'));el=[...box.querySelectorAll('.ce-rtx')].find(b=>{const r=b.querySelector('[data-cerange]');if(!r)return false;const [x,y]=r.dataset.cerange.split(',').map(Number);return sl>=x&&sl<y})||null;key=el?'k'+[...box.querySelectorAll('.ce-rtx')].indexOf(el):''}
+  else if(CE.view==='rhythm'){box.querySelectorAll('.ce-rt.now,.ce-bdc.now').forEach(x=>x.classList.remove('now'));box.querySelectorAll('.ce-bd[open] .ce-bdc').forEach(x=>{const s0=+x.dataset.cerange.split(',')[0];if(sl>=s0&&sl<s0+2)x.classList.add('now')});el=[...box.querySelectorAll('.ce-rtx')].find(b=>{const r=b.querySelector('[data-cerange]');if(!r)return false;const [x,y]=r.dataset.cerange.split(',').map(Number);return sl>=x&&sl<y})||null;key=el?'k'+[...box.querySelectorAll('.ce-rtx')].indexOf(el):''}
   else{const c=box.querySelector(`[data-cebar="${bar}"]`);el=c&&c.closest('.ce-cell');key='b'+bar}
   if(el)el.classList.add('ce-now');
   if(el&&CE.view==='rhythm'){const c=[...el.querySelectorAll('.ce-rt[data-rs]')].find(x=>sl>=+x.dataset.rs&&sl<+x.dataset.re);if(c)c.classList.add('now')}
@@ -4668,6 +4708,7 @@ async function ceSave(markDone){
   rec.strum={pat:CE.pat,name:ARP[CE.pat].n,auto:CE.patAuto};rec.ezTab=CE.ez!==false;rec.syncOff=CE.off||0;rec.lyShift={...CE.lyShift};
   if(CE.rhy&&CE.rhy.shiftMan){rec.rhyFile=CE.rhy.file;rec.rhyShift=CE.rhy.shift}else delete rec.rhyShift;
   if(CE.rhy&&CE.rhy.kForce){rec.rhyFile=CE.rhy.file;rec.rhyK=CE.rhy.kForce}else delete rec.rhyK;
+  if(CE.rhy&&CE.rhy.mv&&Object.keys(CE.rhy.mv).length){rec.rhyFile=CE.rhy.file;rec.rhyMv={...CE.rhy.mv}}else delete rec.rhyMv;
   if(CE.rhy&&CE.lyFromRhy){rec.rhyFile=CE.rhy.file;rec.rhyPos=CE.rhy.k+":"+(CE.rhy.pos||[CE.rhy.st]).join(",");rec.rhyLy=CE.rhy.lines.map(L=>L.lw?L.lw.map(w=>[w.w,w.s]):null);rec.rhyCh=CE.rhy.lines.map(L=>L.edCh?L.chords.map(c=>[c.n,c.s]):null);
     rec.lyFrom='rhythm';rec.lyrics=CE.song.lyrics;rec.lines=CE.song.lines}else{delete rec.lyFrom;delete rec.lyrics;delete rec.lines}rec.lyAuto=rec.lyAuto||!!CE.lyAuto;rec.sections={...CE.sec};rec.voicings={...CE.vmap};
   rec.chords={base:CE.base,cmpDone:CE.cmpDone||[],media:CE.song.source,sources:CE.srcs.map(S=>({kind:S.k,file:S.file,shift:S.shift})),decisions:D.map(x=>({s:x.s,name:x.name,pick:x.pick,audio:x.audio,add:x.add||undefined,tab:(x.sug.tab||{}).name||null,gt:(x.sug.gt||{}).name||null,k:x.k}))};
@@ -4693,6 +4734,7 @@ sgEl('ceBox').addEventListener('focusout',e=>{const g=e.target.closest&&e.target
 sgEl('ceBox').addEventListener('click',async e=>{
   const t=e.target;
   const bar=t.closest('[data-cebar]');if(bar){cePlayBar(+bar.dataset.cebar);return}
+  const mv=t.closest('[data-cemv]');if(mv){ceRhyMove(+mv.dataset.cemv,+mv.dataset.d);return}
   const rg=t.closest('[data-cerange]');if(rg){const a=sgEl('ceAudio');
     if(rg.classList.contains('playing')){a.pause();CE.stopAt=0;ceSynthStop();rg.classList.remove('playing');return}
     if(rg.dataset.cesyn){document.querySelectorAll('#ceBox .ce-rplay.playing').forEach(x=>x.classList.remove('playing'));const [s0,s1]=rg.dataset.cerange.split(',').map(Number);cePlayTab(s0,s1,rg);return}
