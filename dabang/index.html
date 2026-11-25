@@ -1151,7 +1151,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-25 07:10';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-25 07:40';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -2218,6 +2218,7 @@ function vnNow(kind,el){if(VN[kind])return VN[kind];
 function vnToast(t){let x=document.getElementById('uizToast');if(!x){x=document.createElement('div');x.id='uizToast';document.body.appendChild(x)}x.textContent=t;x.classList.add('on');clearTimeout(vnToast.t);vnToast.t=setTimeout(()=>x.classList.remove('on'),900)}
 function vnStep(el,d){const kind=vnKind(el),n=Math.max(1,Math.min(VN_MAX[kind],vnNow(kind,el)+d));if(n===VN[kind]&&VN[kind])return;VN[kind]=n;store.set('chordcalc-vn-'+kind,String(n));
   vnToast(kind==='blk'?`한 화면 ${n}칸`:`한 줄 ${n}마디`);
+  if(el&&el.id==='ceBox'){ceRender();return}if(el&&el.id==='adTab'){renderAdTab();return}
   if(st.tab==='blues')blRender();else if(st.tab==='song'&&SG.song){if(SG.view==='sheet'){sgApplyZ();}else sgTabView()}}
 function vnPinch(el){let pz=null;const dist=t=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);
   el.style.touchAction='pan-x pan-y';
@@ -2225,7 +2226,10 @@ function vnPinch(el){let pz=null;const dist=t=>Math.hypot(t[0].clientX-t[1].clie
   el.addEventListener('touchmove',e=>{if(!pz||e.touches.length!==2)return;e.preventDefault();e.stopImmediatePropagation();const r=dist(e.touches)/pz.d;if(r>1.3){vnStep(el,-1);pz.d=dist(e.touches)}else if(r<0.77){vnStep(el,1);pz.d=dist(e.touches)}},{passive:false,capture:true});
   el.addEventListener('touchend',e=>{if(e.touches.length<2)pz=null},{capture:true});
   el.addEventListener('wheel',e=>{if(!e.ctrlKey)return;e.preventDefault();e.stopImmediatePropagation();const n=performance.now();if(n-(el._wt||0)<250)return;el._wt=n;vnStep(el,e.deltaY>0?1:-1)},{passive:false,capture:true})}
-document.addEventListener('DOMContentLoaded',()=>['sgSheet','sgTab','blTab'].forEach(id=>{const e=document.getElementById(id);if(e)vnPinch(e)}));
+function vnFit(root){if(!root)return;root.querySelectorAll('pre.vnfit').forEach(p=>{const w=p.parentElement&&p.parentElement.clientWidth-6;if(!(w>0))return;
+  p.style.letterSpacing='0';let fs=parseFloat(getComputedStyle(p).fontSize)||12;for(let i=0;i<3;i++){const sw=p.scrollWidth,cw=Math.min(w,p.clientWidth||w)-2;if(!sw)return;if(i&&sw<=cw)break;fs=Math.max(4.5,Math.min(20,fs*cw/sw*0.985));p.style.fontSize=fs.toFixed(1)+'px'}})}
+document.addEventListener('DOMContentLoaded',()=>{['sgSheet','sgTab','blTab','adTab','ceBox'].forEach(id=>{const e=document.getElementById(id);if(e)vnPinch(e)});
+  ['sgTab','adTab','ceBox'].forEach(id=>{const e=document.getElementById(id);if(e)new MutationObserver(()=>{if(VN.tab)requestAnimationFrame(()=>vnFit(e))}).observe(e,{childList:true,subtree:true})})});
 function tabFocusHTML(lk,k,b,v0){   /* 블록: 마디마다 [코드 카드] 위 · [TAB 카드] 아래 같은 폭 — 한 화면에 VN.blk 칸 · 옆으로 밀어 봄 · 재생하면 지금 블록이 가운데 */
   const BAR=lk.bar||8,bars=Math.max(1,Math.ceil(lk.total/BAR));const bt=Math.max(1,Math.round(BAR/4));b=Math.max(0,Math.min(bars-1,b));
   const N=Math.max(1,Math.min(5,VN.blk||3)),W=Math.max(220,((window.innerWidth||400)-64)),bw=Math.floor((W-(N-1)*8)/N),fit=c=>(bw-14)/((BAR*c+3)*0.61);
@@ -2371,8 +2375,8 @@ if(tabFs)setTabFs(tabFs);
   el.addEventListener('touchmove',e=>{if(!pz||e.touches.length!==2)return;e.preventDefault();pinchZ(pz,dist(e.touches)/pz.d)},{passive:false});
   el.addEventListener('touchend',e=>{if(pz&&e.touches.length<2){pz=null;tabFsDone()}});
   el.addEventListener('wheel',e=>{if(!e.ctrlKey)return;e.preventDefault();setTabFs(tabFsNow()*Math.exp(-e.deltaY*0.01));clearTimeout(setTabFs.t);setTabFs.t=setTimeout(tabFsDone,250)},{passive:false});
-  document.getElementById('tabZo').addEventListener('click',()=>{setTabFs(tabFsNow()/1.02);tabFsDone()});
-  document.getElementById('tabZi').addEventListener('click',()=>{setTabFs(tabFsNow()*1.02);tabFsDone()});
+  document.getElementById('tabZo').addEventListener('click',()=>vnStep(document.getElementById('adTab'),1));
+  document.getElementById('tabZi').addEventListener('click',()=>vnStep(document.getElementById('adTab'),-1));
 })();
 window.addEventListener('resize',()=>{clearTimeout(tabRz);tabRz=setTimeout(()=>{if(st.tab==='adlib'&&ad.licks.length)renderAdTab()},150)});
 /* ====================================================================
@@ -4458,7 +4462,7 @@ function ceGFix(){   /* 원곡 기타 TAB 운지 검토 (결정한 코드의 운
   CE._gf={key,notes:r.notes,n:r.n};return r.notes}
 function ceVStr(v){return v.map(f=>f<0?'x':f>9?'('+f+')':f).join('')}
 function ceTabSheet(){
-  const s=CE.song,D=CE.D,{rows,words}=ceRows(),g=ceGuitar(),meter=ceMeter(),per=Math.max(1,Math.min(4,tabPer(16,CE.tabEl||'ceBox')));
+  const s=CE.song,D=CE.D,{rows,words}=ceRows(),g=ceGuitar(),meter=ceMeter(),per=VN.tab?Math.min(8,VN.tab):Math.max(1,Math.min(4,tabPer(16,CE.tabEl||'ceBox')));
   const chordAt=sl=>{let c=null;for(const x of D){if(x.s<=sl)c=x;else break}return c};
   const canPlay=(CE.tabEl||'ceBox')==='ceBox';   /* 곡연습의 최종 반주 보기에는 듣기 버튼 없음 */
   const secSpan=ri=>{const k=rows[ri].kind;let a=ri,b=ri;while(a>0&&rows[a-1].kind===k)a--;while(b+1<rows.length&&rows[b+1].kind===k)b++;return [a,b]};
@@ -4483,7 +4487,7 @@ function ceTabSheet(){
     if(canPlay){pb=`<button class="ghost sm ce-rplay" data-cesyn="1" data-cerange="${st},${en}" title="이 줄의 TAB(${mode==='orig'?'원곡 기타':esc(ARP[CE.pat].n)})을 기타 소리로 듣기">▶ 듣기</button>`;
       if(r.kind){const [a,b]=secSpan(ri);if(a===ri&&b>a)pb+=`<button class="ghost sm ce-rplay" data-cesyn="1" data-cerange="${rows[a].bars[0]*16},${(rows[b].bars[rows[b].bars.length-1]+1)*16}" title="${esc(r.label)} 전체 TAB을 기타 소리로 듣기">▶ ${esc(r.label)} 전체</button>`}
       pb+=`<button class="ghost sm ce-rplay ce-orig" data-cerange="${st},${en}" title="이 줄을 원곡으로 듣기 (비교)">원곡</button>`}
-    return `<div class="ce-row${r.kind?' sec-'+r.kind:''}${hl?' ce-hl':''}"><div class="ce-rl">${esc(r.label)}<small>${r.bars[0]+1}~${r.bars[r.bars.length-1]+1}마디${tag}</small>${pb}</div><div class="tab ce-tab"><pre>${pre}</pre></div></div>`}).join('')+`</div>`;
+    return `<div class="ce-row${r.kind?' sec-'+r.kind:''}${hl?' ce-hl':''}"><div class="ce-rl">${esc(r.label)}<small>${r.bars[0]+1}~${r.bars[r.bars.length-1]+1}마디${tag}</small>${pb}</div><div class="tab ce-tab"><pre${VN.tab?' class="vnfit"':''}>${pre}</pre></div></div>`}).join('')+`</div>`;
 }
 /* 전체 진행: 가사 줄마다 한 줄, 노래 없는 구간은 전주 · 간주 · 후주 */
 function ceRows(){
@@ -5699,9 +5703,9 @@ function renderAdTab(){
   const el=document.getElementById('adTab');
   if(!ad.blocks.length){el.innerHTML='<div class="empty">왼쪽에 코드 진행을 입력하면 애드리브가 만들어집니다.</div>';return}
   if(!ad.licks.length){el.innerHTML='<div class="empty">애드리브를 넣을 구간을 하나 이상 고르세요.</div>';return}
-  const per=tabPer(ad.meter);
+  const per=VN.tab||tabPer(ad.meter);
   const oi=onlyIdx();
-  el.innerHTML=ad.licks.map((lk,k)=>`<div class="tabsec${oi>=0&&oi!==k?' off':''}"><div class="tabhd"><button class="tabttl" data-only="${k}" aria-pressed="${oi===k}" title="누르면 이 구간만 재생 (다시 누르면 전체)">${esc(lk.name)}${lk.pk?`<span class="fr" style="color:var(--muted);font-weight:400;margin-left:8px">${ARP[lk.pk].n}</span>`:''}<span class="only">${oi===k?'이 구간만 재생':'▶ 이 구간만'}</span></button>${oi===k?secPatSel(lk,k):secPk(lk.name)?`<span class="secbadge" title="이 구간만 기본값과 다른 반주">반주: ${esc(ARP[secPk(lk.name)].n)}</span>`:''}</div><pre>${tabRender(lk,k,true,per)}</pre></div>`).join('');
+  el.innerHTML=ad.licks.map((lk,k)=>`<div class="tabsec${oi>=0&&oi!==k?' off':''}"><div class="tabhd"><button class="tabttl" data-only="${k}" aria-pressed="${oi===k}" title="누르면 이 구간만 재생 (다시 누르면 전체)">${esc(lk.name)}${lk.pk?`<span class="fr" style="color:var(--muted);font-weight:400;margin-left:8px">${ARP[lk.pk].n}</span>`:''}<span class="only">${oi===k?'이 구간만 재생':'▶ 이 구간만'}</span></button>${oi===k?secPatSel(lk,k):secPk(lk.name)?`<span class="secbadge" title="이 구간만 기본값과 다른 반주">반주: ${esc(ARP[secPk(lk.name)].n)}</span>`:''}</div><pre${VN.tab?' class="vnfit"':''}>${tabRender(lk,k,true,per)}</pre></div>`).join('');
   fitLyrics();markTab();
 }
 /* 가사: 기본은 크게(1.35em), 코드 칸에 다 안 들어가는 조각만 칸에 맞게 줄인다 (em 단위라 확대·축소해도 비율 유지) */
