@@ -1151,7 +1151,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-25 06:20';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-25 06:30';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -2210,8 +2210,9 @@ function tabBarChord(lk,b,v0){   /* 그 마디 첫 코드 (+ 마디 안에서 �
 function tabFocusHTML(lk,k,b,v0){   /* 블록: 마디마다 [코드 카드] 위 · [TAB 카드] 아래 같은 폭 — 옆으로 줄지어 있고 손가락으로 밀어 봄 · 재생하면 지금 블록이 왼쪽으로 와서 이어짐 */
   const BAR=lk.bar||8,bars=Math.max(1,Math.ceil(lk.total/BAR));let C=tabC();const bt=Math.max(1,Math.round(BAR/4));b=Math.max(0,Math.min(bars-1,b));
   const W3=Math.max(240,(window.innerWidth||400)-64),f3o=c=>((W3-16)/3-14)/((BAR*c+3)*0.61);if(f3o(C)<7&&C>1)C=1;   /* 가로로 더 줄이기: 한 칸 1글자 (두 자리 프렛은 옆 칸까지) */
-  tabC.force=C;const chars=BAR*C+3,f3=f3o(C),three=f3>=7,fs=three?Math.min(12,Math.round(f3*10)/10):12,bw=three?Math.floor((W3-16)/3):Math.round(Math.max(120,chars*0.62*fs+18));   /* 지난 · 지금 · 다음 세 블록이 한 화면에 (TAB 글자 7px 이상이 되면) — 아니면 지금 블록 가운데 + 양옆 살짝 */
+  tabC.force=C;const chars=BAR*C+3,f3=f3o(C),three=f3>=7;let fs=three?Math.min(12,Math.round(f3*10)/10):12;let bw=three?Math.floor((W3-16)/3):Math.round(Math.max(120,chars*0.62*fs+18));   /* 지난 · 지금 · 다음 세 블록이 한 화면에 (TAB 글자 7px 이상이 되면) — 아니면 지금 블록 가운데 + 양옆 살짝 */
   let tick='  ';for(let j=0;j<BAR;j++)tick+=(j%bt===0?String(j/bt+1):'·').padEnd(C,' ');
+  const zz=Math.max(0.5,Math.min(2.2,tabZ()));fs=Math.round(fs*zz*10)/10;bw=Math.round(Math.max(70,bw*zz));   /* 두 손가락 · 가−/가+ 로 블록 크기 */
   const last=tabFocusHTML.last,adv=last&&last.k===k&&b===last.b+1;tabFocusHTML.last={k,b};
   const a0=Math.max(0,b-1),a1=Math.min(bars,b+7),cells=[];
   for(let j=a0;j<a1;j++){const ch=tabBarChord(lk,j,v0),tb=tabRender(lk,k,true,1,[j,j+1]).replace(/\n+$/,'').replace(/^[^\n]*\n/,'');
