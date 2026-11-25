@@ -1160,7 +1160,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-25 16:20';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-25 16:50';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -4269,7 +4269,7 @@ function ceRhySheet(R,fmt,cls){
   /* 2. 리듬악보가 덮지 않는 노래 없는 구간 → 음원 분석 코드로 (4마디씩) */
   const cov=new Set();R.lines.forEach(L=>{for(let b=Math.floor(Math.max(0,L.s)/16);b<Math.ceil(Math.min(tot,L.e)/16);b++)cov.add(b)});
   let run=null;const flush=()=>{if(!run)return;const a=run.a*16,e=(run.b+1)*16,pts=[];const c0=at(a);if(c0)pts.push({s:a,name:c0.name});
-    D.filter(x=>x.s>a&&x.s<e).forEach(x=>pts.push({s:x.s,name:x.name}));
+    D.filter(x=>x.s>a&&x.s<e).forEach(x=>{if(!pts.length||pts[pts.length-1].name!==x.name)pts.push({s:x.s,name:x.name})});   /* 같은 코드가 이어지면 하나로 */
     if(pts.length&&pts[0].s>a)pts[0].s=a;   /* 곡 맨 앞처럼 코드가 없는 자리는 첫 코드로 채움 (길이 숫자가 묶음 길이와 맞게) */
     blocks.push({s:a,e,gen:true,label:run.k,chords:pts.map((x,j)=>({n:x.name,s:x.s,e:j+1<pts.length?pts[j+1].s:e}))});run=null};
   rows.forEach(r=>{if(!r.kind)return;r.bars.forEach(b=>{if(cov.has(b)){flush();return}
@@ -4277,14 +4277,14 @@ function ceRhySheet(R,fmt,cls){
   flush();
   blocks.sort((x,y)=>x.s-y.s);
   return `<div class="ce-rtxs ce-rsheet">`+blocks.map((B,bi)=>ceBdHTML(blocks,bi)+(()=>{const t0=scTime(s,Math.max(0,B.s));let lines;
-    if(B.gen){const w=B.chords.map(c=>Math.max(c.n.length,holes(c.s,c.e).length,String((c.e-c.s)/2).length)+3),cols=[];let x=0;w.forEach(v=>{cols.push(x);x+=v});
+    if(B.gen){const w=B.chords.map(c=>Math.max(c.n.length,String((c.e-c.s)/2).length)+3),cols=[];let x=0;w.forEach(v=>{cols.push(x);x+=v});
       let gj=0;lines=[esc(place(cols,B.chords.map(c=>c.n))).replace(/[^\s]+/g,m=>{const c=B.chords[gj++]||{};return `<span class="ce-rt gen" data-rs="${c.s}" data-re="${c.e}" title="음원 분석 코드">${m}</span>`}),'['+esc(B.label)+']'];
-      const hl=place(cols,B.chords.map(c=>holes(c.s,c.e)));if(hl.trim())lines.push(`<span class="ce-hp">${esc(hl.startsWith('  ')?'♪ '+hl.slice(2):'♪ '+hl)}</span>`);
+      
       lines.push(esc(place(cols,B.chords.map(c=>String((c.e-c.s)/2)))));
     }else{const L=B.L;let j=0;
       const cl=esc(L.cl.replace(/\s+$/,'')).replace(/[^\s|]+/g,m=>{const c=L.chords[j++];if(!c)return m;return `<span class="ce-rt ${cls(c.sim)}" data-rs="${c.s}" data-re="${c.e}" title="${fmt(c.e-c.s)}${c.audio?' · 음원 '+esc(c.audio):''}">${m}</span>`});
       lines=[cl];
-      if(B.label){lines.push('['+esc(B.label)+']');const hl=place(B.idx,L.chords.map(c=>holes(c.s,c.e)));if(hl.trim())lines.push(`<span class="ce-hp">${esc(hl.startsWith('  ')?'♪ '+hl.slice(2):'♪ '+hl)}</span>`)}
+      if(B.label){lines.push('['+esc(B.label)+']')}   /* 리듬악보는 3줄 (코드 · 가사/[구간] · 숫자) — 하모니카 구멍 줄은 넣지 않음 (하모니카 TAB에) */
       else lines.push(...(L.raw||[]).map(esc));
       lines.push(esc(L.nl||''));
       if(!B.label&&L.lw){   /* 박 격자 · 고칠 수 있는 줄 */
@@ -4331,7 +4331,7 @@ function ceRhyMove(li,d){const R=CE.rhy;if(!R||!d||!R.lines[li])return;R.mv=R.mv
 document.addEventListener('toggle',e=>{const d=e.target;if(!d.classList||!d.classList.contains('ce-bd'))return;CE.bdOpen=CE.bdOpen||new Set();const li=+d.dataset.bdli;if(d.open)CE.bdOpen.add(li);else CE.bdOpen.delete(li)},true);
 function ceRhyText(){if(!CE.rhy)return '';const d=document.createElement('div');d.innerHTML=ceRhyHtml(true);
   return [...d.querySelectorAll('.ce-rtx')].map(b=>{const g=b.querySelector('.ce-grid');const ls=g?[...g.querySelectorAll('.ce-ln')].map(x=>x.textContent):b.querySelector('pre').textContent.split('\n');
-    return ls.map(l=>l.replace(/\s+$/,'')).join('\r\n')}).join('\r\n\r\n')+'\r\n'}
+    return ls.map(l=>l.replace(/\s+$/,'')).filter(l=>!/^\s*♪/.test(l)).join('\r\n')}).join('\r\n\r\n')+'\r\n'}
 function ceRhyHtml(sheet){
   const R=CE.rhy;
   if(!R&&sheet)return '<p class="ce-sum">리듬악보가 없습니다 — 곡편집 입력의 [리듬악보]에서 TXT를 추가하세요.</p>';
