@@ -309,9 +309,9 @@ body.bd-off #boardScroll,body.bd-off .board-bar,body.bd-off .legend{display:none
 #voicings .vcard[aria-pressed=true] .bx{box-shadow:0 0 0 3px #ffd400}#voicings .vcard svg{width:100%;height:auto;display:block}
 @media (max-width:640px){#voicings .vcard,.blbox .vcard{width:108px}.blbox .vcard .cs-nm{font-size:1.35rem}}
 #p-song #sgSheet,#p-song #sgTab,#p-blues #blTab,#p-adlib #adTab{max-height:calc(100vh - 150px);max-height:calc(100dvh - 150px);overflow:auto;overscroll-behavior:contain;border-radius:10px}
-#p-blues #blTab.fol-on,#p-adlib #adTab.fol-on{box-shadow:0 0 0 2px #2e9d5b}#p-blues #blTab.fol-pause,#p-adlib #adTab.fol-pause{box-shadow:0 0 0 2px #e0a21e}
+#p-blues #blTab.fol-on,#p-adlib #adTab.fol-on{box-shadow:0 0 0 2px #2e9d5b}#p-blues #blTab.fol-pause,#p-adlib #adTab.fol-pause{box-shadow:0 0 0 2px rgba(224,162,30,.6)}
 #p-song .sg-ctl{padding:4px 0 2px}
-.fol-pause{position:sticky;top:0;float:right;z-index:3;font-size:.75rem;background:#ffd400;color:#222;padding:2px 8px;border-radius:8px;margin:4px}
+
 .ph-ov{position:fixed;inset:0;z-index:9999;background:rgba(10,12,14,.88);display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px}
 .ph-bar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center;color:#eee;font-size:.9rem}.ph-bar .chip{background:#2a2d31;color:#eee;border-color:#444}.ph-bar .chip[aria-pressed=true]{background:#ffd400;color:#222}
 .ph-wrap{flex:1;min-height:0;display:flex;align-items:flex-start;justify-content:center;width:100%;overflow:auto}
@@ -334,7 +334,7 @@ body.bd-off #boardScroll,body.bd-off .board-bar,body.bd-off .legend{display:none
 .sg-cstrip .cs-card{width:118px}.sg-cstrip .cs-card .cs-nm{font-size:1.5rem}.sg-cstrip .cs-card.cur{transform:none}   /* 곡연습 코드 띠: 블루스 운지표 크기 */
 @media (max-width:699px){.sg-cstrip .cs-cards{justify-content:center}.sg-cstrip .cs-cards .cs-card{width:min(96px,calc((100% - 16px)/3))!important}.sg-cstrip .cs-card .cs-nm{font-size:1.15rem}}
 .fol-st{font-size:.8rem;font-weight:700;padding:3px 10px;border-radius:999px;background:#d8f0dd;color:#1f6b3a}.fol-st[data-st=pause]{background:#fff1a8;color:#7a5b00}.fol-st[data-st=off]{background:var(--line);color:var(--muted)}
-#p-song #sgSheet.fol-on,#p-song #sgTab.fol-on{box-shadow:0 0 0 2px #2e9d5b}#p-song #sgSheet.fol-pause,#p-song #sgTab.fol-pause{box-shadow:0 0 0 2px #e0a21e}
+#p-song #sgSheet.fol-on,#p-song #sgTab.fol-on{box-shadow:0 0 0 2px #2e9d5b}#p-song #sgSheet.fol-pause,#p-song #sgTab.fol-pause{box-shadow:0 0 0 2px rgba(224,162,30,.6)}
 @media (max-width:699px){   /* 폰: 위 버튼 줄은 한 줄 (넘치면 옆으로 밀어 봄) */
   .top h1{font-size:1.05rem;flex:0 0 auto}.tops{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;gap:3px;justify-content:flex-start;padding-bottom:1px}.tops::-webkit-scrollbar{display:none}
   .tops>*{flex:0 0 auto}#zoomVal,#uizVal{display:none}.lg-t{display:none}.sm-t{display:inline!important}.tops button,.tops .bd-show{padding:2px 6px;font-size:.7rem;min-height:0}.tops .lbl-tg button,.tops .acc button{padding:2px 6px}}
@@ -1151,7 +1151,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-25 06:10';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-25 06:20';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
