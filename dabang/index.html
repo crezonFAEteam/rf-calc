@@ -1151,7 +1151,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-25 06:30';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-25 07:10';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -2207,12 +2207,30 @@ function tabBarChord(lk,b,v0){   /* 그 마디 첫 코드 (+ 마디 안에서 �
   if(!c){let p=null;for(const x of lk.segs){if(x.start<b*BAR)p=x;else break}c=p&&p.c}if(!c)return null;
   const name=chName(c),more=[...new Set(sg.slice(1).map(x=>chName(x.c)))].filter(n=>n!==name);
   let v=v0&&v0(b,c,name);if(!v){const cc=blChord(name);v=cc?(BLV[name]||getV(cc)):null}return {name,more,v}}
-function tabFocusHTML(lk,k,b,v0){   /* 블록: 마디마다 [코드 카드] 위 · [TAB 카드] 아래 같은 폭 — 옆으로 줄지어 있고 손가락으로 밀어 봄 · 재생하면 지금 블록이 왼쪽으로 와서 이어짐 */
-  const BAR=lk.bar||8,bars=Math.max(1,Math.ceil(lk.total/BAR));let C=tabC();const bt=Math.max(1,Math.round(BAR/4));b=Math.max(0,Math.min(bars-1,b));
-  const W3=Math.max(240,(window.innerWidth||400)-64),f3o=c=>((W3-16)/3-14)/((BAR*c+3)*0.61);if(f3o(C)<7&&C>1)C=1;   /* 가로로 더 줄이기: 한 칸 1글자 (두 자리 프렛은 옆 칸까지) */
-  tabC.force=C;const chars=BAR*C+3,f3=f3o(C),three=f3>=7;let fs=three?Math.min(12,Math.round(f3*10)/10):12;let bw=three?Math.floor((W3-16)/3):Math.round(Math.max(120,chars*0.62*fs+18));   /* 지난 · 지금 · 다음 세 블록이 한 화면에 (TAB 글자 7px 이상이 되면) — 아니면 지금 블록 가운데 + 양옆 살짝 */
+/* ---------- 악보 크기 = 한 화면(한 줄)에 보이는 마디 수: 블록 1~5칸 · 전체 TAB 한 줄 1~8마디 · 코드·가사 한 줄 1~12마디
+   두 손가락 벌리면 칸 수 −1(크게) · 오므리면 +1(작게) · 가−/가+ · Ctrl+휠도 같음. 글자는 칸 폭에 맞춰 자동 ---------- */
+const VN={blk:+store.get('chordcalc-vn-blk')||3,tab:+store.get('chordcalc-vn-tab')||0,sheet:+store.get('chordcalc-vn-sheet')||0};
+const VN_MAX={blk:5,tab:8,sheet:12};
+function vnKind(el){return el&&el.querySelector('.tf')?'blk':el&&el.id==='sgSheet'?'sheet':'tab'}
+function vnNow(kind,el){if(VN[kind])return VN[kind];
+  if(kind==='sheet'){const sh=document.getElementById('sgSheet');return sh?getComputedStyle(sh).gridTemplateColumns.split(' ').length:4}
+  if(kind==='tab'){const p=el&&el.querySelector('pre');return (p&&p._per)||4}return 3}
+function vnToast(t){let x=document.getElementById('uizToast');if(!x){x=document.createElement('div');x.id='uizToast';document.body.appendChild(x)}x.textContent=t;x.classList.add('on');clearTimeout(vnToast.t);vnToast.t=setTimeout(()=>x.classList.remove('on'),900)}
+function vnStep(el,d){const kind=vnKind(el),n=Math.max(1,Math.min(VN_MAX[kind],vnNow(kind,el)+d));if(n===VN[kind]&&VN[kind])return;VN[kind]=n;store.set('chordcalc-vn-'+kind,String(n));
+  vnToast(kind==='blk'?`한 화면 ${n}칸`:`한 줄 ${n}마디`);
+  if(st.tab==='blues')blRender();else if(st.tab==='song'&&SG.song){if(SG.view==='sheet'){sgApplyZ();}else sgTabView()}}
+function vnPinch(el){let pz=null;const dist=t=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);
+  el.style.touchAction='pan-x pan-y';
+  el.addEventListener('touchstart',e=>{if(e.touches.length===2){pz={d:dist(e.touches)};e.stopImmediatePropagation()}},{passive:true,capture:true});
+  el.addEventListener('touchmove',e=>{if(!pz||e.touches.length!==2)return;e.preventDefault();e.stopImmediatePropagation();const r=dist(e.touches)/pz.d;if(r>1.3){vnStep(el,-1);pz.d=dist(e.touches)}else if(r<0.77){vnStep(el,1);pz.d=dist(e.touches)}},{passive:false,capture:true});
+  el.addEventListener('touchend',e=>{if(e.touches.length<2)pz=null},{capture:true});
+  el.addEventListener('wheel',e=>{if(!e.ctrlKey)return;e.preventDefault();e.stopImmediatePropagation();const n=performance.now();if(n-(el._wt||0)<250)return;el._wt=n;vnStep(el,e.deltaY>0?1:-1)},{passive:false,capture:true})}
+document.addEventListener('DOMContentLoaded',()=>['sgSheet','sgTab','blTab'].forEach(id=>{const e=document.getElementById(id);if(e)vnPinch(e)}));
+function tabFocusHTML(lk,k,b,v0){   /* 블록: 마디마다 [코드 카드] 위 · [TAB 카드] 아래 같은 폭 — 한 화면에 VN.blk 칸 · 옆으로 밀어 봄 · 재생하면 지금 블록이 가운데 */
+  const BAR=lk.bar||8,bars=Math.max(1,Math.ceil(lk.total/BAR));const bt=Math.max(1,Math.round(BAR/4));b=Math.max(0,Math.min(bars-1,b));
+  const N=Math.max(1,Math.min(5,VN.blk||3)),W=Math.max(220,((window.innerWidth||400)-64)),bw=Math.floor((W-(N-1)*8)/N),fit=c=>(bw-14)/((BAR*c+3)*0.61);
+  let C=tabC();while(C>1&&fit(C)<7)C--;tabC.force=C;const chars=BAR*C+3,fs=Math.round(Math.max(4.5,Math.min(22,fit(C)))*10)/10;
   let tick='  ';for(let j=0;j<BAR;j++)tick+=(j%bt===0?String(j/bt+1):'·').padEnd(C,' ');
-  const zz=Math.max(0.5,Math.min(2.2,tabZ()));fs=Math.round(fs*zz*10)/10;bw=Math.round(Math.max(70,bw*zz));   /* 두 손가락 · 가−/가+ 로 블록 크기 */
   const last=tabFocusHTML.last,adv=last&&last.k===k&&b===last.b+1;tabFocusHTML.last={k,b};
   const a0=Math.max(0,b-1),a1=Math.min(bars,b+7),cells=[];
   for(let j=a0;j<a1;j++){const ch=tabBarChord(lk,j,v0),tb=tabRender(lk,k,true,1,[j,j+1]).replace(/\n+$/,'').replace(/^[^\n]*\n/,'');
@@ -2234,6 +2252,10 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-tfx],[data
 ['sgTab','blTab'].forEach(id=>{let x0=null,y0=0;document.addEventListener('touchstart',e=>{const t=e.target.closest&&e.target.closest('#'+id);const r=e.target.closest&&e.target.closest('.tfb-row');if(r){r._user=1;clearTimeout(r._ut);r._ut=setTimeout(()=>{r._user=0},4000);x0=null;return}if(t&&e.touches.length===1){x0=e.touches[0].clientX;y0=e.touches[0].clientY}else x0=null},{passive:true});
   document.addEventListener('touchend',e=>{if(x0==null)return;const t=e.changedTouches[0],dx=t.clientX-x0,dy=t.clientY-y0;x0=null;if(Math.abs(dx)<50||Math.abs(dy)>Math.abs(dx)*0.7)return;
     const el=document.getElementById(id);if(!el||!el.querySelector('.tf'))return;const btn=el.querySelector(`[data-tfgo="${dx<0?1:-1}"]`);if(btn&&!(id==='sgTab'&&SG.playing)&&!(id==='blTab'&&BL.playing))btn.click()},{passive:true})});
+function tabFullPre(lk,k,id){const el=document.getElementById(id),BAR=lk.bar||8,C=tabC();let per=VN.tab||tabPer(BAR,id);
+  if(!VN.tab)return `<pre>${tabRender(lk,k,true,per)}</pre>`;
+  const w=Math.max(200,(el&&el.clientWidth||((window.innerWidth||400)-40))-30),fs=Math.round(Math.max(4.5,Math.min(20,w/((per*(BAR*C+1)+3)*0.61)))*10)/10;
+  return `<pre style="font-size:${fs}px;letter-spacing:0">${tabRender(lk,k,true,per)}</pre>`}
 function tabFocusBtn(){return (window.innerWidth||1000)<700&&!tabFocusOn()?'<button class="ghost sm" data-tfx="1" style="margin:4px 0">🎯 마디 보기 (지금 마디 크게)</button>':''}
 function tabC(){return tabC.force||((window.innerWidth||1000)<700?2:3)}
 function tabRender(lk,k,html,perIn,rg){
@@ -2339,7 +2361,7 @@ function pinchZ(pz,r){const zmin=0.12,base=pz.b||pz.u,C=(pz.f/tabFsDef())*pz.u*r
   if(nu!==uiz)setUiz(nu);setTabFs(Math.max(zmin,C/uiz)*tabFsDef())}
 const tabFz=()=>Math.min(1,tabZ()/0.45);   /* 간격을 끝까지 줄인 뒤(0.45배 아래)부터는 글자도 같이 작아짐 → 훨씬 더 작게 */
 function tabLs(){const ch=tabFsDef()*tabFz()*0.6;return Math.max(-0.38*ch,Math.min(1.5*ch,(tabZ()-1)*ch))}   /* TAB 글자 사이 간격(px) — 모든 글자에 같게 → 줄 맞춤 그대로 */
-function sgApplyZ(){const e=document.getElementById('p-song');if(e){e.style.setProperty('--sgz',tabFz().toFixed(3));e.style.setProperty('--sgs',tabZ().toFixed(3))}try{if(SG.song&&SG.view==='sheet'){cancelAnimationFrame(SG.fitRaf);SG.fitRaf=requestAnimationFrame(sgLyFit)}}catch(e){/* 페이지 시작 중(SG 준비 전)엔 건너뜀 */}}   /* 곡연습 코드 · 가사 · 하모니카 칸 배율 */
+function sgApplyZ(){const e=document.getElementById('p-song');{const sh=document.getElementById('sgSheet');if(sh){if(VN.sheet){sh.style.gridTemplateColumns=`repeat(${VN.sheet},minmax(0,1fr))`}else sh.style.gridTemplateColumns=''}}if(e){e.style.setProperty('--sgz',(VN.sheet?Math.max(0.42,Math.min(1.25,((document.getElementById('sgSheet')||{}).clientWidth||((window.innerWidth||400)-40))/VN.sheet/(matchMedia('(max-width:640px)').matches?88:150))):tabFz()).toFixed(3));e.style.setProperty('--sgs',tabZ().toFixed(3))}try{if(SG.song&&SG.view==='sheet'){cancelAnimationFrame(SG.fitRaf);SG.fitRaf=requestAnimationFrame(sgLyFit)}}catch(e){/* 페이지 시작 중(SG 준비 전)엔 건너뜀 */}}   /* 곡연습 코드 · 가사 · 하모니카 칸 배율 */
 function tabFsDone(){store.set('chordcalc-tabfs',String(tabFs));renderAdTab();if(st.tab==='blues')blRender();if(st.tab==='song'&&SG.song&&SG.view!=='sheet')sgTabView()}   /* 다 바꾼 뒤 한 줄 마디 수 다시 계산 */
 if(tabFs)setTabFs(tabFs);
 (function(){
@@ -2450,7 +2472,7 @@ function blRender(){
 /* 운지표: 운지 예제(마디마다 '@ 손가락')는 마디별 모양, 나머지는 쓰는 코드의 기본 모양 */
 function blTabDraw(){const tab=document.getElementById('blTab'),lk=BL.lk;if(!tab||!lk)return;
   if(tabFocusOn()){const sh=BL.shapes||blShapes(lk);tab.innerHTML=`<div class="tabsec">${tabFocusHTML(lk,'b',BL.tfb||0,(b,c,name)=>{if(sh.kind==='bar'){const o=sh.list.find(o=>b*(lk.bar||8)>=o.from&&b*(lk.bar||8)<o.to);if(o)return o.v}const o=sh.list.find(o=>o.name===name);return o&&o.v})}</div>`;BL.tfOn=true}
-  else{BL.tfOn=false;tab.innerHTML=`<div class="tabsec">${tabFocusBtn()}<pre>${tabRender(lk,'b',true,tabPer(lk.bar,'blTab'))}</pre></div>`}}
+  else{BL.tfOn=false;tab.innerHTML=`<div class="tabsec">${tabFocusBtn()}${tabFullPre(lk,'b','blTab')}</div>`;{const p=tab.querySelector('pre');if(p)p._per=VN.tab||tabPer(lk.bar,'blTab')}}}
 function blShapes(lk){
   const out=[];
   if(lk.segs.some(sg=>sg.ly)){
@@ -2626,8 +2648,8 @@ document.getElementById('p-blues').addEventListener('click',e=>{
   if(b.id==='blLoop'){BL.loop=!BL.loop;b.setAttribute('aria-pressed',BL.loop);blSaveUI();return}   /* 재생 중이어도 다음 바퀴부터 */
   if(b.id==='blPrev')return blGo(BL.idx-1);
   if(b.id==='blNext')return blGo(BL.idx+1);
-  if(b.id==='blZo'){setTabFs(tabFsNow()/1.02);return tabFsDone()}
-  if(b.id==='blZi'){setTabFs(tabFsNow()*1.02);return tabFsDone()}
+  if(b.id==='blZo'){vnStep(document.getElementById('blTab'),1);return}
+  if(b.id==='blZi'){vnStep(document.getElementById('blTab'),-1);return}
   if(!ex)return;
   if(b.id==='blAll'){BL.from=0;BL.to=-1}
   else if(b.id==='blShuf'){BL.shufOv[ex.id]=!blShuf(ex);blSaveUI()}
@@ -5142,7 +5164,7 @@ function sgRhyView(){   /* 곡편집에서 저장한 완성 리듬악보 — 없
 }
 function sgTabView(){if(SG.view==='final')return sgFinalView();if(SG.view==='rhythm')return sgRhyView();if(SG.song.parts[SG.view]&&SG.song.parts[SG.view].kind==='harmonica')return sgHarpView(SG.view);const lk=sgLick(SG.view);
   if(tabFocusOn()){SG.tfb=Math.floor(Math.max(0,SG.slot)/(lk.bar||16));sgEl('sgTab').innerHTML=`<div class="tabttl" style="cursor:default">${esc(lk.name)}</div>${tabFocusHTML(lk,'g',SG.tfb)}`;return}
-  SG.tfb=null;sgEl('sgTab').innerHTML=`<div class="tabttl" style="cursor:default">${esc(lk.name)}</div>${tabFocusBtn()}<pre>${tabRender(lk,'g',true,tabPer(16,'sgTab'))}</pre>`}
+  SG.tfb=null;sgEl('sgTab').innerHTML=`<div class="tabttl" style="cursor:default">${esc(lk.name)}</div>${tabFocusBtn()}${tabFullPre(lk,'g','sgTab')}`;{const p=sgEl('sgTab').querySelector('pre');if(p)p._per=VN.tab||tabPer(16,'sgTab')}}
 function sgMark(t){
   const s=SG.song,sl=SG.slot;
   document.querySelectorAll('#p-song .now').forEach(x=>x.classList.remove('now'));
@@ -5280,8 +5302,8 @@ document.getElementById('p-song').addEventListener('click',e=>{
   if(ds.sgsnd){SG.kc.s=!SG.kc.s;sgKcSave();sgRender();sgPitchApply();return}
   if(ds.sgcapo!=null){SG.kc.c=+ds.sgcapo;sgKcSave();SG.lk={};SG._ch=null;sgRender();drawBoard();return}
   if(ds.sgkreset){SG.kc={t:0,c:0};sgKcSave();SG.lk={};SG._ch=null;sgRender();drawBoard();sgPitchApply();return}
-  if(b.id==='sgZo'){setTabFs(tabFsNow()/1.02);return tabFsDone()}
-  if(b.id==='sgZi'){setTabFs(tabFsNow()*1.02);return tabFsDone()}
+  if(b.id==='sgZo'){vnStep(SG.view==='sheet'?sgEl('sgSheet'):sgEl('sgTab'),1);return}
+  if(b.id==='sgZi'){vnStep(SG.view==='sheet'?sgEl('sgSheet'):sgEl('sgTab'),-1);return}
   if(ds.sgv0){SG.ids.forEach(i=>SG.mix[i].vol=1);document.querySelectorAll('[data-sgv]').forEach(r=>{r.value=100;r.title='100% (100% = 원음 크기)';if(r.nextElementSibling)r.nextElementSibling.textContent='100%'});sgVol();return}
   if(ds.sgm){const x=SG.mix[ds.sgm];x.mute=!x.mute;sgVol();b.setAttribute('aria-pressed',!x.mute);b.textContent=x.mute?'끔':'켬';return}
   if(ds.sgs){const x=SG.mix[ds.sgs];x.solo=!x.solo;sgVol();b.setAttribute('aria-pressed',x.solo);return}
