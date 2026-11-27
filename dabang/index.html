@@ -1166,7 +1166,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-27 13:20';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-27 13:40';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -5357,7 +5357,7 @@ function sgMark(t){
     const lk=sgLick(SG.view);if(SG.tfb!=null&&Math.floor(Math.max(0,sl)/(lk.bar||16))!==SG.tfb)sgTabView();let k=sl;while(k>sl-3&&!lk.map[k])k--;
     (lk.map[k]||[]).forEach(ni=>{const e=document.querySelector(`#sgTab [data-n="g-${ni}"]`);if(e)e.classList.add('now')});
   }
-  if(SG.playing)followNow(SG.view==='sheet'?'sgSheet':'sgTab');
+  if(SG.playing&&st.tab==='song')followNow(SG.view==='sheet'?'sgSheet':'sgTab');   /* 곡연습 탭에서만 — 애드립 탭에서는 그 탭의 TAB 만 따라감 */
 }
 /* 지판: 코드 · 가사 보기 = 지금 코드 운지, TAB 보기 = 지금 치는 음 */
 function sgEzV(cc,name){const bk=SG.song&&SG.song.backing&&SG.song.backing.voicings;const v=(!SG.kc.t&&!SG.kc.c&&bk&&Array.isArray(bk[name])&&bk[name].length===6)?bk[name]:getV(cc);return v}
