@@ -361,6 +361,7 @@ body.bd-off #boardScroll,body.bd-off .board-bar,body.bd-off .legend{display:none
 .ce-bdc.now{outline:2px solid #ffd400;outline-offset:-1px;background:#fff3b0}.ce-bdb{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:4px 0}
 .al-ft tr[data-alseg] td{cursor:pointer}.al-ft tr.rep td{background:color-mix(in srgb,#ffd400 26%,transparent)}.al-ft tr.rep td.k::after{content:' 🔁';font-size:.8em}
 #alRefTr .al-ref{margin:4px 0 0}#alRefTr td{background:none!important}
+#alRef pre{max-height:min(62vh,560px);overflow:auto}
 #alRef .chip{font-size:.78rem;padding:2px 9px;min-height:0}
 #alRef pre span.now{background:#ffd400!important;color:#111!important;border-radius:2px;box-shadow:0 0 0 2px #ffd400}
 .zz-k{color:#2b63b0;font-weight:600}.zz-h{flex-basis:100%;font-weight:700;font-size:.88rem;margin:0 2px 2px}.zz-mine{background:color-mix(in srgb,#e0a21e 16%,transparent)}.zz-mine .zz-h{color:#a86d00}.zz-rec{background:color-mix(in srgb,#3b7dd8 12%,transparent)}.zz-rec .zz-h{color:#2b63b0}.zz-grp .zz-it{background:var(--surface)}.zz-it.on{border-color:var(--accent);font-weight:700}.zz-q{width:100%;margin-top:6px;padding:6px 8px;font-size:.95rem}.zz-bm{text-decoration:none;cursor:grab}
@@ -1166,7 +1167,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-27 13:40';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-27 14:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -1854,7 +1855,7 @@ function alRefRender(g){const e=document.getElementById('alRef');if(!e)return;
   e.innerHTML=`<b>원곡 연주 참고</b> — ${esc(g.kind)} ${Math.floor(g.a/16)+1}~${Math.ceil(g.z/16)}마디
     ${ps.map(k=>`<button class="chip" data-alpart="${k}" aria-pressed="${AL.part===k}">${esc(String(SG.song.parts[k].name||k).replace(/ —.*/,''))}</button>`).join(' ')}
     <span class="chips" style="display:inline-flex;gap:3px;margin:0 6px"><span class="sc-lb">한 줄</span>${[1,2,3,4].map(n=>`<button class="chip" data-alzoom="${n}" aria-pressed="${BPR===n}">${n}마디</button>`).join('')}</span><span class="mt">${nIn?'빈 곳 안 '+nIn+'음 (노란 칸)':'이 빈 곳에서는 이 악기 연주가 거의 없음'}${P.kind==='harmonica'?' · 하모니카 멜로디(가장 높은 음)를 고른 박스 근처 기타 자리로':''}${sgPitchSemi()?' · 조옮김 반영':''}</span>
-    <div class="ct-lg" style="margin-top:4px"><span class="r1">■ 근음</span><span class="r3">■ 3도</span><span class="r5">■ 5도</span><span class="r7">■ 7도</span><span class="rt">■ 텐션(9 · sus)</span><span class="rn">■ 코드 밖 음</span><span><span class="in">&nbsp;노란 바탕&nbsp;</span> = 빈 곳</span><span class="mt">· 맨 윗줄 = 그 자리 코드</span></div><pre class="vnfit">${rows.join(String.fromCharCode(10,10))}</pre>`;if(!e._vn){e._vn=1;vnPinch(e)}
+    <div class="ct-lg" style="margin-top:4px"><span class="r1">■ 근음</span><span class="r3">■ 3도</span><span class="r5">■ 5도</span><span class="r7">■ 7도</span><span class="rt">■ 텐션(9 · sus)</span><span class="rn">■ 코드 밖 음</span><span><span class="in">&nbsp;노란 바탕&nbsp;</span> = 빈 곳</span><span class="mt">· 맨 윗줄 = 그 자리 코드</span></div><pre class="vnfit">${rows.join(String.fromCharCode(10,10))}</pre>`;if(!e._vn){e._vn=1;vnPinch(e);const us=()=>{const p2=e.querySelector('pre');if(p2)p2._user=performance.now()+4000};e.addEventListener('wheel',us,{passive:true});e.addEventListener('touchstart',us,{passive:true})}
   {const row=AL.refRow>=0?document.querySelector(`#alFlow tr[data-alseg="${AL.refRow}"]`):null;let rt=document.getElementById('alRefTr');   /* 곡 흐름표에서 고른 구간 바로 아래에 */
     if(row){if(!rt){rt=document.createElement('tr');rt.id='alRefTr';rt.innerHTML='<td colspan="2" style="padding:0 0 8px"></td>'}if(row.nextSibling!==rt)row.after(rt);if(e.parentNode!==rt.firstChild)rt.firstChild.appendChild(e)}}
   requestAnimationFrame(()=>vnFit(e))}   /* 한 줄 마디 수 (1~4) · 글자는 폭에 맞춤 · 손가락 · Ctrl+휠 */
@@ -1910,9 +1911,11 @@ function alTick(force){
     else{gp.className='al-gap';gp.textContent='🎤 노래 중'}}
   if(AL.segs){const si=AL.segs.findIndex(sg=>slot>=sg.a&&slot<sg.z);if(si!==AL.segI){AL.segI=si;document.querySelectorAll('#alFlow tr[data-alseg]').forEach(r=>r.classList.toggle('cur',+r.dataset.alseg===si))}}
   {const pre=document.querySelector('#alRef pre');if(pre){let cs=-1;pre.querySelectorAll('span[data-s]').forEach(x=>{const s0=+x.dataset.s;if(s0<=slot&&slot-s0<8&&s0>cs)cs=s0});   /* 원곡 연주 참고: 지금 치는 음 노랗게 · 화면 밖이면 옆으로 따라감 (위아래는 그대로) */
-    if(cs!==AL.refNowS){AL.refNowS=cs;pre.querySelectorAll('span.now').forEach(x=>x.classList.remove('now'));if(cs>=0){const xs=pre.querySelectorAll(`span[data-s="${cs}"]`);xs.forEach(x=>x.classList.add('now'));const sc=pre.scrollWidth>pre.clientWidth+2?pre:pre.parentElement;
-      if(xs[0]&&sc){const r=xs[0].getBoundingClientRect(),pr=sc.getBoundingClientRect();if(r.left<pr.left+24||r.right>pr.right-24)sc.scrollTo({left:sc.scrollLeft+r.left-pr.left-pr.width*0.3,behavior:'smooth'})}
-      if(xs[0]&&SG.playing){let top=0;const pin=document.getElementById('pin'),tabs=document.querySelector('.tabs');if(pin&&!pin.classList.contains('off')){const p2=pin.getBoundingClientRect();if(p2.top<=1)top=Math.max(top,p2.bottom)}if(tabs){const t2=tabs.getBoundingClientRect();if(t2.top<=top+2&&t2.bottom>top)top=t2.bottom}try{folY(xs[0].getBoundingClientRect(),top,0.3)}catch(er){}}}}}}
+    if(cs!==AL.refNowS){AL.refNowS=cs;pre.querySelectorAll('span.now').forEach(x=>x.classList.remove('now'));if(cs>=0){const xs=pre.querySelectorAll(`span[data-s="${cs}"]`);xs.forEach(x=>x.classList.add('now'));
+      if(xs[0]&&!(performance.now()<(pre._user||0))){const r=xs[0].getBoundingClientRect(),pr=pre.getBoundingClientRect();let L=pre.scrollLeft,T=pre.scrollTop,mv=false;   /* TAB 칸 안에서만 따라감 (페이지는 그대로) */
+        if(r.left<pr.left+24||r.right>pr.right-24){L=pre.scrollLeft+r.left-pr.left-pr.width*0.3;mv=true}
+        const blk=6*(r.height||14);if(r.top<pr.top+4||r.bottom+blk>pr.bottom){T=pre.scrollTop+r.top-pr.top-(r.height||14)*2;mv=true}
+        if(mv)pre.scrollTo({left:Math.max(0,L),top:Math.max(0,T),behavior:'smooth'})}}}}}
   const pb=document.querySelector('[data-alplay]');if(pb)pb.textContent=SG.playing?'■ 정지':'▶ 재생';
   AL.raf=requestAnimationFrame(()=>alTick(false))}
 function alOpen(){if(!SG.song){alRender();return}const gk=SG.song.title+'|'+(SG.song.lines||[]).length;if(AL.gk!==gk){AL.gk=gk;AL.gaps=alGaps();AL.refRow=-1;AL.segLoop=-1;AL.sel=null}alRender()}
