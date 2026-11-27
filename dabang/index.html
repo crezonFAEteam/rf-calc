@@ -361,7 +361,7 @@ body.bd-off #boardScroll,body.bd-off .board-bar,body.bd-off .legend{display:none
 .ce-bdc.now{outline:2px solid #ffd400;outline-offset:-1px;background:#fff3b0}.ce-bdb{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:4px 0}
 .al-ft tr[data-alseg] td{cursor:pointer}.al-ft tr.rep td{background:color-mix(in srgb,#ffd400 26%,transparent)}.al-ft tr.rep td.k::after{content:' 🔁';font-size:.8em}
 #alRefTr .al-ref{margin:4px 0 0}#alRefTr td{background:none!important}
-#alRef .al-bars{max-height:min(62vh,560px);overflow:auto;display:flex;flex-wrap:wrap;gap:6px 10px;align-content:flex-start}#alRef pre.al-bar{margin:0;font-size:1em;line-height:1.3;flex:0 0 auto;overflow:visible}#alRefTr td{max-width:0}#alRefTr .al-ref{width:calc(100vw - 48px);max-width:100%;box-sizing:border-box}@media (min-width:700px){#alRefTr .al-ref{width:auto}}#alRef pre{max-width:100%}
+#alRef .al-bars{max-height:min(62vh,560px);overflow:auto;display:flex;flex-wrap:wrap;gap:6px 10px;scrollbar-gutter:stable;align-content:flex-start}#alRef pre.al-bar{margin:0;font-size:1em;line-height:1.3;flex:0 0 auto;overflow:visible}#alRefTr td{max-width:0}#alRefTr .al-ref{width:calc(100vw - 48px);max-width:100%;box-sizing:border-box}@media (min-width:700px){#alRefTr .al-ref{width:auto}}#alRef pre{max-width:100%}
 #alRef .chip{font-size:.78rem;padding:2px 9px;min-height:0}
 #alRef .al-bars span.now{background:#ffd400!important;color:#111!important;border-radius:2px;box-shadow:0 0 0 2px #ffd400}
 .zz-k{color:#2b63b0;font-weight:600}.zz-h{flex-basis:100%;font-weight:700;font-size:.88rem;margin:0 2px 2px}.zz-mine{background:color-mix(in srgb,#e0a21e 16%,transparent)}.zz-mine .zz-h{color:#a86d00}.zz-rec{background:color-mix(in srgb,#3b7dd8 12%,transparent)}.zz-rec .zz-h{color:#2b63b0}.zz-grp .zz-it{background:var(--surface)}.zz-it.on{border-color:var(--accent);font-weight:700}.zz-q{width:100%;margin-top:6px;padding:6px 8px;font-size:.95rem}.zz-bm{text-decoration:none;cursor:grab}
@@ -1167,7 +1167,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-27 15:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-27 15:30';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -1860,7 +1860,12 @@ function alRefRender(g){const e=document.getElementById('alRef');if(!e)return;
     <div class="ct-lg" style="margin-top:4px"><span class="r1">■ 근음</span><span class="r3">■ 3도</span><span class="r5">■ 5도</span><span class="r7">■ 7도</span><span class="rt">■ 텐션(9 · sus)</span><span class="rn">■ 코드 밖 음</span><span><span class="in">&nbsp;노란 바탕&nbsp;</span> = 빈 곳</span><span class="mt">· 맨 윗줄 = 그 자리 코드</span></div><div class="al-bars">${rows.join('')}</div>`;if(!e._vn){e._vn=1;vnPinch(e);const us=()=>{const p2=e.querySelector('.al-bars');if(p2)p2._user=performance.now()+4000};e.addEventListener('wheel',us,{passive:true});e.addEventListener('touchstart',us,{passive:true})}
   {const row=AL.refRow>=0?document.querySelector(`#alFlow tr[data-alseg="${AL.refRow}"]`):null;let rt=document.getElementById('alRefTr');   /* 곡 흐름표에서 고른 구간 바로 아래에 */
     if(row){if(!rt){rt=document.createElement('tr');rt.id='alRefTr';rt.innerHTML='<td colspan="2" style="padding:0 0 8px"></td>'}if(row.nextSibling!==rt)row.after(rt);if(e.parentNode!==rt.firstChild)rt.firstChild.appendChild(e)}}
-  requestAnimationFrame(()=>{const bx=e.querySelector('.al-bars');if(!bx)return;const W=bx.clientWidth-4,ch=2+16*CW+1,fs=Math.max(10,Math.min(22,(W/BPR-10)/(ch*0.61)));bx.style.fontSize=fs.toFixed(1)+'px'})}   /* 한 줄 마디 수 (1~4) · 글자는 폭에 맞춤 · 손가락 · Ctrl+휠 */
+  requestAnimationFrame(()=>alRefFit(e,BPR,CW))}
+/* 원곡 연주 TAB 폭 맞추기: 한 줄 마디 수 k = 단추 값 · 글자 10px 로 들어가는 수 중 작은 쪽 → k 마디가 폭을 꽉 채우게 글자 크기 (실제로 재서 맞춤) */
+function alRefFit(e,N,CW){const bx=e&&e.querySelector('.al-bars');if(!bx)return;const b=bx.querySelector('pre.al-bar');if(!b)return;const GAP=10,W=bx.clientWidth-(bx.offsetWidth-bx.clientWidth>4?0:2)-2;
+  const ch=2+16*CW+1,k=Math.max(1,Math.min(N,Math.floor((W+GAP)/(ch*0.61*10+GAP)))),tw=(W-(k-1)*GAP)/k;let fs=tw/(ch*0.61);bx.style.columnGap=GAP+'px';
+  for(let t=0;t<3;t++){bx.style.fontSize=fs.toFixed(2)+'px';const w=b.getBoundingClientRect().width;if(!w)break;if(Math.abs(w-tw)<1.5)break;fs=fs*tw/w*0.995}
+  if(b.getBoundingClientRect().width>tw)bx.style.fontSize=(fs*0.99).toFixed(2)+'px'}   /* 한 줄 마디 수 (1~4) · 글자는 폭에 맞춤 · 손가락 · Ctrl+휠 */
 function alFlowRender(){const e=document.getElementById('alFlow');if(!e||!SG.song)return;
   const S=SG.song,C=S.chords||[],key=mod(sgKey0()+sgPitchSemi()),mi=SG._k0&&SG._k0.minor,L=(S.lines||[]).filter(l=>typeof l.s==='number').slice().sort((a,b)=>a.s-b.s),G=AL.gaps;
   const segs=[];L.forEach((l,i)=>{const nx=L[i+1],g=G.find(g=>g.prev===l);segs.push({a:l.s,z:g?g.a:nx?nx.s:l.s+32,kind:(i+1)+'줄',ly:l.text})});G.forEach(g=>segs.push({a:g.a,z:g.z,kind:g.kind,gap:1}));
