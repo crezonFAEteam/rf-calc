@@ -359,6 +359,7 @@ body.bd-off #boardScroll,body.bd-off .board-bar,body.bd-off .legend{display:none
 .ce-bdc{height:52px;padding:0;border:0;border-radius:2px;background:color-mix(in srgb,var(--line) 60%,transparent);display:flex;align-items:flex-end;cursor:pointer;min-width:0}
 .ce-bdc i{display:block;width:100%;background:#9aa3a8;border-radius:2px 2px 0 0}.ce-bdc.on i{background:#2e9e5b}.ce-bdc.bar{box-shadow:inset 2px 0 0 var(--fg,#333)}.ce-bdc.st{box-shadow:inset 3px 0 0 #1a73e8}
 .ce-bdc.now{outline:2px solid #ffd400;outline-offset:-1px;background:#fff3b0}.ce-bdb{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:4px 0}
+.al-ft tr[data-alseg] td{cursor:pointer}.al-ft tr.rep td{background:color-mix(in srgb,#ffd400 26%,transparent)}.al-ft tr.rep td.k::after{content:' 🔁';font-size:.8em}
 .zz-k{color:#2b63b0;font-weight:600}.zz-h{flex-basis:100%;font-weight:700;font-size:.88rem;margin:0 2px 2px}.zz-mine{background:color-mix(in srgb,#e0a21e 16%,transparent)}.zz-mine .zz-h{color:#a86d00}.zz-rec{background:color-mix(in srgb,#3b7dd8 12%,transparent)}.zz-rec .zz-h{color:#2b63b0}.zz-grp .zz-it{background:var(--surface)}.zz-it.on{border-color:var(--accent);font-weight:700}.zz-q{width:100%;margin-top:6px;padding:6px 8px;font-size:.95rem}.zz-bm{text-decoration:none;cursor:grab}
 .phone-only{display:none}@media (pointer:coarse){.phone-only{display:inline}}
 /* 곡연습: 악보는 늘 전체 폭 — 믹서 · 반복 마디는 악보 위에 (넓으면 여러 칸) */
@@ -1162,7 +1163,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-26 10:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-27 10:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -1794,7 +1795,7 @@ function ctUi(){const e=document.getElementById('ctCtl');if(!e)return;
 document.addEventListener('DOMContentLoaded',ctUi);
 /* ---------- 애드립: 곡연습에서 연 곡을 따라가며 — 키 · 지금 코드 → 다음 코드 · 노래 빈 곳(애드립 타이밍) · 지판에 코드톤과 착지 목표 ----------
    (다음 단계: 같은 화면에 마이크로 듣기) */
-var AL={rep:false,show:null,box:0,tg:3,key:'',cap:'',raf:0,gaps:[],gk:''};
+var AL={segLoop:-1,rep:false,show:null,box:0,tg:3,key:'',cap:'',raf:0,gaps:[],gk:''};
 try{const o=JSON.parse(localStorage.getItem('sg-al')||'{}');if(o.box!=null)AL.box=+o.box;if(o.tg)AL.tg=+o.tg}catch(e){}
 function alSave(){try{localStorage.setItem('sg-al',JSON.stringify({box:AL.box,tg:AL.tg}))}catch(e){}}
 function alSlot(t){const b=SG.song.beats;if(!b||b.length<2)return 0;let lo=0,hi=b.length-1;if(t<=b[0])return 0;if(t>=b[hi])return hi*4;
@@ -1866,7 +1867,7 @@ function alFlowRender(){const e=document.getElementById('alFlow');if(!e||!SG.son
   e.innerHTML=`<p class="al-flow-p">키 <b>${mi?nn(mod(key+9))+' 단조':nn(key)+' 장조'}</b> ${mi?'(도수는 '+nn(mod(key+9))+'m = i 기준)':''} ·
       <span class="fc fT">T 토닉</span><span class="fc fS">S 서브도미넌트</span><span class="fc fD">D 도미넌트</span><span class="fc fX">진행 밖</span><br>
       ${top.length?'자주 나오는 흐름: '+top.map(([k,n])=>'<b>'+k+'</b> ('+n+'번'+(NAMES[k]?' · '+NAMES[k]:'')+')').join(' · '):'반복되는 4코드 흐름은 뚜렷하지 않음'}</p>
-    <table class="al-ft">${AL.segs.map((sg,i)=>`<tr data-alseg="${i}" class="${sg.gap?'gap':''}"><td class="k">${esc(sg.kind)}<br><small>${Math.floor(sg.a/16)+1}~${Math.max(Math.floor(sg.a/16)+1,Math.ceil(sg.z/16))}마디</small></td><td>${fcs(sg.ch)||'<span class="mt">—</span>'}${sg.ly?'<div class="ly">'+esc(String(sg.ly).slice(0,40))+'</div>':''}</td></tr>`).join('')}</table>`}
+    <table class="al-ft">${AL.segs.map((sg,i)=>`<tr data-alseg="${i}" class="${sg.gap?'gap':''}${AL.segLoop===i?' rep':''}"><td class="k">${esc(sg.kind)}<br><small>${Math.floor(sg.a/16)+1}~${Math.max(Math.floor(sg.a/16)+1,Math.ceil(sg.z/16))}마디</small></td><td>${fcs(sg.ch)||'<span class="mt">—</span>'}${sg.ly?'<div class="ly">'+esc(String(sg.ly).slice(0,40))+'</div>':''}</td></tr>`).join('')}</table>`}
 function alRender(){const e=document.getElementById('alPanel');if(!e)return;
   if(!SG.song){e.innerHTML=`<div class="al-gap">곡연습 탭에서 곡을 먼저 여세요 — 그 곡을 따라가며 노래 빈 곳 · 지금 코드 · 착지할 음을 보여 줍니다. <button class="ghost sm" data-algo="song">곡연습으로</button></div>`;AL.show=null;return}
   const G=AL.gaps;
@@ -1875,8 +1876,7 @@ function alRender(){const e=document.getElementById('alPanel');if(!e)return;
     <div class="al-key" id="alKey"></div><div class="al-now" id="alNow"></div><div class="al-gap" id="alGap"></div>
     <div class="chips sc-pat"><span class="sc-lb">박스</span>${[0,1,2,3,4,5].map(k=>`<button class="chip" data-albox="${k}" aria-pressed="${AL.box===k}">${k?k:'전체'}</button>`).join('')}
       <span class="sc-lb" style="margin-left:10px">착지</span>${[[3,'3도'],[1,'근음'],[5,'5도']].map(([k,l])=>`<button class="chip" data-altg="${k}" aria-pressed="${AL.tg===k}">${l}</button>`).join('')}</div>
-    <div class="al-gaps" id="alGaps">${G.map((g,i)=>`<button class="chip" data-algap="${i}" title="${esc(g.next?'다음 가사: '+g.next.text:'')}">${g.kind} ${Math.floor(g.a/16)+1}마디 · ${((g.z-g.a)/4).toFixed(g.z-g.a<16?1:0)}박</button>`).join('')||'<span class="mt">가사 줄 정보가 없어 빈 곳을 찾지 못했습니다</span>'}</div>
-    <details class="al-flowd" id="alFlowD" open><summary><b>곡 흐름표</b> <span class="mt">구간마다 코드 진행 (도수 · 역할) — 줄을 누르면 그 자리로</span></summary><div id="alFlow"></div></details>
+    <details class="al-flowd" id="alFlowD" open><summary><b>곡 흐름표</b> <span class="mt">구간 이름을 누르면 거기부터 재생 · 코드 칸을 누르면 그 구간 반복 (한 번 더 누르면 멈춤)</span></summary><div id="alFlow"></div></details>
     <div class="al-ref" id="alRef"></div>
     <div class="ct-lg"><span><i style="border-color:#ff8a00"></i>지금 코드 근음</span><span><i style="border-color:#2e9d5b"></i>3도</span><span><i style="border-color:#3b7dd8"></i>5도</span><span><i style="border-color:#c0392b"></i>7도</span><span><i style="border-color:#ffd400;border-style:dashed"></i>다음 코드 착지음</span><span><i style="border-color:#ffd400;background:rgba(255,215,0,.3)"></i>애드립 중 착지음</span><span><i style="border-color:#a24bd6;background:rgba(162,75,214,.35)"></i>원곡 연주 (지금 소리)</span></div>`;
   {const r=document.getElementById('alRate');if(r)r.value=String(SG.rate)}
@@ -1907,7 +1907,11 @@ function alTick(force){
   AL.raf=requestAnimationFrame(()=>alTick(false))}
 function alOpen(){if(!SG.song){alRender();return}const gk=SG.song.title+'|'+(SG.song.lines||[]).length;if(AL.gk!==gk){AL.gk=gk;AL.gaps=alGaps()}alRender()}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b&&b.dataset.tab==='adlib')setTimeout(alOpen,0);
-  const tr=e.target.closest('#alFlow tr[data-alseg]');if(tr&&AL.segs){const sg=AL.segs[+tr.dataset.alseg];if(sg){sgSeek(Math.max(0,sgTime(sg.a)-0.05));setTimeout(()=>alTick(true),30)}return}
+  const tr=e.target.closest('#alFlow tr[data-alseg]');if(tr&&AL.segs){const i=+tr.dataset.alseg,sg=AL.segs[i];if(!sg)return;   /* 구간 이름 = 거기부터 재생 · 코드 칸 = 그 구간 반복 (다시 누르면 멈춤) */
+    const mark=()=>document.querySelectorAll('#alFlow tr[data-alseg]').forEach(r=>r.classList.toggle('rep',+r.dataset.alseg===AL.segLoop));
+    if(e.target.closest('td.k')){if(AL.segLoop>=0){AL.segLoop=-1;SG.seg=null;SG.loop=!!AL.loop0}mark();sgSeek(Math.max(0,sgTime(sg.a)-0.05));if(!SG.playing)sgPlay();setTimeout(()=>alTick(true),30);return}
+    if(AL.segLoop===i){AL.segLoop=-1;SG.seg=null;SG.loop=!!AL.loop0;sgPause();mark();setTimeout(()=>alTick(true),30);return}
+    if(!(AL.segLoop>=0))AL.loop0=SG.loop;AL.segLoop=i;SG.seg={a:sg.a,z:Math.max(sg.z,sg.a+16)};SG.loop=true;mark();sgSeek(Math.max(0,sgTime(sg.a)-0.05));if(!SG.playing)sgPlay();setTimeout(()=>alTick(true),30);return}
   const x=e.target.closest('#alPanel button');if(!x)return;const ds=x.dataset;
   if(ds.algo){document.querySelector('[data-tab="song"]')?.click();return}
   if(ds.alplay){if(SG.playing)sgPause();else{if(AL.rep&&AL.sel)SG.seg={a:Math.max(0,AL.sel.a-16),z:AL.sel.z+16};sgPlay()}setTimeout(()=>alTick(true),50);return}
