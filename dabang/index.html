@@ -360,6 +360,7 @@ body.bd-off #boardScroll,body.bd-off .board-bar,body.bd-off .legend{display:none
 .ce-bdc i{display:block;width:100%;background:#9aa3a8;border-radius:2px 2px 0 0}.ce-bdc.on i{background:#2e9e5b}.ce-bdc.bar{box-shadow:inset 2px 0 0 var(--fg,#333)}.ce-bdc.st{box-shadow:inset 3px 0 0 #1a73e8}
 .ce-bdc.now{outline:2px solid #ffd400;outline-offset:-1px;background:#fff3b0}.ce-bdb{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:4px 0}
 .al-ft tr[data-alseg] td{cursor:pointer}.al-ft tr.rep td{background:color-mix(in srgb,#ffd400 26%,transparent)}.al-ft tr.rep td.k::after{content:' 🔁';font-size:.8em}
+#alRef pre span.now{background:#ffd400!important;color:#111!important;border-radius:2px;box-shadow:0 0 0 2px #ffd400}
 .zz-k{color:#2b63b0;font-weight:600}.zz-h{flex-basis:100%;font-weight:700;font-size:.88rem;margin:0 2px 2px}.zz-mine{background:color-mix(in srgb,#e0a21e 16%,transparent)}.zz-mine .zz-h{color:#a86d00}.zz-rec{background:color-mix(in srgb,#3b7dd8 12%,transparent)}.zz-rec .zz-h{color:#2b63b0}.zz-grp .zz-it{background:var(--surface)}.zz-it.on{border-color:var(--accent);font-weight:700}.zz-q{width:100%;margin-top:6px;padding:6px 8px;font-size:.95rem}.zz-bm{text-decoration:none;cursor:grab}
 .phone-only{display:none}@media (pointer:coarse){.phone-only{display:inline}}
 /* 곡연습: 악보는 늘 전체 폭 — 믹서 · 반복 마디는 악보 위에 (넓으면 여러 칸) */
@@ -1163,7 +1164,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-27 10:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-27 10:40';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -1845,7 +1846,7 @@ function alRefRender(g){const e=document.getElementById('alRef');if(!e)return;
       const col=2+(sl-r0)*3+Math.floor((sl-r0)/16),c=chAt(sl),cn=c?c.name:'';if(cn&&cn!==prev&&cl.length<=col)cl=cl.padEnd(col)+cn;if(cn)prev=cn;
       const at=N.filter(n=>n.s===sl);for(let k=0;k<6;k++){const n=at.find(x=>x.i===5-k);if(!n){ln[k]+='---';continue}
         const f=String(n.f),cell=(f+'---').slice(0,3),d=role(c,n.p),cls='r'+d+(sl>=g.a&&sl<g.z?' in':'');
-        ln[k]+='<span class="'+cls+'">'+f+'</span>'+cell.slice(f.length)}}
+        ln[k]+='<span class="'+cls+'" data-s="'+sl+'">'+f+'</span>'+cell.slice(f.length)}}
     rows.push('   '+Array.from({length:Math.ceil((r1-r0)/16)},(_,j)=>String(Math.floor(r0/16)+1+j)+'마디').map(x=>x.padEnd(48+1)).join('')+'\n<span class="chl">'+esc(cl)+'</span>\n'+ln.map(x=>x+'|').join('\n'))}
   const P=SG.song.parts[AL.part],nIn=N.filter(n=>n.s>=g.a&&n.s<g.z).length;
   e.innerHTML=`<b>원곡 연주 참고</b> — ${esc(g.kind)} ${Math.floor(g.a/16)+1}~${Math.ceil(g.z/16)}마디
@@ -1903,6 +1904,9 @@ function alTick(force){
     else if(ng){const w=sec(ng.a);gp.className='al-gap'+(w<3?' soon':'');gp.innerHTML=`🎤 노래 중 — 다음 빈 곳(${ng.kind})까지 ${w.toFixed(1)}초`}
     else{gp.className='al-gap';gp.textContent='🎤 노래 중'}}
   if(AL.segs){const si=AL.segs.findIndex(sg=>slot>=sg.a&&slot<sg.z);if(si!==AL.segI){AL.segI=si;document.querySelectorAll('#alFlow tr[data-alseg]').forEach(r=>r.classList.toggle('cur',+r.dataset.alseg===si))}}
+  {const pre=document.querySelector('#alRef pre');if(pre){let cs=-1;pre.querySelectorAll('span[data-s]').forEach(x=>{const s0=+x.dataset.s;if(s0<=slot&&slot-s0<8&&s0>cs)cs=s0});   /* 원곡 연주 참고: 지금 치는 음 노랗게 · 화면 밖이면 옆으로 따라감 (위아래는 그대로) */
+    if(cs!==AL.refNowS){AL.refNowS=cs;pre.querySelectorAll('span.now').forEach(x=>x.classList.remove('now'));if(cs>=0){const xs=pre.querySelectorAll(`span[data-s="${cs}"]`);xs.forEach(x=>x.classList.add('now'));const sc=pre.scrollWidth>pre.clientWidth+2?pre:pre.parentElement;
+      if(xs[0]&&sc){const r=xs[0].getBoundingClientRect(),pr=sc.getBoundingClientRect();if(r.left<pr.left+24||r.right>pr.right-24)sc.scrollTo({left:sc.scrollLeft+r.left-pr.left-pr.width*0.3,behavior:'smooth'})}}}}}
   const pb=document.querySelector('[data-alplay]');if(pb)pb.textContent=SG.playing?'■ 정지':'▶ 재생';
   AL.raf=requestAnimationFrame(()=>alTick(false))}
 function alOpen(){if(!SG.song){alRender();return}const gk=SG.song.title+'|'+(SG.song.lines||[]).length;if(AL.gk!==gk){AL.gk=gk;AL.gaps=alGaps()}alRender()}
