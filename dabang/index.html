@@ -361,7 +361,7 @@ body.bd-off #boardScroll,body.bd-off .board-bar,body.bd-off .legend{display:none
 .ce-bdc.now{outline:2px solid #ffd400;outline-offset:-1px;background:#fff3b0}.ce-bdb{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:4px 0}
 .al-ft tr[data-alseg] td{cursor:pointer}.al-ft tr.rep td{background:color-mix(in srgb,#ffd400 26%,transparent)}.al-ft tr.rep td.k::after{content:' 🔁';font-size:.8em}
 #alRefTr .al-ref{margin:4px 0 0}#alRefTr td{background:none!important}
-#alRef pre{max-height:min(62vh,560px);overflow:auto}
+#alRef pre{max-height:min(62vh,560px);overflow:auto}#alRefTr td{max-width:0}#alRefTr .al-ref{width:calc(100vw - 48px);max-width:100%;box-sizing:border-box}@media (min-width:700px){#alRefTr .al-ref{width:auto}}#alRef pre{max-width:100%}
 #alRef .chip{font-size:.78rem;padding:2px 9px;min-height:0}
 #alRef pre span.now{background:#ffd400!important;color:#111!important;border-radius:2px;box-shadow:0 0 0 2px #ffd400}
 .zz-k{color:#2b63b0;font-weight:600}.zz-h{flex-basis:100%;font-weight:700;font-size:.88rem;margin:0 2px 2px}.zz-mine{background:color-mix(in srgb,#e0a21e 16%,transparent)}.zz-mine .zz-h{color:#a86d00}.zz-rec{background:color-mix(in srgb,#3b7dd8 12%,transparent)}.zz-rec .zz-h{color:#2b63b0}.zz-grp .zz-it{background:var(--surface)}.zz-it.on{border-color:var(--accent);font-weight:700}.zz-q{width:100%;margin-top:6px;padding:6px 8px;font-size:.95rem}.zz-bm{text-decoration:none;cursor:grab}
@@ -1167,7 +1167,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-27 14:00';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-27 14:30';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -1844,17 +1844,17 @@ function alRefRender(g){const e=document.getElementById('alRef');if(!e)return;
   const L=['e','B','G','D','A','E'],rows=[],C=SG.song.chords||[],key=mod(sgKey0()+sgPitchSemi());
   const chAt=sl=>{const k=alChordAt(sl);return k>=0?alInfo(C[k].name,key):null};
   const role=(c,p)=>{if(!c)return 'n';const x=mod(p-c.r);if(!c.iv.some(y=>mod(y)===x))return 'n';return x===0?'1':(x===3||x===4)?'3':(x>=6&&x<=8)?'5':(x>=9&&x<=11)?'7':'t'};
-  const BPR=Math.max(1,Math.min(4,VN.al||2));for(let r0=a0;r0<z0;r0+=16*BPR){const r1=Math.min(z0,r0+16*BPR),ln=L.map(x=>x+'|');let cl='  ',prev=null;
+  const NAR=(window.innerWidth||1000)<700,CW=NAR?2:3,BPR=Math.max(1,Math.min(NAR?2:4,VN.al||2));for(let r0=a0;r0<z0;r0+=16*BPR){const r1=Math.min(z0,r0+16*BPR),ln=L.map(x=>x+'|');let cl='  ',prev=null;
     for(let sl=r0;sl<r1;sl++){if(sl>r0&&sl%16===0){for(let k=0;k<6;k++)ln[k]+='|'}
-      const col=2+(sl-r0)*3+Math.floor((sl-r0)/16),c=chAt(sl),cn=c?c.name:'';if(cn&&cn!==prev&&cl.length<=col)cl=cl.padEnd(col)+cn;if(cn)prev=cn;
-      const at=N.filter(n=>n.s===sl);for(let k=0;k<6;k++){const n=at.find(x=>x.i===5-k);if(!n){ln[k]+='---';continue}
-        const f=String(n.f),cell=(f+'---').slice(0,3),d=role(c,n.p),cls='r'+d+(sl>=g.a&&sl<g.z?' in':'');
+      const col=2+(sl-r0)*CW+Math.floor((sl-r0)/16),c=chAt(sl),cn=c?c.name:'';if(cn&&cn!==prev&&cl.length<=col)cl=cl.padEnd(col)+cn;if(cn)prev=cn;
+      const at=N.filter(n=>n.s===sl);for(let k=0;k<6;k++){const n=at.find(x=>x.i===5-k);if(!n){ln[k]+='-'.repeat(CW);continue}
+        const f=String(n.f),cell=(f+'---').slice(0,Math.max(CW,f.length)),d=role(c,n.p),cls='r'+d+(sl>=g.a&&sl<g.z?' in':'');
         ln[k]+='<span class="'+cls+'" data-s="'+sl+'">'+f+'</span>'+cell.slice(f.length)}}
-    rows.push('   '+Array.from({length:Math.ceil((r1-r0)/16)},(_,j)=>String(Math.floor(r0/16)+1+j)+'마디').map(x=>x.padEnd(48+1)).join('')+'\n<span class="chl">'+esc(cl)+'</span>\n'+ln.map(x=>x+'|').join('\n'))}
+    rows.push('   '+Array.from({length:Math.ceil((r1-r0)/16)},(_,j)=>String(Math.floor(r0/16)+1+j)+'마디').map(x=>x.padEnd(16*CW+1)).join('')+'\n<span class="chl">'+esc(cl)+'</span>\n'+ln.map(x=>x+'|').join('\n'))}
   const P=SG.song.parts[AL.part],nIn=N.filter(n=>n.s>=g.a&&n.s<g.z).length;
   e.innerHTML=`<b>원곡 연주 참고</b> — ${esc(g.kind)} ${Math.floor(g.a/16)+1}~${Math.ceil(g.z/16)}마디
     ${ps.map(k=>`<button class="chip" data-alpart="${k}" aria-pressed="${AL.part===k}">${esc(String(SG.song.parts[k].name||k).replace(/ —.*/,''))}</button>`).join(' ')}
-    <span class="chips" style="display:inline-flex;gap:3px;margin:0 6px"><span class="sc-lb">한 줄</span>${[1,2,3,4].map(n=>`<button class="chip" data-alzoom="${n}" aria-pressed="${BPR===n}">${n}마디</button>`).join('')}</span><span class="mt">${nIn?'빈 곳 안 '+nIn+'음 (노란 칸)':'이 빈 곳에서는 이 악기 연주가 거의 없음'}${P.kind==='harmonica'?' · 하모니카 멜로디(가장 높은 음)를 고른 박스 근처 기타 자리로':''}${sgPitchSemi()?' · 조옮김 반영':''}</span>
+    <span class="chips" style="display:inline-flex;gap:3px;margin:0 6px"><span class="sc-lb">한 줄</span>${(NAR?[1,2]:[1,2,3,4]).map(n=>`<button class="chip" data-alzoom="${n}" aria-pressed="${BPR===n}">${n}마디</button>`).join('')}</span><span class="mt">${nIn?'빈 곳 안 '+nIn+'음 (노란 칸)':'이 빈 곳에서는 이 악기 연주가 거의 없음'}${P.kind==='harmonica'?' · 하모니카 멜로디(가장 높은 음)를 고른 박스 근처 기타 자리로':''}${sgPitchSemi()?' · 조옮김 반영':''}</span>
     <div class="ct-lg" style="margin-top:4px"><span class="r1">■ 근음</span><span class="r3">■ 3도</span><span class="r5">■ 5도</span><span class="r7">■ 7도</span><span class="rt">■ 텐션(9 · sus)</span><span class="rn">■ 코드 밖 음</span><span><span class="in">&nbsp;노란 바탕&nbsp;</span> = 빈 곳</span><span class="mt">· 맨 윗줄 = 그 자리 코드</span></div><pre class="vnfit">${rows.join(String.fromCharCode(10,10))}</pre>`;if(!e._vn){e._vn=1;vnPinch(e);const us=()=>{const p2=e.querySelector('pre');if(p2)p2._user=performance.now()+4000};e.addEventListener('wheel',us,{passive:true});e.addEventListener('touchstart',us,{passive:true})}
   {const row=AL.refRow>=0?document.querySelector(`#alFlow tr[data-alseg="${AL.refRow}"]`):null;let rt=document.getElementById('alRefTr');   /* 곡 흐름표에서 고른 구간 바로 아래에 */
     if(row){if(!rt){rt=document.createElement('tr');rt.id='alRefTr';rt.innerHTML='<td colspan="2" style="padding:0 0 8px"></td>'}if(row.nextSibling!==rt)row.after(rt);if(e.parentNode!==rt.firstChild)rt.firstChild.appendChild(e)}}
