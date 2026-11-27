@@ -1164,7 +1164,7 @@ const cname=(r,qi,bass,omit5)=>nn(r)+Q[qi].s+(omit5?'(no5)':'')+(bass!=null&&bas
 let actx=null;
 /* iOS(아이패드 · 아이폰): 무음 모드에서는 웹 오디오 소리가 꺼짐 (조율기에서 마이크를 켜면 '녹음+재생' 모드라 소리가 났던 것)
    → 처음 누를 때 소리 방식을 '재생'(무음 스위치와 상관없이)으로: iPadOS 16.4+ 는 audioSession, 그 전은 무음 소리 파일을 한 번 재생 */
-const APP_VER='2026-11-27 10:40';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
+const APP_VER='2026-11-27 11:30';   /* 앱 판 (아이패드 등에서 새 판인지 확인용) */
 let audioUnlocked=false;
 function audioUnlock(){
   const mic=(typeof TU!=='undefined'&&TU.on)||(typeof st!=='undefined'&&st.tab==='tune');   /* 조율기: 마이크엔 '녹음+재생'이 필요 */
@@ -4157,6 +4157,7 @@ function ceRhyPlace(){
       if(sv&&Array.isArray(sv[li])&&L.lw)L.lw=sv[li].map(x=>({w:x[0],s:x[1]}));ceRhyEval(L);L.nl=L.chords.map(c=>c.len).join(' ')});
     ceApplyRhyLyrics();return}
   R.lines=R.lines.filter(L=>!L.rep);   /* 다시 맞출 때는 되풀이해 넣은 줄 빼고 */
+  R.lines.forEach(L=>{if(L.trim&&L.full){L.chords=L.full.map(c=>({...c}));L.nl=L.chords.map(c=>c.len).join(' ')}L.full=null;L.trim=false;L.gone=false});   /* 다시 맞출 때: 줄였던 연주 줄 원래대로 */
   R.lines.forEach(L=>{if(L.sc&&L.sc!==1){L.chords.forEach(c=>c.len/=L.sc);L.nl=L.chords.map(c=>c.len).join(' ')}L.sc=0});
   R.lines.forEach(L=>{if(L.half){L.chords.forEach(c=>c.len*=2);L.nl=L.chords.map(c=>c.len).join(' ');L.half=false}});   /* 다시 맞출 때는 원래 숫자로 */
   ceRhyScore();const D=CE.D,tot=CE.song.bars*16;
@@ -4275,7 +4276,7 @@ function ceRhyPlace(){
       const ord=R.lines.map((L,i)=>i).sort((a,b)=>R.pos[a]-R.pos[b]);R.lines=ord.map(i=>R.lines[i]);R.pos=ord.map(i=>R.pos[i])}}
   R.mv=null;{const m=(CE.mvMem&&CE.mvMem.file===R.file&&CE.mvMem.m)||(CE.rec&&CE.rec.rhyFile===R.file&&CE.rec.rhyMv)||null;   /* 경계 자세히에서 옮긴 노래 줄 */
     if(m&&R.pos){R.mv={};Object.keys(m).map(Number).sort((a,b)=>a-b).forEach(li=>{const d=+m[li];if(!d||!R.lines[li])return;R.mv[li]=d;const k=R.k||2,len=L=>L.chords.reduce((a,c)=>a+c.len,0)*k;
-      let e=R.pos[li]*16+len(R.lines[li]);for(let j=li;j<R.lines.length;j++){if(j>li&&(!R.lines[j].ly||R.pos[j]*16-e>=4))break;e=R.pos[j]*16+len(R.lines[j]);R.pos[j]+=d/16}})}}
+      let e=R.pos[li]*16+len(R.lines[li]);for(let j=li;j<R.lines.length;j++){if(j>li&&(!R.lines[j].ly||R.pos[j]*16-e>=4))break;e=R.pos[j]*16+len(R.lines[j]);R.pos[j]+=d/16}});ceRhyTrim(R)}}
   const same=CE.rec&&(CE.rec.rhyFile?CE.rec.rhyFile===R.file&&(R.auto||CE.rec.rhyPos===(R.k+':'+(R.pos||[R.st]).join(','))):false),sv=(same&&CE.rec.rhyLy)||null,sc=(same&&CE.rec.rhyCh)||null;   /* 같은 리듬악보일 때만 */
   R.lines.forEach((L,i)=>{L.s=(R.pos?R.pos[i]*16:R.st+L.u0*R.k);L.e=L.s+L.chords.reduce((a,c)=>a+c.len,0)*R.k;
     let p=L.s;L.chords.forEach(c=>{c.s=p;c.e=p+c.len*R.k;const a=at(Math.max(0,Math.min(tot-1,p+Math.floor(c.len*R.k/2))));c.audio=a?a.name:'';c.sim=a?scSim(ceRK(a.name),chAlias(c.n)):-1;p=c.e})});
@@ -4337,10 +4338,10 @@ function ceRhySheet(R,fmt,cls){
   const at=sl=>{let c=null;for(const x of D){if(x.s<=sl)c=x;else break}return c};
   const blocks=[];
   /* 1. 리듬악보 묶음 */
-  R.lines.forEach(L=>{const idx=[];L.cl.replace(/[^\s|]+/g,(m,i)=>{idx.push(i);return m});
+  R.lines.forEach(L=>{if(L.gone)return;const idx=[];L.cl.replace(/[^\s|]+/g,(m,i)=>{idx.push(i);return m});
     blocks.push({s:L.s,e:L.e,L,idx,label:L.ly?'':(L.label||kindAt(Math.max(0,Math.floor((L.s+L.e)/32)))||'연주')})});
   /* 2. 리듬악보가 덮지 않는 노래 없는 구간 → 음원 분석 코드로 (4마디씩) */
-  const cov=new Set();R.lines.forEach(L=>{for(let b=Math.floor(Math.max(0,L.s)/16);b<Math.ceil(Math.min(tot,L.e)/16);b++)cov.add(b)});
+  const cov=new Set();R.lines.forEach(L=>{if(L.gone)return;for(let b=Math.floor(Math.max(0,L.s)/16);b<Math.ceil(Math.min(tot,L.e)/16);b++)cov.add(b)});
   let run=null;const flush=()=>{if(!run)return;const a=run.a*16,e=(run.b+1)*16,pts=[];const c0=at(a);if(c0)pts.push({s:a,name:c0.name});
     D.filter(x=>x.s>a&&x.s<e).forEach(x=>{const q=Math.round(x.s/2)*2,l=pts[pts.length-1];if(l&&l.name===x.name)return;if(l&&q<=l.s){if(q>=e)return;l.name=x.name;return}if(q<e)pts.push({s:q,name:x.name})});   /* 8분음표 칸에 맞춤 (숫자가 4.5 처럼 나오지 않게) · 같은 코드가 이어지면 하나로 */   /* 같은 코드가 이어지면 하나로 */
     if(pts.length&&pts[0].s>a)pts[0].s=a;   /* 곡 맨 앞처럼 코드가 없는 자리는 첫 코드로 채움 (길이 숫자가 묶음 길이와 맞게) */
@@ -4396,10 +4397,20 @@ function ceBdHTML(blocks,bi){const B=blocks[bi],A=blocks[bi-1],R=CE.rhy,s=CE.son
   <span class="mt">노래 줄 옮기기</span>${[[-16,'◀ 1마디'],[-4,'◀ 1박'],[-2,'◀ ½박'],[2,'½박 ▶'],[4,'1박 ▶'],[16,'1마디 ▶']].map(([d,t])=>`<button class="ghost sm" data-cemv="${li}" data-d="${d}">${t}</button>`).join('')}${near!=null&&dB?`<button class="ghost sm" data-cemv="${li}" data-d="${Math.round((near-b0)/2)*2}">🎤 소리 시작에 맞춤</button>`:''}${mv?`<button class="ghost sm" data-cemv="${li}" data-d="${-mv}">되돌리기</button>`:''}</div>
   <div class="mt">칸 = 8분음표 · 막대 = 노래 트랙 소리(초록 = 노래) · 🎵 리듬악보 줄 시작 · 🎤 노래 소리 시작 · 칸을 누르면 거기부터 들림</div></details>`}
 /* 노래 줄 옮기기: 이 줄 + 바로 붙어 이어지는 노래 줄들 (사이가 떨어진 줄 · 전주 · 간주는 그대로) */
+/* 노래 줄을 앞으로 당겨 앞의 연주 줄(전주 · 간주)과 겹치면: 연주 줄을 그만큼 줄임 · 다 덮이면 뺌 (원래 길이는 L.full 에 두고 매번 그것으로 다시) */
+function ceRhyTrim(R){if(!R||!R.pos)return;const k=R.k||2;
+  R.lines.forEach((L,i)=>{if(L.ly)return;if(!L.full)L.full=L.chords.map(c=>({n:c.n,len:c.len,ly:c.ly||''}));L.gone=false;
+    let nx=null;for(let j=i+1;j<R.lines.length;j++)if(R.pos[j]!=null){nx=j;break}
+    const full=L.full.reduce((a,c)=>a+c.len,0),room=nx==null||R.pos[i]==null?full:Math.floor((R.pos[nx]-R.pos[i])*16/k);
+    if(room>=full){if(L.trim){L.chords=L.full.map(c=>({...c}));L.nl=L.chords.map(c=>c.len).join(' ');L.trim=false}return}
+    if(room<=0){L.gone=true;L.trim=true;return}
+    let u=0;const cs=[];for(const c of L.full){if(u>=room)break;cs.push({...c,len:Math.min(c.len,room-u)});u+=c.len}
+    L.chords=cs;L.nl=cs.map(c=>c.len).join(' ');L.trim=true;
+    if(L.s!=null){L.e=L.s+room*k;let q=L.s;L.chords.forEach(c=>{c.s=q;c.e=q+c.len*k;q=c.e})}})}
 function ceRhyMove(li,d){const R=CE.rhy;if(!R||!d||!R.lines[li])return;R.mv=R.mv||{};
   let e=R.lines[li].e;for(let j=li;j<R.lines.length;j++){const L=R.lines[j];if(j>li&&(!L.ly||L.s-e>=4))break;e=L.e;
     L.s+=d;L.e+=d;L.chords.forEach(c=>{c.s+=d;c.e+=d});if(L.lw)L.lw.forEach(w=>w.s+=d);if(R.pos)R.pos[j]+=d/16;try{ceRhyEval(L)}catch(er){}}
-  R.mv[li]=(R.mv[li]||0)+d;if(!R.mv[li])delete R.mv[li];CE.mvMem={file:R.file,m:{...R.mv}};(CE.bdOpen=CE.bdOpen||new Set()).add(li);
+  R.mv[li]=(R.mv[li]||0)+d;if(!R.mv[li])delete R.mv[li];CE.mvMem={file:R.file,m:{...R.mv}};ceRhyTrim(R);(CE.bdOpen=CE.bdOpen||new Set()).add(li);
   ceApplyRhyLyrics();const y=window.scrollY;ceRender();window.scrollTo(0,y)}
 document.addEventListener('toggle',e=>{const d=e.target;if(!d.classList||!d.classList.contains('ce-bd'))return;CE.bdOpen=CE.bdOpen||new Set();const li=+d.dataset.bdli;if(d.open)CE.bdOpen.add(li);else CE.bdOpen.delete(li)},true);
 function ceRhyText(){if(!CE.rhy)return '';const d=document.createElement('div');d.innerHTML=ceRhyHtml(true);
